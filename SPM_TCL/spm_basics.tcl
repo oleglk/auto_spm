@@ -1,4 +1,5 @@
-# spm_try.tcl
+# spm_basics.tcl  - basic procedures for automating StereoPhotoMaker
+
 # Assumes option 'Startup with its window maximised'
 # Assumes option 'Do not save report files'
 
