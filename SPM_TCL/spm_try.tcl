@@ -2,7 +2,7 @@
 # Assumes option 'Startup with its window maximised'
 # Assumes option 'Do not save report files'
 
-# set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}]
+set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
 
 package require twapi;  #  TODO: check errors
 
@@ -112,21 +112,50 @@ proc ::spm::verify_current_window_by_title {title {loud 1}}  {
 }
 
 
-proc ::spm::cmd__open_multi_conversion {} {
+proc spm::cmd__open_multi_conversion {} {
   set descr [lindex [info level 0] 0]
-  return  [expr { [_send_cmd_keys {{MENU}fmm{ENTER}} $descr] && \
+  _send_cmd_keys {{MENU}f} $descr
+  after 1000
+  return  [expr { [_send_cmd_keys {mm{ENTER}} $descr] && \
                   [verify_current_window_by_title "Multi Conversion"] }]
 }
 
 
 proc ::spm::_send_cmd_keys {keySeqStr descr} {
-  if { 1 == [focus_singleton $descr] }  {
-    after 500
-    twapi::send_keys $keySeqStr
-    after 200; # avoid an access denied error.
+  set descr "sending key-sequence {$keySeqStr} for '$descr'"
+  set subSeqList [_split_key_seq_at_alt $keySeqStr]
+  if { 1 == [focus_singleton "focus for $descr"] }  {
+    after 1000
+    if { 0 == [llength $subSeqList] }   {
+      twapi::send_keys $keySeqStr
+     } else {
+      foreach subSeq $subSeqList  {
+        twapi::send_keys {{MENU}}
+        after 1000;  # wait A LOT after ALT
+        twapi::send_keys $subSeq
+      }
+     }
+    after 200; # avoid an access denied error
     puts "-I- Success $descr";      return  1
   }
   puts "-E- Cannot $descr";         return  0
+}
+
+
+# Returns list of subsequences that follow occurences of {MENU}/{ALT}
+# In the case of no occurences of {MENU}/{ALT}, returns empty list
+proc ::spm::_split_key_seq_at_alt {keySeqStr} {
+  # the idea:  set list [split [string map [list $substring $splitchar] $string] $splitchar]
+  set tmp [string map {\{MENU\} \uFFFF  \{ALT\} \uFFFF} $keySeqStr]
+  if { [string equal $tmp $keySeqStr] }   {
+    return  [list];   # no occurences of {MENU}/{ALT}
+  }
+  set tmpList [split $tmp \uFFFF];  # may have empty elements
+  set subSeqList [list]
+  foreach el $tmpList {
+    if { $el != "" }  { lappend subSeqList $el }
+  }
+  return  $subSeqList
 }
 
 
