@@ -113,12 +113,27 @@ proc ::spm::verify_current_window_by_title {title {loud 1}}  {
 }
 
 
+proc spm::cmd__maximize_current_window {} {
+  set descr [lindex [info level 0] 0]
+  _open_menu_top_level "{SPACE}" $descr
+  return  [expr { [_send_cmd_keys {x} $descr] }]
+}
+
+
 proc spm::cmd__open_multi_conversion {} {
   set descr [lindex [info level 0] 0]
-  _send_cmd_keys {{MENU}f} $descr
-  after 1000
+  # _send_cmd_keys {{MENU}f} $descr
+  _open_menu_top_level "f" $descr
   return  [expr { [_send_cmd_keys {mm{ENTER}} $descr] && \
                   [verify_current_window_by_title "Multi Conversion"] }]
+}
+
+
+# Safely opens 1st level of the menu for key 'oneKey'
+proc spm::_open_menu_top_level {oneKey descr} {
+  set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr]
+  after 1000
+  return  $res
 }
 
 
