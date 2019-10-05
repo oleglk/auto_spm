@@ -4,7 +4,7 @@
 # Assumes option 'Do not save report files'
 
 #set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
-set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
+#set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
 package require twapi;  #  TODO: check errors
 
@@ -63,7 +63,7 @@ proc ::spm::quit_singleton {}  {
   if { ![verify_singleton_running $descr] }  {
     return  1;  # OK; warning already printed
   }
-  if { 1 == [focus_singleton] }  {
+  if { 1 == [focus_singleton "::spm::quit_singleton"] }  {
     twapi::send_keys {{MENU}fx};  # choose "exit" in "file" menu
     after 200; # avoid an access denied error.
     puts "-I- Success $descr"
@@ -73,15 +73,18 @@ proc ::spm::quit_singleton {}  {
 }
 
 
-proc ::spm::focus_singleton {{context ""}}  {
+# If 'targetHwnd' given, focuses it; otherwise focuses the root SPM window
+proc ::spm::focus_singleton {context {targetHwnd 0}}  {
   variable HWND;      # window handle of StereoPhotoMaker
   set descr [expr {($context != "")? $context : \
                                 "giving focus to StereoPhotoMaker instance"}]
   if { ![verify_singleton_running $descr] }  {
     return  0;  # warning already printed
   }
-  twapi::set_focus $HWND
-  if { $HWND == [twapi::get_foreground_window] }  {
+  if { $targetHwnd == 0 }  {    set targetHwnd $HWND  }
+  twapi::set_focus $targetHwnd
+  after 200
+  if { $targetHwnd == [twapi::get_foreground_window] }  {
     puts "-I- Success $descr";    return  1
   } else {
     puts "-E- Failed $descr";     return  0
@@ -115,33 +118,57 @@ proc ::spm::verify_current_window_by_title {title {loud 1}}  {
 
 
 proc spm::cmd__maximize_current_window {} {
+  set h [twapi::get_foreground_window]
+  # can be child- or top window
   set descr [lindex [info level 0] 0]
-  _open_menu_top_level "{SPACE}" $descr
-  return  [expr { [_send_cmd_keys {x} $descr] }]
+  if { 1 == [focus_singleton "focus for $descr" $h] }  {
+    if { 0 != [_send_cmd_keys "{MENU}{SPACE}" $descr $h] }  {
+      return  [expr { [_send_cmd_keys {x} $descr 0] }]
+    }
+  }
+  return  0;  # error already printed
 }
 
 
+# Returns handle of resulting window or 0 on error.
 proc spm::cmd__open_multi_conversion {} {
+  variable HWND;      # window handle of StereoPhotoMaker
   set descr [lindex [info level 0] 0]
-  # _send_cmd_keys {{MENU}f} $descr
+  #twapi::block_input
+  # _send_cmd_keys {{MENU}f} $descr $HWND
   _open_menu_top_level "f" $descr
-  return  [expr { [_send_cmd_keys {mm{ENTER}} $descr] && \
-                  [verify_current_window_by_title "Multi Conversion"] }]
+  if { (0 == [set h [_send_cmd_keys {{m 2}{ENTER}} $descr 0]]) ||  \
+       (0 == [verify_current_window_by_title "Multi Conversion"]) }  {
+    #twapi::unblock_input
+    return  0;  # error already printed
+  }
+  if { 0 == [cmd__maximize_current_window] }  {
+    #twapi::unblock_input
+    return  0;  # error already printed
+  }
+  #twapi::unblock_input
+  return  $h
 }
 
 
 # Safely opens 1st level of the menu for key 'oneKey'
 proc spm::_open_menu_top_level {oneKey descr} {
-  set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr]
-  after 1000
+  variable HWND;      # window handle of StereoPhotoMaker
+  ## TODO: ??? ENSURE CHILD-WINDOWS CLOSED BY PRESSING {ESC} UNTILL TOP ???
+  set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr $HWND]
+  after 2000
   return  $res
 }
 
 
-proc ::spm::_send_cmd_keys {keySeqStr descr} {
+# Sends given keys while taking care of occurences of {MENU}.
+# If 'targetHwnd' given, first focuses this window
+# Returns handle of resulting window or 0 on error.
+proc ::spm::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
   set descr "sending key-sequence {$keySeqStr} for '$descr'"
   set subSeqList [_split_key_seq_at_alt $keySeqStr]
-  if { 1 == [focus_singleton "focus for $descr"] }  {
+  if { ($targetHwnd == 0) || \
+        (1 == [focus_singleton "focus for $descr" $targetHwnd]) }  {
     after 1000
     if { 0 == [llength $subSeqList] }   {
       twapi::send_keys $keySeqStr
@@ -153,7 +180,7 @@ proc ::spm::_send_cmd_keys {keySeqStr descr} {
       }
      }
     after 200; # avoid an access denied error
-    puts "-I- Success $descr";      return  1
+    puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";         return  0
 }
