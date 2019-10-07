@@ -156,7 +156,10 @@ proc spm::_open_menu_top_level {oneKey descr} {
   variable HWND;      # window handle of StereoPhotoMaker
   ## TODO: ??? ENSURE CHILD-WINDOWS CLOSED BY PRESSING {ESC} UNTILL TOP ???
   set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr $HWND]
-  after 2000
+  #~ if { 1 == [set res [focus_singleton "focus for $descr" $HWND]] }  {
+    #~ _send_timed_keys_list [list {MENU} [format "%s" $oneKey]] 2000
+    #~ after 2000
+  #~ }
   return  $res
 }
 
@@ -183,6 +186,21 @@ proc ::spm::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
     puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";         return  0
+}
+
+
+# Sends given keys while taking care of occurences of {MENU}.
+# If 'targetHwnd' given, first focuses this window
+# Returns handle of resulting window or 0 on error.
+proc ::spm::_send_timed_keys_list {keysList descr {intervalMiliSec 0}} {
+  set descr "sending keys-list {$keysList} with interval $intervalMiliSec msec for '$descr'"
+  foreach k $keysList {
+    twapi::send_keys [list $k]
+    if { $intervalMiliSec != 0 }    {
+      after $intervalMiliSec
+    }
+  }
+  puts "-I- Done $descr"
 }
 
 
