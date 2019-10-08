@@ -155,11 +155,14 @@ proc spm::cmd__open_multi_conversion {} {
 proc spm::_open_menu_top_level {oneKey descr} {
   variable HWND;      # window handle of StereoPhotoMaker
   ## TODO: ??? ENSURE CHILD-WINDOWS CLOSED BY PRESSING {ESC} UNTILL TOP ???
-  set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr $HWND]
-  #~ if { 1 == [set res [focus_singleton "focus for $descr" $HWND]] }  {
-    #~ _send_timed_keys_list [list {MENU} [format "%s" $oneKey]] 2000
-    #~ after 2000
-  #~ }
+  ######set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr $HWND]
+  if { 1 == [set res [focus_singleton "focus for $descr" $HWND]] }  {
+    #### _send_timed_keys_list [list {MENU} [format "%s" $oneKey]] 2000
+    twapi::send_keys {{MENU}}
+    after 2000;  # wait A LOT after ALT
+    twapi::send_keys [list $oneKey]
+    after 1000
+  }
   return  $res
 }
 
