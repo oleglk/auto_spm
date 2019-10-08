@@ -3,8 +3,8 @@
 # Assumes option 'Startup with its window maximised'
 # Assumes option 'Do not save report files'
 
-#set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
-#set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
+#  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
+#  set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
 package require twapi;  #  TODO: check errors
 
@@ -81,10 +81,15 @@ proc ::spm::focus_singleton {context {targetHwnd 0}}  {
   if { ![verify_singleton_running $descr] }  {
     return  0;  # warning already printed
   }
-  if { $targetHwnd == 0 }  {    set targetHwnd $HWND  }
+  if { $targetHwnd == 0 }  {
+    set targetHwnd $HWND;   set explicitTarget 0
+  } else {                  set explicitTarget 1 }
   twapi::set_focus $targetHwnd
   after 200
-  if { $targetHwnd == [twapi::get_foreground_window] }  {
+  set isOK [expr { ($explicitTarget == 1)? \
+                        ($targetHwnd == [twapi::get_foreground_window])   : \
+                        (1 == [is_current_window_spm]) }]
+  if { $isOK == 1 }  {
     puts "-I- Success $descr";    return  1
   } else {
     puts "-E- Failed $descr";     return  0
@@ -117,7 +122,24 @@ proc ::spm::verify_current_window_by_title {title {loud 1}}  {
 }
 
 
-proc spm::cmd__maximize_current_window {} {
+# Returns 1 if the current foreground window is SPM-top or its descendant
+proc ::spm::is_current_window_spm {} {
+  variable HWND;      # window handle of StereoPhotoMaker
+  set descr [lindex [info level 0] 0]
+  if { ![verify_singleton_running $descr] }  {
+    return  0;  # warning already printed
+  }
+  set h [twapi::get_foreground_window]
+  # can be child- or top window; go up until top reached
+  while { ($h != "") && ($h != $HWND) }    {
+    set h [twapi::get_parent_window $h]
+  }
+  puts "-D- ending is_current_window_spm with handle '$h' (HWND == '$HWND')"
+  return  [expr {$h == $HWND}]
+}
+
+
+proc ::spm::cmd__maximize_current_window {} {
   set h [twapi::get_foreground_window]
   # can be child- or top window
   set descr [lindex [info level 0] 0]
@@ -127,6 +149,27 @@ proc spm::cmd__maximize_current_window {} {
     }
   }
   return  0;  # error already printed
+}
+
+
+proc spm::cmd__return_to_top {} {
+  variable HWND;      # window handle of StereoPhotoMaker
+  set descr "reach SPM top";  # [lindex [info level 0] 0]
+  if { 0 == [focus_singleton "focus to $descr" 0] }  {
+    return  0;  # warning already printed
+  }
+  set nAttempts 30
+  for {set i 1} {$i <= $nAttempts} {incr i 1}  {
+    if { $HWND == [set h [twapi::get_foreground_window]] }   {
+      puts "-I- Success to $descr after $i hit(s) of ESCAPE"
+      return  1
+    }
+    puts "-I- Pressing ESCAPE ($i of $nAttempts) to $descr"
+    twapi::send_keys {{ESCAPE}}
+    after 2000;  # wait A LOT after ESCAPE
+  }
+  puts "-E- Failed to $descr after $nAttempts hit(s) of ESCAPE"
+  return  0
 }
 
 
