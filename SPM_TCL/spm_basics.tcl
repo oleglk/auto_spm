@@ -132,6 +132,7 @@ proc ::spm::is_current_window_spm {} {
   set h [twapi::get_foreground_window]
   # can be child- or top window; go up until top reached
   while { ($h != "") && ($h != $HWND) }    {
+    puts "-D- $descr passed window $h"
     set h [twapi::get_parent_window $h]
   }
   puts "-D- ending is_current_window_spm with handle '$h' (HWND == '$HWND')"
@@ -173,32 +174,34 @@ proc spm::cmd__return_to_top {} {
 }
 
 
-# Returns handle of resulting window or 0 on error.
+# Returns handle of resulting window or "" on error.
 proc spm::cmd__open_multi_conversion {} {
   variable HWND;      # window handle of StereoPhotoMaker
   set descr [lindex [info level 0] 0]
   #twapi::block_input
   # _send_cmd_keys {{MENU}f} $descr $HWND
-  _open_menu_top_level "f" $descr
-  if { (0 == [set h [_send_cmd_keys {{m 2}{ENTER}} $descr 0]]) ||  \
-       (0 == [verify_current_window_by_title "Multi Conversion"]) }  {
+  _open_menu_top_level "f" $descr;  # TODO: VERIFY SUCCESS"
+  if { 0 == [_travel_meny_hierarchy {{m 2}{ENTER}} \
+                                      $descr "Multi Conversion"] }  {
     #twapi::unblock_input
-    return  0;  # error already printed
+    return  "";  # error already printed
   }
   if { 0 == [cmd__maximize_current_window] }  {
     #twapi::unblock_input
-    return  0;  # error already printed
+    return  "";  # error already printed
   }
   #twapi::unblock_input
-  return  $h
+  return  [twapi::get_foreground_window]
 }
 
+
+###################### Begin: subtask utilities ################################
 
 # Safely opens 1st level of the menu for key 'oneKey'
 proc spm::_open_menu_top_level {oneKey descr} {
   variable HWND;      # window handle of StereoPhotoMaker
   ## TODO: ??? ENSURE CHILD-WINDOWS CLOSED BY PRESSING {ESC} UNTILL TOP ???
-  ######set res [_send_cmd_keys [format "{MENU}%s" $oneKey] $descr $HWND]
+  ######set res [44 [format "{MENU}%s" $oneKey] $descr $HWND]
   if { 1 == [set res [focus_singleton "focus for $descr" $HWND]] }  {
     #### _send_timed_keys_list [list {MENU} [format "%s" $oneKey]] 2000
     twapi::send_keys {{MENU}}
@@ -208,6 +211,51 @@ proc spm::_open_menu_top_level {oneKey descr} {
   }
   return  $res
 }
+
+
+# Sends menu shortcut keys to travel pre-open menu
+# Returns handle of resulting window or "" on error.
+proc  ::spm::_travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
+  if { ("" == [set h [_send_cmd_keys $keySeqStr $descr 0]]) }  {
+    return  "";  # error already printed
+  }
+  if { $targetWndTitle == "" }  { return  $h }; # done; no verification requested
+  set h [_wait_for_window_title_to_raise "Multi Conversion"]
+  puts "-D- Key sequence '$keySeqStr' lead to window '[twapi::get_window_text $h]'"
+  return  $h
+}
+
+
+# Waits with active polling
+proc ::spm::_wait_for_window_title_to_raise {titleStr}  {
+  return  [_wait_for_window_title_to_raise__configurable $titleStr 500 5000]
+}
+
+
+# Waits with active polling - configurable
+# Returns handle of resulting window or "" on error.
+proc ::spm::_wait_for_window_title_to_raise__configurable { \
+                                        titleStr pollPeriodMsec maxWaitMsec}  {
+  if { $titleStr == "" }  {
+    puts "-E- No title provided for [lindex [info level 0] 0]";   return  ""
+  }
+  set nAttempts [expr {int( ceil(1.0 * $maxWaitMsec / $pollPeriodMsec) )}]
+  if { $nAttempts == 0 }  { set nAttempts 1 }
+  ### after 2000 ;  # unfortunetly need to wait
+  for {set i 1} {$i <= $nAttempts} {incr i 1}   {
+    if { 1 == [verify_current_window_by_title $titleStr] }  {
+      set h [twapi::get_foreground_window]
+      if { ($h != "") && (1 == [twapi::window_visible $h]) }  {
+        puts "-I- Window '$titleStr' did appear after [expr {$i * $pollPeriodMsec}] msec"
+        return  $h
+      }
+    }
+    after $pollPeriodMsec
+  }
+  puts "-E- Window '$titleStr' did not appear after [expr {$nAttempts * $pollPeriodMsec}] msec"
+  return  ""
+}
+
 
 
 # Sends given keys while taking care of occurences of {MENU}.
@@ -265,6 +313,7 @@ proc ::spm::_split_key_seq_at_alt {keySeqStr} {
   }
   return  $subSeqList
 }
+######################   End: subtask utilities ################################
 
 
 proc ::spm::align_all {}  {
