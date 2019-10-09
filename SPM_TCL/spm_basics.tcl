@@ -18,7 +18,8 @@ namespace eval ::spm:: {
   variable SPM_TITLE  "StereoPhoto Maker"
   
   variable PID 0;       # pid of the singletone instance of StereoPhotoMaker
-  variable HWND 0;      # window handle of StereoPhotoMaker
+  variable HWND 0;      # TOP-LEVEL window handle of StereoPhotoMaker
+  variable LATEST_SPM_WND 0; # latest StereoPhotoMaker active window handle - top or child
   variable WA_ROOT "";  # work-area root directory
 
   
@@ -30,7 +31,7 @@ namespace eval ::spm:: {
 
 proc ::spm::start_singleton {{workarea_rootdir ""}}  {
   variable PID
-  variable HWND
+  variable HWND;  variable LATEST_SPM_WND
   variable WA_ROOT
   variable SPM_TITLE
   if { $workarea_rootdir != "" }  {
@@ -49,7 +50,9 @@ proc ::spm::start_singleton {{workarea_rootdir ""}}  {
   set wndDescr "locating main window of StereoPhotoMaker"
   if { 0 < [set HWND [twapi::find_windows -text "$SPM_TITLE" \
                               -toplevel 1 -visible 1 -single]]  }  {
-    puts "-I- Success $wndDescr" } else {
+    puts "-I- Success $wndDescr"
+    set LATEST_SPM_WND $HWND
+  } else {
     puts "-E- Failed $wndDescr";  return  0
   }
 
@@ -59,6 +62,7 @@ proc ::spm::start_singleton {{workarea_rootdir ""}}  {
 proc ::spm::quit_singleton {}  {
   variable PID;       # pid of the singletone instance of StereoPhotoMaker
   variable HWND;      # window handle of StereoPhotoMaker
+  variable LATEST_SPM_WND
   set descr "quitting StereoPhotoMaker instance"
   if { ![verify_singleton_running $descr] }  {
     return  1;  # OK; warning already printed
@@ -67,23 +71,24 @@ proc ::spm::quit_singleton {}  {
     twapi::send_keys {{MENU}fx};  # choose "exit" in "file" menu
     after 200; # avoid an access denied error.
     puts "-I- Success $descr"
+    set HWND 0;   set LATEST_SPM_WND 0
     return  1
   }
   puts "-E- Failed $descr"
 }
 
 
-# If 'targetHwnd' given, focuses it; otherwise focuses the root SPM window
+# If 'targetHwnd' given, focuses it; otherwise focuses the latest SPM window
 proc ::spm::focus_singleton {context {targetHwnd 0}}  {
-  variable HWND;      # window handle of StereoPhotoMaker
+  variable LATEST_SPM_WND;      # latest visited window handle of StereoPhotoMaker
   set descr [expr {($context != "")? $context : \
                                 "giving focus to StereoPhotoMaker instance"}]
   if { ![verify_singleton_running $descr] }  {
     return  0;  # warning already printed
   }
   if { $targetHwnd == 0 }  {
-    set targetHwnd $HWND;   set explicitTarget 0
-  } else {                  set explicitTarget 1 }
+    set targetHwnd $LATEST_SPM_WND;   set explicitTarget 0
+  } else {                            set explicitTarget 1 }
   twapi::set_focus $targetHwnd
   after 200
   set isOK [expr { ($explicitTarget == 1)? \
@@ -129,14 +134,19 @@ proc ::spm::is_current_window_spm {} {
   if { ![verify_singleton_running $descr] }  {
     return  0;  # warning already printed
   }
-  set h [twapi::get_foreground_window]
-  # can be child- or top window; go up until top reached
-  while { ($h != "") && ($h != $HWND) }    {
-    puts "-D- $descr passed window $h"
-    set h [twapi::get_parent_window $h]
-  }
-  puts "-D- ending is_current_window_spm with handle '$h' (HWND == '$HWND')"
-  return  [expr {$h == $HWND}]
+  set h [twapi::get_foreground_window];  set txt [twapi::get_window_text $h]
+  set isSPM [expr {[twapi::get_window_application $h] == \
+                                [twapi::get_window_application $HWND]}]
+  set doesOrNot [expr {$isSPM ?  "does" : "does not"}]
+  puts "-D- Window '$txt' $doesOrNot belong to SPM application"
+  return  $isSPM
+  #~ # can be child- or top window; go up until top reached
+  #~ while { ($h != "") && ($h != $HWND) }    {
+    #~ puts "-D- $descr passed window $h ([twapi::get_window_text $h]) while searching for '$HWND' ([twapi::get_window_text $HWND])"
+    #~ set h [twapi::get_parent_window $h]
+  #~ }
+  #~ puts "-D- ending is_current_window_spm with handle '$h' (HWND == '$HWND')"
+  #~ return  [expr {$h == $HWND}]
 }
 
 
@@ -158,6 +168,7 @@ proc ::spm::cmd__maximize_current_window {} {
 
 proc spm::cmd__return_to_top {} {
   variable HWND;      # window handle of StereoPhotoMaker
+  variable LATEST_SPM_WND
   set descr "reach SPM top";  # [lindex [info level 0] 0]
   if { 0 == [focus_singleton "focus to $descr" 0] }  {
     return  0;  # warning already printed
@@ -166,6 +177,7 @@ proc spm::cmd__return_to_top {} {
   for {set i 1} {$i <= $nAttempts} {incr i 1}  {
     if { $HWND == [set h [twapi::get_foreground_window]] }   {
       puts "-I- Success to $descr after $i hit(s) of ESCAPE"
+      set LATEST_SPM_WND $HWND
       return  1
     }
     puts "-I- Pressing ESCAPE ($i of $nAttempts) to $descr"
@@ -180,6 +192,7 @@ proc spm::cmd__return_to_top {} {
 # Returns handle of resulting window or "" on error.
 proc spm::cmd__open_multi_conversion {} {
   variable HWND;      # window handle of StereoPhotoMaker
+  variable LATEST_SPM_WND
   set descr [lindex [info level 0] 0]
   #twapi::block_input
   # _send_cmd_keys {{MENU}f} $descr $HWND
@@ -194,7 +207,7 @@ proc spm::cmd__open_multi_conversion {} {
     return  "";  # error already printed
   }
   #twapi::unblock_input
-  return  [twapi::get_foreground_window]
+  return  [set LATEST_SPM_WND [twapi::get_foreground_window]]
 }
 
 
