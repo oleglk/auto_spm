@@ -143,11 +143,14 @@ proc ::spm::is_current_window_spm {} {
 proc ::spm::cmd__maximize_current_window {} {
   set h [twapi::get_foreground_window]
   # can be child- or top window
-  set descr [lindex [info level 0] 0]
+  set descr "maximize window '[twapi::get_window_text $h]'";   # [lindex [info level 0] 0]
   if { 1 == [focus_singleton "focus for $descr" $h] }  {
-    if { 0 != [_send_cmd_keys "{MENU}{SPACE}" $descr $h] }  {
-      return  [expr { [_send_cmd_keys {x} $descr 0] }]
-    }
+    puts "-I- Commanding to $descr"
+    set wasVisible [twapi::maximize_window $h -sync];  # succeeds or gets stuck
+    return  1
+    #~ if { 0 != [_send_cmd_keys "{MENU}{SPACE}" $descr $h] }  {
+      #~ return  [expr { [_send_cmd_keys {x} $descr 0] }]
+    #~ }
   }
   return  0;  # error already printed
 }
@@ -221,7 +224,8 @@ proc  ::spm::_travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
   }
   if { $targetWndTitle == "" }  { return  $h }; # done; no verification requested
   set h [_wait_for_window_title_to_raise "Multi Conversion"]
-  puts "-D- Key sequence '$keySeqStr' lead to window '[twapi::get_window_text $h]'"
+  set wndText [expr {($h != "")? [twapi::get_window_text $h] : "NONE"}]
+  puts "-D- Key sequence '$keySeqStr' lead to window '$wndText'"
   return  $h
 }
 
