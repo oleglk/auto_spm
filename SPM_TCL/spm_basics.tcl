@@ -68,13 +68,16 @@ proc ::spm::quit_singleton {}  {
     return  1;  # OK; warning already printed
   }
   if { 1 == [focus_singleton "::spm::quit_singleton"] }  {
-    twapi::send_keys {{MENU}fx};  # choose "exit" in "file" menu
-    after 200; # avoid an access denied error.
-    puts "-I- Success $descr"
-    set HWND 0;   set LATEST_SPM_WND 0
-    return  1
+    if { 1 == [cmd__return_to_top] }  {
+      twapi::send_keys {{MENU}fx};  # choose "exit" in "file" menu
+      after 200; # avoid an access denied error.
+      puts "-I- Success $descr"
+      set HWND 0;   set LATEST_SPM_WND 0
+      return  1
+    }
   }
   puts "-E- Failed $descr"
+  return  0
 }
 
 
@@ -248,7 +251,7 @@ proc  ::spm::_travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
   set h [_wait_for_window_title_to_raise "Multi Conversion"]
   set wndText [expr {($h != "")? [twapi::get_window_text $h] : "NONE"}]
   puts "-D- Key sequence '$keySeqStr' lead to window '$wndText'"
-  return  $h
+  return  [expr {($wndText == $targetWndTitle)? $h : ""}]
 }
 
 
