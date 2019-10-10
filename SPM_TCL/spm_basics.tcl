@@ -130,16 +130,25 @@ proc ::spm::verify_current_window_by_title {title {loud 1}}  {
 # Returns 1 if the current foreground window is SPM-top or its descendant
 proc ::spm::is_current_window_spm {} {
   variable HWND;      # window handle of StereoPhotoMaker
+  variable LATEST_SPM_WND
   set descr [lindex [info level 0] 0]
   if { ![verify_singleton_running $descr] }  {
     return  0;  # warning already printed
   }
   set h [twapi::get_foreground_window];  set txt [twapi::get_window_text $h]
-  set isSPM [expr {[twapi::get_window_application $h] == \
-                                [twapi::get_window_application $HWND]}]
+  set isSPM [expr {($h == $HWND) || ($h == $LATEST_SPM_WND)}]  
   set doesOrNot [expr {$isSPM ?  "does" : "does not"}]
-  puts "-D- Window '$txt' $doesOrNot belong to SPM application"
+  # puts "-D- Window '$txt' $doesOrNot belong to SPM application"
+  puts "-D- Window '$txt' ($h) $doesOrNot belong to SPM application"
   return  $isSPM
+  ### Approaches that DO NOT WORK:
+  ### (1) Comparing [twapi::get_window_application [twapi::get_foreground_window]]
+  ###         with  [twapi::get_window_application $::spm::HWND]
+  ### (2) Traversing windows upwards using [twapi::get_parent_window] until top
+  ##
+  #~ set isSPM [expr {[twapi::get_window_application $h] == \
+                                #~ [twapi::get_window_application $HWND]}]
+  ##
   #~ # can be child- or top window; go up until top reached
   #~ while { ($h != "") && ($h != $HWND) }    {
     #~ puts "-D- $descr passed window $h ([twapi::get_window_text $h]) while searching for '$HWND' ([twapi::get_window_text $HWND])"
@@ -166,7 +175,7 @@ proc ::spm::cmd__maximize_current_window {} {
 }
 
 
-proc spm::cmd__return_to_top {} {
+proc ::spm::cmd__return_to_top {} {
   variable HWND;      # window handle of StereoPhotoMaker
   variable LATEST_SPM_WND
   set descr "reach SPM top";  # [lindex [info level 0] 0]
