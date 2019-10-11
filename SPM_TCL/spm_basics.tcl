@@ -42,11 +42,12 @@ proc ::spm::start_spm {{workarea_rootdir ""}}  {
   }
   return  [::ok_twapi::start_singleton $::SPM \
                 "StereoPhotoMaker" $SPM_TITLE $workarea_rootdir]
+  # TODO: maximize SPM window
 }
 
 
 proc ::spm::quit_spm {}  {
-  return  [::ok_twapi::quit_singleton cmd__return_to_top]
+  return  [::ok_twapi::quit_singleton ::spm::cmd__return_to_top]
 }
 
 
@@ -58,14 +59,15 @@ proc ::spm::is_current_window_spm {} {
 
 proc ::spm::cmd__return_to_top {} {
   set descr "reach SPM top";  # [lindex [info level 0] 0]
+  if { ![::ok_twapi::verify_singleton_running $descr] }  { return  0 }; # FIRST!
   if { 0 == [::ok_twapi::focus_singleton "focus to $descr" 0] }  {
     return  0;  # warning already printed
   }
   set nAttempts 30
   for {set i 1} {$i <= $nAttempts} {incr i 1}  {
-    set topWnd [ok::twapi::get_top_app_wnd]
+    set topWnd [::ok_twapi::get_top_app_wnd]
     if { $topWnd == [set h [twapi::get_foreground_window]] }   {
-      puts "-I- Success to $descr after $i hit(s) of ESCAPE"
+      puts "-I- Success to $descr after [expr $i-1] hit(s) of ESCAPE"
       ::ok_twapi::set_latest_app_wnd $topWnd
       return  1
     }
@@ -79,8 +81,9 @@ proc ::spm::cmd__return_to_top {} {
 
 
 # Returns handle of resulting window or "" on error.
-proc spm::cmd__open_multi_conversion {} {
+proc ::spm::cmd__open_multi_conversion {} {
   set descr [lindex [info level 0] 0]
+  if { ![::ok_twapi::verify_singleton_running $descr] }  { return  ""}; # FIRST!
   #twapi::block_input
   # _send_cmd_keys {{MENU}f} $descr [::ok_twapi::get_top_app_wnd]
   ::ok_twapi::open_menu_top_level "f" $descr;  # TODO: VERIFY SUCCESS"
@@ -89,7 +92,7 @@ proc spm::cmd__open_multi_conversion {} {
     #twapi::unblock_input
     return  "";  # error already printed
   }
-  if { 0 == [cmd__maximize_current_window] }  {
+  if { 0 == [::ok_twapi::cmd__maximize_current_window] }  {
     #twapi::unblock_input
     return  "";  # error already printed
   }

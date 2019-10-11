@@ -1,5 +1,8 @@
 # ok_twapi_common.tcl - common utilities for TWAPI based automation
 
+#  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
+#  set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
+
 package require twapi;  #  TODO: check errors
 
 namespace eval ::ok_twapi:: {
@@ -206,7 +209,7 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 
 # Sends menu shortcut keys to travel pre-open menu
 # Returns handle of resulting window or "" on error.
-proc  ::ok_twapi::_travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
+proc  ::ok_twapi::travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
   if { ("" == [set h [_send_cmd_keys $keySeqStr $descr 0]]) }  {
     return  "";  # error already printed
   }
