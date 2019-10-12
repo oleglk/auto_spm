@@ -9,6 +9,7 @@
 package require twapi;  #  TODO: check errors
 
 set SCRIPT_DIR [file dirname [info script]]
+source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
 
 namespace eval ::spm:: {
@@ -87,7 +88,7 @@ proc ::spm::cmd__open_multi_conversion {} {
   #twapi::block_input
   # _send_cmd_keys {{MENU}f} $descr [::ok_twapi::get_top_app_wnd]
   ::ok_twapi::open_menu_top_level "f" $descr;  # TODO: VERIFY SUCCESS"
-  if { 0 == [::ok_twapi::travel_meny_hierarchy {{m 2}{ENTER}} \
+  if { "" == [::ok_twapi::travel_meny_hierarchy {{m 2}{ENTER}} \
                                       $descr "Multi Conversion"] }  {
     #twapi::unblock_input
     return  "";  # error already printed

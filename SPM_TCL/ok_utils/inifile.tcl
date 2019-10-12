@@ -8,7 +8,8 @@ namespace eval ::ok_utils:: {
   namespace export  \
     ini_list_to_ini_arr   \
     ini_arr_to_ini_list   \
-    ini_file_to_ini_arr
+    ini_file_to_ini_arr   \
+    ini_arr_to_ini_file
 }
 
 
