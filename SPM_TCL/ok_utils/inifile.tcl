@@ -59,7 +59,7 @@ proc ::ok_utils::ini_arr_to_ini_list {iniArrVarName iniListVar} {
   upvar $iniArrVarName iniArr
   upvar $iniListVar iniList
   if { ! [array exists iniArr] }  {
-    puts "-E- ini_arr_to_ini_list: Inexistent ini-settings array"
+    puts "-E- Inexistent ini-settings array"
     return  0
   }
   set errCnt 0
@@ -110,56 +110,62 @@ proc ::ok_utils::ini_file_to_ini_arr {iniFile iniArrVarName} {
 # The 'optionsList' is not necessarily sorted.
 # Irfanview .ini file looks like: TODO
 # Returns 1 on success, 0 on error.
-# Example:
-#   ::irfanview::make_irfanview_ini_file e:/tcl/Work/Run/QQQ {{-[Copy-Move]__CopyDir1} e:/tcl/Work/Run/ {-[Copy-Move]__MoveDir1} e:/tcl/Work/Run/}
-proc ::ok_utils::ini_arr_to_ini_file {newOptArr iniFile dropOld} {
+# Example (irfanview):
+#   array unset newArr;  array set newArr {{-[Copy-Move]__CopyDir1} e:/tcl/Work/Run/ {-[Copy-Move]__MoveDir1} e:/tcl/Work/Run/};   ok_utils::ini_arr_to_ini_file  newArr  D:/DC_TMP/TRY_AUTO/SPM_SETTINGS/try1.ini  1
+proc ::ok_utils::ini_arr_to_ini_file {newOptArrVarName iniFile dropOld} {
+  upvar $newOptArrVarName newOptArr
   if { [file exists $iniFile] && ![file writable $iniFile] }  {
-    puts "-E- ini_arr_to_ini_file: cannot write into file '$iniFile'"
+    puts "-E- Cannot write into file '$iniFile'"
     return  0
   }
   set iniDir [file dirname $iniFile]
   if { ! ([file exists $iniDir] && [file writable $iniDir]) }  {
-    puts "-E- ini_arr_to_ini_file: cannot write into directory '$iniDir'"
+    puts "-E- Cannot write into directory '$iniDir'"
     return  0
   }
   if { ![file exists $iniDir] } {
-	ok_assert {[file writable [file dirname $iniDir]]} \
-	    "make_irfanview_ini_file: parent directory of '$iniDir' is unwritable"
-	if { 0 == [ok_mkdir $iniDir] } {
-	    ok_err_msg "Failed creating ini-file directory"
-	    return  0
-	}
+    if { ![file writable [file dirname $iniDir]] }  {
+      puts "-E- Parent directory of '$iniDir' is unwritable"
+      return  0
     }
-    # at this point we have existing writable directory 'iniDir'
-    if { [file exists $iniFile] } {
-	if { 0 == [ok_read_list_from_file iniList $iniFile] } {
-	    ok_err_msg "Failed reading ini-file '$iniFile'"
-	    return  0
-	}
-    } else {	set iniList [list]    };  # no pre-existing options
-    # 'iniArr' <- pre-existing options; 'newOptArr' <- new options ('optionsList')
-    if { 0 == [ini_list_to_ini_arr $iniList iniArr] } {
-	ok_err_msg "Failed recognizing options read from '$iniFile'"
-	return  0
+    if { 0 == [ok_mkdir $iniDir] } {
+      puts "-E- Failed creating ini-file directory '$iniDir'"
+      return  0
     }
-    # puts ">>> Options read from '$iniFile':";  pri_arr iniArr
-    sz_utils::parse_argument_list $optionsList $RELEVANT_ARGSPEC newOptArr
-    # puts ">>> New user-given (irfanview) options:";  pri_arr newOptArr
-    # insert new options or override existing
-    foreach optName [array names newOptArr] {
-	set iniArr($optName) $newOptArr($optName)
+  }
+  # at this point we have existing writable directory 'iniDir'
+  if { !$dropOld && ([file exists $iniFile]) } {
+    if { 0 == [ok_read_list_from_file iniList $iniFile] } {
+      puts "-E- Failed reading ini-file '$iniFile'"
+      return  0
     }
-    # puts ">>> Resulting (irfanview) options:"; pri_arr iniArr
-    if { 0 == [ini_arr_to_ini_list iniArr iniList] } {
-	ok_err_msg "Failed formatting INI options {[array get iniArr]}"
-	return  0
-    }
-    ok_assert {{[llength $iniList] > 0}} "No (irfanview) options assembled"
-    ok_trace_msg "Irfanview options to be written into '$iniFile': {$iniList}"
-    if { 0 == [ok_write_list_into_file $iniList $iniFile] } {
-	ok_err_msg "Failed reading ini-file '$iniFile'"
-	return  0
-    }
-    ok_info_msg "INI file for Irfanview written into '$iniFile'"
-    return  1
+  } else {	set iniList [list]    };  # no pre-existing options or commanded to drop
+  # 'iniArr' <- pre-existing options; 'newOptArr' <- new options ('optionsList')
+  array unset iniArr
+  if { 0 == [ini_list_to_ini_arr $iniList iniArr] } {
+    puts "-E- Failed recognizing options read from '$iniFile'"
+    return  0
+  }
+  puts ">>> Options read from '$iniFile':";  pri_arr iniArr
+  puts ">>> New options:";  pri_arr newOptArr
+  # insert new options or override existing
+  foreach optName [array names newOptArr] {
+    set iniArr($optName) $newOptArr($optName)
+  }
+  # puts ">>> Resulting options:"; pri_arr iniArr
+  if { 0 == [ini_arr_to_ini_list iniArr iniList] } {
+    puts "-E- Failed formatting resulting INI options {[array get iniArr]}"
+    return  0
+  }
+  if { [llength $iniList] <= 0 }  {
+    puts "-E- No options assembled"
+    return  0
+  }
+  puts "-D- Options to be written into '$iniFile': {$iniList}"
+  if { 0 == [ok_write_list_into_file $iniList $iniFile] } {
+    puts "-E- Failed writting ini-file '$iniFile'"
+    return  0
+  }
+  puts "-I- ini-file written into '$iniFile'"
+  return  1
 }
