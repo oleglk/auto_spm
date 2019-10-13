@@ -13,22 +13,71 @@ set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
 
+set SPM_SETTINGS_TEMPLATES_DIR [file join $SCRIPT_DIR ".." "SPM_INI"]
+
 namespace eval ::spm:: {
   ### variable ORIG_PATTERN {*.tif}
   variable ORIG_PATTERN {*.jpg}
 #  variable SUBDIR_INP "";  # subdirectory for to-be-aligned images - DEFAULT
   variable SUBDIR_INP "FIXED";  # subdirectory for to-be-aligned images
   variable SUBDIR_PRE "Pre";    # subdirectory for pre-aligned images
+  variable SUBDIR_CFG "CONFIG";  # subdirectory for session-specific config files
   
   variable SPM_TITLE  "StereoPhoto Maker" ;   # title of the main SPM window
+
   
   variable WA_ROOT "";  # work-area root directory
+  
+  variable TABSTOPS 0; # 2-level dict of wnd-title :: control-name :: tabstop
 
   
   namespace export  \
     # (DO NOT EXPORT:)  start_singleton  \
     # (DO NOT EXPORT:)  fix_one_file
 }
+
+
+################################################################################
+# Builds ::spm::TABSTOPS dictionary that tells how many times to press TAB
+# in order to focus specific control.
+# For "Multi Conversion" window  this order holds only if open programmatically!
+proc ::spm::_build_tabstops_dict {}   {
+  variable TABSTOPS; # 2-level dict of wnd-title :: control-name :: tabstop
+  set TABSTOPS [dict create]
+  dict set TABSTOPS   "Multi Conversion"    "File name"                 6
+  dict set TABSTOPS   "Multi Conversion"    "Cancel"                    8
+  dict set TABSTOPS   "Multi Conversion"    "Convert Selected Files"    9
+  dict set TABSTOPS   "Multi Conversion"    "Convert All Files"         10
+  dict set TABSTOPS   "Multi Conversion"    "Multi Job"                 11
+  dict set TABSTOPS   "Multi Conversion"    "Output File Type"          15
+  dict set TABSTOPS   "Multi Conversion"    "Output File Format"        16
+  dict set TABSTOPS   "Multi Conversion"    "Crop"                      28
+  dict set TABSTOPS   "Multi Conversion"    "Crop X1"                   29
+  dict set TABSTOPS   "Multi Conversion"    "Crop Y1"                   30
+  dict set TABSTOPS   "Multi Conversion"    "Crop X2"                   31
+  dict set TABSTOPS   "Multi Conversion"    "Crop Y2"                   32
+  dict set TABSTOPS   "Multi Conversion"    "Output Folder"             42
+  dict set TABSTOPS   "Multi Conversion"    "Restore(File)"             45
+  dict set TABSTOPS   "Multi Conversion"    "Restore"                   46
+  dict set TABSTOPS   "Multi Conversion"    "Save"                      47
+  #dict set TABSTOPS   "Multi Conversion"    "todo"        todo
+
+}
+
+# Returns tabstop number or -1 on error
+proc ::spm::_get_tabstop {wndTitle controlName}   {
+  variable TABSTOPS; # 2-level dict of wnd-title :: control-name :: tabstop
+  if { ! [info exists TABSTOPS] }  {
+    puts "-E- TABSTOPS dictionary not built yet"
+    return  -1
+  }
+  if { ! [dict exists $TABSTOPS $wndTitle $controlName] }  {
+    puts "-E- Unknown UI control '$controlName' in window '$wndTitle'"
+    return  -1
+  }
+  return  [dict get $TABSTOPS $wndTitle $controlName]
+}
+################################################################################
 
 
 proc ::spm::start_spm {{workarea_rootdir ""}}  {
@@ -38,6 +87,9 @@ proc ::spm::start_spm {{workarea_rootdir ""}}  {
     if { ![file isdirectory $workarea_rootdir] }  {
       puts "-E- Invalid or inexistent directory '$workarea_rootdir'"
       return  0
+    }
+    if { ($::spm::TABSTOPS == 0) && (0 == [_build_tabstops_dict]) }   {
+      return  0;  # error already printed
     }
     set WA_ROOT [file normalize $workarea_rootdir]
     puts "-I- Workarea root directory set to '$WA_ROOT'"
@@ -103,10 +155,31 @@ proc ::spm::cmd__open_multi_conversion {} {
 }
 
 
-
-proc ::spm::align_all {}  {
+# Builds INI file with settings for align-all action
+proc ::spm::_prepare_settings__align_all {inpType}  {
+  variable WA_ROOT
   variable ORIG_PATTERN
   variable SUBDIR_INP;  # subdirectory for to-be-aligned images
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
-  
+  variable SUBDIR_CFG;  # subdirectory for session-specific config files
+  if { 0 == [ok_utils::ok_create_absdirs_in_list \
+                    [list [file join $WA_ROOT $SUBDIR_CFG]] \
+                    [list "subdirectory for session-specific config files"]] } {
+    return  0;  # need to abort; error already printed
+  }
+  # name of settings' file is the same as action teplates' name
+  set cfgName [format "align_%s.mcv" [string tolower $inpType]]
+  # load settings' template - everything but directory paths
+  set templatePath [file join $::SPM_SETTINGS_TEMPLATES_DIR $cfgName]
+  if { 0 == [ok_utils::ini_file_to_ini_arr $templatePath iniArr] }  {
+    return  0;  # need to abort; error already printed
+  }
+  puts "-I- Align-all settings template loaded from '$templatePath'"
+  set iniArr({-\[Data\]__OutputFolder})  [file join $WA_ROOT $SUBDIR_PRE]
+  set cfgPath [file join $WA_ROOT $SUBDIR_CFG $cfgName]
+  if { 0 == [ok_utils::ini_arr_to_ini_file iniArr $cfgPath 1] }  {
+    return  0;  # need to abort; error already printed
+  }
+  puts "-I- Align-all settings written into '$cfgPath'"
+  return  1
 }
