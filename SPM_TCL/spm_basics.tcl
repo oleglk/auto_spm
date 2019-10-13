@@ -175,7 +175,7 @@ proc ::spm::_prepare_settings__align_all {inpType}  {
     return  0;  # need to abort; error already printed
   }
   puts "-I- Align-all settings template loaded from '$templatePath'"
-  set iniArr({-\[Data\]__OutputFolder})  [file join $WA_ROOT $SUBDIR_PRE]
+  set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_PRE]
   set cfgPath [file join $WA_ROOT $SUBDIR_CFG $cfgName]
   if { 0 == [ok_utils::ini_arr_to_ini_file iniArr $cfgPath 1] }  {
     return  0;  # need to abort; error already printed

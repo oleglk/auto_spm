@@ -79,6 +79,7 @@ proc ::ok_twapi::focus_singleton {context {targetHwnd 0}}  {
     return  0;  # warning already printed
   }
   if { $targetHwnd == 0 }  {
+    # TODO: chek validity of 'LATEST_APP_WND'
     set targetHwnd $LATEST_APP_WND;   set explicitTarget 0
   } else {                            set explicitTarget 1 }
   twapi::set_focus $targetHwnd
@@ -223,7 +224,7 @@ proc  ::ok_twapi::travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
 
 # Waits with active polling
 proc ::ok_twapi::_wait_for_window_title_to_raise {titleStr}  {
-  return  [_wait_for_window_title_to_raise__configurable $titleStr 500 5000]
+  return  [_wait_for_window_title_to_raise__configurable $titleStr 500 20000]
 }
 
 
