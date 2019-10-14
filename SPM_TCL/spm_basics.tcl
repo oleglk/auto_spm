@@ -77,6 +77,19 @@ proc ::spm::_get_tabstop {wndTitle controlName}   {
   }
   return  [dict get $TABSTOPS $wndTitle $controlName]
 }
+
+# Returns srring of repeated TAB-s (by tabstop number) or "ERROR" on error
+proc ::spm::_format_tabstop  {wndTitle controlName}   {
+  if { -1 == [set nTabs [_get_tabstop $wndTitle $controlName]] }  {
+    return  "ERROR"
+  }
+  if { $nTabs == 0 }  { return "" }
+  set seq "{TAB}"
+  for {set i 1} {$i < $nTabs} {incr i}  { append seq " " "{TAB}"  }
+  return  $seq
+}
+
+  
 ################################################################################
 
 
@@ -144,7 +157,9 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   if { ![::ok_twapi::verify_singleton_running $descr] }  { return  ""}; # FIRST!
   #twapi::block_input
   # _send_cmd_keys {{MENU}f} $descr [::ok_twapi::get_top_app_wnd]
-  ::ok_twapi::open_menu_top_level "f" $descr;  # TODO: VERIFY SUCCESS"
+  if { 0 == [::ok_twapi::open_menu_top_level "f" $descr] }  {
+    return  "";  # error already printed
+  }
   if { "" == [::ok_twapi::travel_meny_hierarchy {{m 2}{ENTER}} \
                                       $descr "Multi Conversion"] }  {
     #twapi::unblock_input
@@ -159,10 +174,26 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   if { $cfgPath == "" }  {  return  $hMC }
   if { $hMC == "" }  { return  "" };  # error already printed
   # multi-convert GUI is open in FG; now load align-all settings from 'cfgPath'
-  set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
-  if { "" == [set hRF [_send_cmd_keys [list {TAB} $tabStop] $descr 0]] }  {
-    return  "" };  # error already printed
-  return  $hRF'; # OK_TODO: type 'cfgPath' then hit OK
+  #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
+  #~ set keySeqLoadCfg [format "{{{TAB} %d} {SPACE}}" $tabStop]
+  set lDescr "Press 'Restore(File)' button"
+  set tabsStr [_format_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
+  if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $lDescr 0]) || \
+        ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
+    return  "";  # error already printed
+  }
+  # type 'cfgPath' then hit OK
+  set pDescr "Specify settings-file path"
+  set nativeCfgPath [file nativename $cfgPath]
+  if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
+        ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
+    return  "";  # error already printed
+  }
+  if { $hMC2 != $hMC }   {
+    puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings"
+    return  ""
+  }
+  return  $hMC2
 }
 
 

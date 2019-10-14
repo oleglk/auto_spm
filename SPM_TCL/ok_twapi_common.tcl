@@ -217,7 +217,7 @@ proc  ::ok_twapi::travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
   if { $targetWndTitle == "" }  { return  $h }; # done; no verification requested
   set h [_wait_for_window_title_to_raise $targetWndTitle]
   set wndText [expr {($h != "")? [twapi::get_window_text $h] : "NONE"}]
-  puts "-D- Key sequence '$keySeqStr' lead to window '$wndText'"
+  puts "-D- Key sequence '$keySeqStr' led to window '$wndText'"
   return  [expr {($wndText == $targetWndTitle)? $h : ""}]
 }
 
