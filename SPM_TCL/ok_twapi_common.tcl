@@ -255,7 +255,7 @@ proc ::ok_twapi::_wait_for_window_title_to_raise__configurable { \
 
 # Sends given keys while taking care of occurences of {MENU}.
 # If 'targetHwnd' given, first focuses this window
-# Returns handle of resulting window or 0 on error.
+# Returns handle of resulting window or "" on error.
 # TODO: The sequence of {press-Alt, release-Alt, press-Cmd-Key} is not universal
 proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
   set descr "sending key-sequence {$keySeqStr} for '$descr'"
@@ -275,7 +275,7 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
     after 200; # avoid an access denied error
     puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
-  puts "-E- Cannot $descr";         return  0
+  puts "-E- Cannot $descr";         return  ""
 }
 
 

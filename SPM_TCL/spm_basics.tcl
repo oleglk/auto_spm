@@ -134,8 +134,12 @@ proc ::spm::cmd__return_to_top {} {
 }
 
 
+# Opens multi-convert GUI; if 'cfgPath' given, loads settings from it.
 # Returns handle of resulting window or "" on error.
-proc ::spm::cmd__open_multi_conversion {} {
+proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
+  puts -nonewline "-I- Commanded to open multi-convert GUI"
+  if { $cfgPath == "" }  { puts ""
+  } else {                 puts " and load align-all settings from '$cfgPath'" }
   set descr [lindex [info level 0] 0]
   if { ![::ok_twapi::verify_singleton_running $descr] }  { return  ""}; # FIRST!
   #twapi::block_input
@@ -151,7 +155,14 @@ proc ::spm::cmd__open_multi_conversion {} {
     return  "";  # error already printed
   }
   #twapi::unblock_input
-  return  [::ok_twapi::set_latest_app_wnd_to_current]
+  set hMC [::ok_twapi::set_latest_app_wnd_to_current]
+  if { $cfgPath == "" }  {  return  $hMC }
+  if { $hMC == "" }  { return  "" };  # error already printed
+  # multi-convert GUI is open in FG; now load align-all settings from 'cfgPath'
+  set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
+  if { "" == [set hRF [_send_cmd_keys [list {TAB} $tabStop] $descr 0]] }  {
+    return  "" };  # error already printed
+  return  $hRF'; # OK_TODO: type 'cfgPath' then hit OK
 }
 
 
@@ -181,5 +192,8 @@ proc ::spm::_prepare_settings__align_all {inpType}  {
     return  0;  # need to abort; error already printed
   }
   puts "-I- Align-all settings written into '$cfgPath'"
+#### In the caller:
+  #~ puts "-I- Open multi-convert GUI and load align-all settings from '$cfgPath'"
+  #~ cmd__open_multi_conversion $cfgPath
   return  1
 }
