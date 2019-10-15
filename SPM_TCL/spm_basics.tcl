@@ -150,9 +150,10 @@ proc ::spm::cmd__return_to_top {} {
 # Opens multi-convert GUI; if 'cfgPath' given, loads settings from it.
 # Returns handle of resulting window or "" on error.
 proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
+  variable WA_ROOT
   puts -nonewline "-I- Commanded to open multi-convert GUI"
   if { $cfgPath == "" }  { puts ""
-  } else {                 puts " and load align-all settings from '$cfgPath'" }
+  } else {                 puts " and load settings from '$cfgPath'" }
   set descr [lindex [info level 0] 0]
   if { ![::ok_twapi::verify_singleton_running $descr] }  { return  ""}; # FIRST!
   #twapi::block_input
@@ -173,7 +174,14 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   set hMC [::ok_twapi::set_latest_app_wnd_to_current]
   if { $cfgPath == "" }  {  return  $hMC }
   if { $hMC == "" }  { return  "" };  # error already printed
-  # multi-convert GUI is open in FG; now load align-all settings from 'cfgPath'
+  # multi-convert GUI is open in FG; focus "File Name" textbox and type input dir path
+  set iDescr "specify input directory"
+  twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
+  set inpPathSeq "[file nativename $WA_ROOT]{ENTER}"
+  if { "" == [ok_twapi::_send_cmd_keys $inpPathSeq $iDescr $hMC] }  {
+    return  "";  # error already printed
+  }
+  # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
   #~ set keySeqLoadCfg [format "{{{TAB} %d} {SPACE}}" $tabStop]
   set lDescr "Press 'Restore(File)' button"
@@ -182,6 +190,7 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
         ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
     return  "";  # error already printed
   }
+  ####### TODO: IT SEEMS TO PRESS "SAVE" instead of "RESTORE"
   # type 'cfgPath' then hit OK
   set pDescr "Specify settings-file path"
   set nativeCfgPath [file nativename $cfgPath]
