@@ -177,10 +177,13 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   # multi-convert GUI is open in FG; focus "File Name" textbox and type input dir path
   set iDescr "specify input directory"
   twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
-  set inpPathSeq "[file nativename $WA_ROOT]{ENTER}"
-  if { "" == [ok_twapi::_send_cmd_keys $inpPathSeq $iDescr $hMC] }  {
+  set inpPathSeq "[file nativename $WA_ROOT]"
+  twapi::send_input_text $inpPathSeq
+  twapi::send_keys {{ENTER}}
+  if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
     return  "";  # error already printed
   }
+  puts "-I- Commanded to change input directory to '$inpPathSeq'"
   # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
   #~ set keySeqLoadCfg [format "{{{TAB} %d} {SPACE}}" $tabStop]
@@ -191,13 +194,15 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
     return  "";  # error already printed
   }
   ####### TODO: IT SEEMS TO PRESS "SAVE" instead of "RESTORE"
+  ####### TODO: tmp delay between TAB-sequence and {SPACE}
   # type 'cfgPath' then hit OK
   set pDescr "Specify settings-file path"
   set nativeCfgPath [file nativename $cfgPath]
-  if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
-        ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
-    return  "";  # error already printed
-  }
+  ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0;    return "";  # OK_TMP
+  #~ if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
+        #~ ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
+    #~ return  "";  # error already printed
+  #~ }
   if { $hMC2 != $hMC }   {
     puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings"
     return  ""
