@@ -39,19 +39,23 @@ namespace eval ::spm:: {
 
 ################################################################################
 # Builds ::spm::TABSTOPS dictionary that tells how many times to press TAB
-# in order to focus specific control.
+# in order to focus specific control AFTER FILENAME ENTRY
 # For "Multi Conversion" window  this order holds only if open programmatically!
 proc ::spm::_build_tabstops_dict {}   {
   variable TABSTOPS; # 2-level dict of wnd-title :: control-name :: tabstop
   set TABSTOPS [dict create]
-  dict set TABSTOPS   "Multi Conversion"    "File name"                 6
-  dict set TABSTOPS   "Multi Conversion"    "Cancel"                    8
-  dict set TABSTOPS   "Multi Conversion"    "Convert Selected Files"    9
-  dict set TABSTOPS   "Multi Conversion"    "Convert All Files"         10
-  dict set TABSTOPS   "Multi Conversion"    "Multi Job"                 11
-  dict set TABSTOPS   "Multi Conversion"    "Output File Type"          15
-  dict set TABSTOPS   "Multi Conversion"    "Output File Format"        16
-  dict set TABSTOPS   "Multi Conversion"    "Crop"                      28
+  dict set TABSTOPS   "Multi Conversion"    "File name"                 0
+  dict set TABSTOPS   "Multi Conversion"    "Input File Type"           1
+  dict set TABSTOPS   "Multi Conversion"    "Cancel"                    2
+  dict set TABSTOPS   "Multi Conversion"    "Convert Selected Files"    3
+  dict set TABSTOPS   "Multi Conversion"    "Convert All Files"         4
+  dict set TABSTOPS   "Multi Conversion"    "Multi Job"                 5
+  
+  dict set TABSTOPS   "Multi Conversion"    "Output File Type"          9
+  dict set TABSTOPS   "Multi Conversion"    "Output File Format"        10
+  dict set TABSTOPS   "Multi Conversion"    "Auto Align"                11
+  dict set TABSTOPS   "Multi Conversion"    "Crop"                      12
+  ### TODO: change all the below
   dict set TABSTOPS   "Multi Conversion"    "Crop X1"                   29
   dict set TABSTOPS   "Multi Conversion"    "Crop Y1"                   30
   dict set TABSTOPS   "Multi Conversion"    "Crop X2"                   31
@@ -61,7 +65,6 @@ proc ::spm::_build_tabstops_dict {}   {
   dict set TABSTOPS   "Multi Conversion"    "Restore"                   46
   dict set TABSTOPS   "Multi Conversion"    "Save"                      47
   #dict set TABSTOPS   "Multi Conversion"    "todo"        todo
-
 }
 
 # Returns tabstop number or -1 on error
@@ -179,6 +182,7 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
   set inpPathSeq "[file nativename $WA_ROOT]"
   twapi::send_input_text $inpPathSeq
+return  "";  # OK_TMP
   twapi::send_keys {{ENTER}}
   if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
     return  "";  # error already printed
