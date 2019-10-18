@@ -217,15 +217,14 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
         ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
     return  "";  # error already printed
   }
-  ####### TODO: tmp delay between TAB-sequence and {SPACE}
   # type 'cfgPath' then hit OK
   set pDescr "Specify settings-file path"
   set nativeCfgPath [file nativename $cfgPath]
-  ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0;    return "";  # OK_TMP
-  #~ if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
-        #~ ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
-    #~ return  "";  # error already printed
-  #~ }
+###ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0;    return "";  # OK_TMP
+  if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
+        ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
+    return  "";  # error already printed
+  }
   if { $hMC2 != $hMC }   {
     puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings"
     return  ""
@@ -254,6 +253,7 @@ proc ::spm::_prepare_settings__align_all {inpType}  {
     return  0;  # need to abort; error already printed
   }
   puts "-I- Align-all settings template loaded from '$templatePath'"
+  # should filepath be converted into native format? Works in TCL format too...
   set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_PRE]
   set cfgPath [file join $WA_ROOT $SUBDIR_CFG $cfgName]
   if { 0 == [ok_utils::ini_arr_to_ini_file iniArr $cfgPath 1] }  {
