@@ -39,7 +39,8 @@ namespace eval ::spm:: {
 
 ################################################################################
 # Builds ::spm::TABSTOPS dictionary that tells how many times to press TAB
-# in order to focus specific control AFTER FILENAME ENTRY
+#                 in order to focus specific control AFTER FILENAME ENTRY
+#    E.g.: press Alt-n, then count the tabstops
 # For "Multi Conversion" window  this order holds only if open programmatically!
 proc ::spm::_build_tabstops_dict {}   {
   variable TABSTOPS; # 2-level dict of wnd-title :: control-name :: tabstop
@@ -54,16 +55,33 @@ proc ::spm::_build_tabstops_dict {}   {
   dict set TABSTOPS   "Multi Conversion"    "Output File Type"          9
   dict set TABSTOPS   "Multi Conversion"    "Output File Format"        10
   dict set TABSTOPS   "Multi Conversion"    "Auto Align"                11
-  dict set TABSTOPS   "Multi Conversion"    "Crop"                      12
-  ### TODO: change all the below
-  dict set TABSTOPS   "Multi Conversion"    "Crop X1"                   29
-  dict set TABSTOPS   "Multi Conversion"    "Crop Y1"                   30
-  dict set TABSTOPS   "Multi Conversion"    "Crop X2"                   31
-  dict set TABSTOPS   "Multi Conversion"    "Crop Y2"                   32
-  dict set TABSTOPS   "Multi Conversion"    "Output Folder"             42
-  dict set TABSTOPS   "Multi Conversion"    "Restore(File)"             45
-  dict set TABSTOPS   "Multi Conversion"    "Restore"                   46
-  dict set TABSTOPS   "Multi Conversion"    "Save"                      47
+  dict set TABSTOPS   "Multi Conversion"    "Auto Alignment Settings"   12
+
+  dict set TABSTOPS   "Multi Conversion"    "Auto Crop After Adjustment" 15
+
+  dict set TABSTOPS   "Multi Conversion"    "Auto Color Adjustment"     18
+  dict set TABSTOPS   "Multi Conversion"    "Gamma"                     19
+  dict set TABSTOPS   "Multi Conversion"    "Gamma L"                   20
+  dict set TABSTOPS   "Multi Conversion"    "Gamma R"                   21
+  dict set TABSTOPS   "Multi Conversion"    "Crop"                      22
+  dict set TABSTOPS   "Multi Conversion"    "Crop X1"                   23
+  dict set TABSTOPS   "Multi Conversion"    "Crop Y1"                   24
+  dict set TABSTOPS   "Multi Conversion"    "Crop X2"                   25
+  dict set TABSTOPS   "Multi Conversion"    "Crop Y2"                   26
+  dict set TABSTOPS   "Multi Conversion"    "Resize"                    27
+  dict set TABSTOPS   "Multi Conversion"    "Width"                     28
+  dict set TABSTOPS   "Multi Conversion"    "Height"                    29
+  dict set TABSTOPS   "Multi Conversion"    "Input Side-By-Side"        30
+  
+  dict set TABSTOPS   "Multi Conversion"    "Add Text"                  34
+
+
+  dict set TABSTOPS   "Multi Conversion"    "Output Folder"             36
+  dict set TABSTOPS   "Multi Conversion"    "Output Folder Browse"      37
+  
+  dict set TABSTOPS   "Multi Conversion"    "Restore(File)"             39
+  dict set TABSTOPS   "Multi Conversion"    "Restore"                   40
+  dict set TABSTOPS   "Multi Conversion"    "Save"                      41
   #dict set TABSTOPS   "Multi Conversion"    "todo"        todo
 }
 
@@ -182,13 +200,15 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
   set inpPathSeq "[file nativename $WA_ROOT]"
   twapi::send_input_text $inpPathSeq
-return  "";  # OK_TMP
-  twapi::send_keys {{ENTER}}
+#return  "";  # OK_TMP
+  twapi::send_keys {{ENTER}}  ;  # command to change input dir
   if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
     return  "";  # error already printed
   }
   puts "-I- Commanded to change input directory to '$inpPathSeq'"
-  # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
+  twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
+
+# load align-all settings from 'cfgPath' - AFTER input dir(s) specified
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
   #~ set keySeqLoadCfg [format "{{{TAB} %d} {SPACE}}" $tabStop]
   set lDescr "Press 'Restore(File)' button"
@@ -197,7 +217,6 @@ return  "";  # OK_TMP
         ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
     return  "";  # error already printed
   }
-  ####### TODO: IT SEEMS TO PRESS "SAVE" instead of "RESTORE"
   ####### TODO: tmp delay between TAB-sequence and {SPACE}
   # type 'cfgPath' then hit OK
   set pDescr "Specify settings-file path"
