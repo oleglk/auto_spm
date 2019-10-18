@@ -220,7 +220,6 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   # type 'cfgPath' then hit OK
   set pDescr "Specify settings-file path"
   set nativeCfgPath [file nativename $cfgPath]
-###ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0;    return "";  # OK_TMP
   if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
         ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
     return  "";  # error already printed
@@ -233,7 +232,37 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
 }
 
 
+# Prepares CFG, opens multi-convert GUI, loads settings from the CFG,
+# starts conversion and waits for it to finish.
+# Returns to the top SPM window.
+# Returns 1 on success, 0 on error.
+proc ::spm::cmd__align_all {inpType {origExt "JPG"}} {
+  # TODO: take 'origExt' into consideration
+  if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
+    return  0;  # need to abort; error already printed
+  }
+  if { "" == [set hMC1 [cmd__open_multi_conversion $cfgPath]] }  {
+    return  0;  # need to abort; error already printed
+  }
+  # arrange for commanding to start alignment multi-conversion
+  twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
+  set sDescr "Press 'Convert All Files' button"
+  set tabsStr [_format_tabstop  "Multi Conversion"  "Convert All Files"]; # safe
+  if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $sDescr 0]) || \
+        ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]]) }  {
+    return  0;  # error already printed
+  }
+  puts "Commanded to start alignment multi-conversion; config in '$cfgPath'"
+  # now there may appear multiple confirmation dialogs; press "y" for each one
+  # - press {ESC} when:
+  #   (a) no more confirmation dialogs (with "Yes" button) left
+  #   (b) dialog with "Exit" button appeared
+  return  1;  # OK_TMP
+
+}
+
 # Builds INI file with settings for align-all action
+# Returns new CFG file path on success, "" on error.
 proc ::spm::_prepare_settings__align_all {inpType}  {
   variable WA_ROOT
   variable ORIG_PATTERN
@@ -243,25 +272,25 @@ proc ::spm::_prepare_settings__align_all {inpType}  {
   if { 0 == [ok_utils::ok_create_absdirs_in_list \
                     [list [file join $WA_ROOT $SUBDIR_CFG]] \
                     [list "subdirectory for session-specific config files"]] } {
-    return  0;  # need to abort; error already printed
+    return  "";  # need to abort; error already printed
   }
-  # name of settings' file is the same as action teplates' name
+  # name of settings' file is the same as action templates' name
   set cfgName [format "align_%s.mcv" [string tolower $inpType]]
   # load settings' template - everything but directory paths
   set templatePath [file join $::SPM_SETTINGS_TEMPLATES_DIR $cfgName]
   if { 0 == [ok_utils::ini_file_to_ini_arr $templatePath iniArr] }  {
-    return  0;  # need to abort; error already printed
+    return  "";  # need to abort; error already printed
   }
   puts "-I- Align-all settings template loaded from '$templatePath'"
   # should filepath be converted into native format? Works in TCL format too...
   set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_PRE]
   set cfgPath [file join $WA_ROOT $SUBDIR_CFG $cfgName]
   if { 0 == [ok_utils::ini_arr_to_ini_file iniArr $cfgPath 1] }  {
-    return  0;  # need to abort; error already printed
+    return  "";  # need to abort; error already printed
   }
   puts "-I- Align-all settings written into '$cfgPath'"
 #### In the caller:
   #~ puts "-I- Open multi-convert GUI and load align-all settings from '$cfgPath'"
   #~ cmd__open_multi_conversion $cfgPath
-  return  1
+  return  $cfgPath
 }
