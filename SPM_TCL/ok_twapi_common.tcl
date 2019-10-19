@@ -1,7 +1,7 @@
 # ok_twapi_common.tcl - common utilities for TWAPI based automation
 
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
-#  set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
+#  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
 package require twapi;  #  TODO: check errors
 
@@ -107,12 +107,15 @@ proc ::ok_twapi::set_latest_app_wnd_to_current {}  {
 proc ::ok_twapi::set_latest_app_wnd {hwnd}  {
   variable LATEST_APP_WND;      # latest visited window handle of StereoPhotoMaker
   set LATEST_APP_WND $hwnd
+  puts "-D- Last window marker set at '[twapi::get_window_text $LATEST_APP_WND]'"
+  return  $LATEST_APP_WND
 }
 
 
 proc ::ok_twapi::forget_latest_app_wnd {}  {
   variable LATEST_APP_WND;      # latest visited window handle of StereoPhotoMaker
   set LATEST_APP_WND ""
+  puts "-D- Last window marker is reset"
 }
 
 

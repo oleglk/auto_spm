@@ -5,7 +5,7 @@
 
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # MIIX-320
-#  set ::SPM [file normalize {C:\Program Files\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
+#  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
 package require twapi;  #  TODO: check errors
 
@@ -217,11 +217,11 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
         ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
     return  "";  # error already printed
   }
-  # type 'cfgPath' then hit OK
+  # type 'cfgPath' then hit  OK by pressing Alt-o (used to be ENTER in old SPM)
   set pDescr "Specify settings-file path"
   set nativeCfgPath [file nativename $cfgPath]
   if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
-        ("" == [set hMC2 [ok_twapi::_send_cmd_keys {{ENTER}} $pDescr 0]]) }  {
+        ("" == [set hMC2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]]) }  {
     return  "";  # error already printed
   }
   if { $hMC2 != $hMC }   {
