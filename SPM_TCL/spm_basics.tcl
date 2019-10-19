@@ -201,7 +201,7 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   set inpPathSeq "[file nativename $WA_ROOT]"
   twapi::send_input_text $inpPathSeq
 #return  "";  # OK_TMP
-  twapi::send_keys {{ENTER}}  ;  # command to change input dir
+  twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
   if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
     return  "";  # error already printed
   }
@@ -254,10 +254,30 @@ proc ::spm::cmd__align_all {inpType {origExt "JPG"}} {
   }
   puts "Commanded to start alignment multi-conversion; config in '$cfgPath'"
   # now there may appear multiple confirmation dialogs; press "y" for each one
-  # - press {ESC} when:
+  # - press Alt-F4 when:
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
-  return  1;  # OK_TMP
+  set winTextPatternToResponseKeySeq [dict create \
+    "Confirm Conversion Start"  "y" \
+    {.alv$}                     "y" \
+    {.jpg$}                     "y" \
+    {.tif$}                     "y" \
+  ]
+  ok_twapi::respond_to_popup_windows_based_on_text  \
+        $winTextPatternToResponseKeySeq 5 20 "alignment multi-conversion"
+  # there should be up to 3 windows titled "Multi Conversion"; close all but original
+  set hList [::twapi::find_windows -match string -text "Multi Conversion"]
+  set cntErr 0
+  foreach hwnd $hList {
+    if { $hwnd == [ok_twapi::get_latest_app_wnd] }  { continue } ;# skip original
+    set wDescr "close {[twapi::get_window_text $hwnd]}"
+    if { "" != [ok_twapi::focus_then_send_keys {%{F4}} $wDescr $hwnd] }  {
+      set lastActionTime [clock seconds];   # success
+    } else {
+      incr cntErr 1                     ;   # error
+    }
+ }
+  return  [expr {$cntErr == 0}];  # OK_TMP
 
 }
 

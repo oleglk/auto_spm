@@ -104,6 +104,13 @@ proc ::ok_twapi::set_latest_app_wnd_to_current {}  {
   return  [set_latest_app_wnd [twapi::get_foreground_window]]
 }
 
+
+proc ::ok_twapi::get_latest_app_wnd {}  {
+  variable LATEST_APP_WND;      # latest visited window handle of StereoPhotoMaker
+  return  $LATEST_APP_WND
+}
+
+
 proc ::ok_twapi::set_latest_app_wnd {hwnd}  {
   variable LATEST_APP_WND;      # latest visited window handle of StereoPhotoMaker
   set LATEST_APP_WND $hwnd
@@ -209,6 +216,41 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 }
 
 
+proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
+        winTextPatternToResponseKeySeq pollPeriodSec maxIdleTimeSec descr}  {
+  set winTextPatternToCntResponded  [dict create]
+  set winTextPatternToCntErrors     [dict create]
+  set startTime [clock seconds]
+  set lastActionTime $startTime
+  # routinely search for windows of each listed "type"-
+  #   until none appears during 'maxIdleTimeSec'
+  while { [expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec }  {
+    dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
+      set hList [::twapi::find_windows -match regexp -text $pattern]
+      foreach hwnd $hList {
+        set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
+        if { "" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd] }  {
+          dict incr winTextPatternToCntResponded $pattern 1  ; # count successes
+          set lastActionTime [clock seconds]
+        } else {
+          dict incr winTextPatternToCntErrors $pattern 1     ; # count errors
+        }
+     }
+   }
+    after [expr {1000 * $pollPeriodSec}]
+  }
+  set cntGood 0;  set cntBad 0
+  foreach n [dict values $winTextPatternToCntResponded]   { incr cntGood $n }
+  foreach n [dict values $winTextPatternToCntErrors]      { incr cntBad  $n }
+  set msg "Responded to $cntGood pop-up(s) for $descr; $cntBad error(s) occured"
+  if { 0 == $cntBad } {
+    puts "-I- $msg" }  else  { puts "-E- $msg" }
+  puts "-D- winTextPatternToCntResponded = {$winTextPatternToCntResponded}"
+  puts "-D- winTextPatternToCntErrors    = {$winTextPatternToCntErrors}"
+  return
+}
+
+
 ###################### Begin: subtask utilities ################################
 
 # Sends menu shortcut keys to travel pre-open menu
@@ -279,6 +321,18 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
     puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";         return  ""
+}
+
+
+proc ::ok_twapi::focus_then_send_keys {keySeqStr descr targetHwnd} {
+  set descr "send key-sequence {$keySeqStr} for $descr"
+  if { 1 == [focus_singleton "focus for $descr" $targetHwnd] }  {
+    after 1000
+    twapi::send_keys $keySeqStr
+    after 200; # avoid an access denied error
+    puts "-I- Success to $descr";     return  [twapi::get_foreground_window]
+  }
+  puts "-E- Cannot $descr";           return  ""
 }
 
 
