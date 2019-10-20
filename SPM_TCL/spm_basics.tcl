@@ -236,8 +236,13 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-proc ::spm::cmd__align_all {inpType {origExt "JPG"}} {
+proc ::spm::cmd__align_all {inpType origExt} {
   # TODO: take 'origExt' into consideration
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is curently supported"
+    return  0
+  }
+  variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
     return  0;  # need to abort; error already printed
   }
@@ -252,19 +257,20 @@ proc ::spm::cmd__align_all {inpType {origExt "JPG"}} {
         ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]]) }  {
     return  0;  # error already printed
   }
-  puts "Commanded to start alignment multi-conversion; config in '$cfgPath'"
+  set actDescr "alignment multi-conversion; config in '$cfgPath'"
+  puts "-I- Commanded to start $actDescr"
   # now there may appear multiple confirmation dialogs; press "y" for each one
   # - press Alt-F4 when:
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
   set winTextPatternToResponseKeySeq [dict create \
-    "Confirm Conversion Start"  "y" \
-    {.alv$}                     "y" \
-    {.jpg$}                     "y" \
-    {.tif$}                     "y" \
+    "Confirm Conversion Start"          "y" \
+    {.alv$}                             "y" \
+    [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
+    [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
   ]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-        $winTextPatternToResponseKeySeq 5 20 "alignment multi-conversion"
+        $winTextPatternToResponseKeySeq 3 20 "alignment multi-conversion"
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
   set hList [::twapi::find_windows -match string -text "Multi Conversion"]
   set cntErr 0
@@ -276,10 +282,15 @@ proc ::spm::cmd__align_all {inpType {origExt "JPG"}} {
     } else {
       incr cntErr 1                     ;   # error
     }
- }
+  }
+  ok_twapi::set_latest_app_wnd_to_current;  # should be the top SPM window
+  if { [ok_twapi::get_latest_app_wnd] != [ok_twapi::get_top_app_wnd] }  {
+    puts "-W- Unexpected window '[twapi::get_window_text [ok_twapi::get_top_app_wnd]]' after multi-conversion is finished. Should be the top SPM window"
+  }
+  puts "-I- Finished $actDescr"
   return  [expr {$cntErr == 0}];  # OK_TMP
-
 }
+
 
 # Builds INI file with settings for align-all action
 # Returns new CFG file path on success, "" on error.
