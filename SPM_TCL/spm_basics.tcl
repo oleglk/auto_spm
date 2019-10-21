@@ -232,32 +232,6 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
 }
 
 
-# Prepares CFG, opens multi-convert GUI, loads settings from the CFG,
-# starts conversion and waits for it to finish.
-# Returns to the top SPM window.
-# Returns 1 on success, 0 on error.
-proc ::spm::cmd__align_all {inpType origExt} {
-  # TODO: take 'origExt' into consideration
-  if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
-    return  0
-  }
-  variable SUBDIR_PRE;  # subdirectory for pre-aligned images
-  if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
-    return  0;  # need to abort; error already printed
-  }
-  # there may appear confirmation dialogs; tell to press "y" for each one
-  set winTextPatternToResponseKeySeq [dict create \
-    "Confirm Conversion Start"          "y" \
-    {.alv$}                             "y" \
-    [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
-    [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
-  ]
-  return  [spm::cmd__multiconvert "alignment multi-conversion" $cfgPath \
-                                  $origExt $winTextPatternToResponseKeySeq]
-}
-
-
 
 # Opens multi-convert GUI, loads settings from 'cfgPath',
 # starts conversion and waits for it to finish.
@@ -309,13 +283,16 @@ proc ::spm::cmd__multiconvert {descr cfgPath origExt \
 }
 
 
-# Builds INI file with settings for align-all action
+# Builds INI file with settings from existent "standard" template 'cfgName'.
+# Changes from the template performed by 'modifierCB' callback procedure:
+#         proc modifierCB {inpType iniArrName}  {}
 # Returns new CFG file path on success, "" on error.
-proc ::spm::_prepare_settings__align_all {inpType}  {
+proc ::spm::_make_settings_file_from_template {inpType cfgName \
+                                              modifierCB descr}  {
   variable WA_ROOT
-  variable ORIG_PATTERN
-  variable SUBDIR_INP;  # subdirectory for to-be-aligned images
-  variable SUBDIR_PRE;  # subdirectory for pre-aligned images
+#  variable ORIG_PATTERN
+#  variable SUBDIR_INP;  # subdirectory for to-be-aligned images
+#  variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   variable SUBDIR_CFG;  # subdirectory for session-specific config files
   if { 0 == [ok_utils::ok_create_absdirs_in_list \
                     [list [file join $WA_ROOT $SUBDIR_CFG]] \
@@ -323,22 +300,20 @@ proc ::spm::_prepare_settings__align_all {inpType}  {
     return  "";  # need to abort; error already printed
   }
   # name of settings' file is the same as action templates' name
-  set cfgName [format "align_%s.mcv" [string tolower $inpType]]
   # load settings' template - everything but directory paths
   set templatePath [file join $::SPM_SETTINGS_TEMPLATES_DIR $cfgName]
   if { 0 == [ok_utils::ini_file_to_ini_arr $templatePath iniArr] }  {
     return  "";  # need to abort; error already printed
   }
-  puts "-I- Align-all settings template loaded from '$templatePath'"
-  # should filepath be converted into native format? Works in TCL format too...
-  set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_PRE]
+  puts "-I- Settings template for $descr loaded from '$templatePath'"
+  # 'modifierCB' procedure alters "iniArr' as needed
+  if { 0 == [$modifierCB $inpType iniArr] }  {
+    return  "";  # need to abort; error already printed
+  }
   set cfgPath [file join $WA_ROOT $SUBDIR_CFG $cfgName]
   if { 0 == [ok_utils::ini_arr_to_ini_file iniArr $cfgPath 1] }  {
     return  "";  # need to abort; error already printed
   }
-  puts "-I- Align-all settings written into '$cfgPath'"
-#### In the caller:
-  #~ puts "-I- Open multi-convert GUI and load align-all settings from '$cfgPath'"
-  #~ cmd__open_multi_conversion $cfgPath
+  puts "-I- Settings template for $descr written into '$cfgPath'"
   return  $cfgPath
 }
