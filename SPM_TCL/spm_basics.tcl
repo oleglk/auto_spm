@@ -246,6 +246,30 @@ proc ::spm::cmd__align_all {inpType origExt} {
   if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
     return  0;  # need to abort; error already printed
   }
+  # there may appear confirmation dialogs; tell to press "y" for each one
+  set winTextPatternToResponseKeySeq [dict create \
+    "Confirm Conversion Start"          "y" \
+    {.alv$}                             "y" \
+    [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
+    [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
+  ]
+  return  [spm::cmd__multiconvert "alignment multi-conversion" $cfgPath \
+                                  $origExt $winTextPatternToResponseKeySeq]
+}
+
+
+
+# Opens multi-convert GUI, loads settings from 'cfgPath',
+# starts conversion and waits for it to finish.
+# 'winTextPatternToResponseKeySeq' tells how to respond
+#          to (optional) confirmation dialogs
+# Returns to the top SPM window.
+# Returns 1 on success, 0 on error.
+proc ::spm::cmd__multiconvert {descr cfgPath origExt \
+                                winTextPatternToResponseKeySeq} {
+  # TODO: take 'origExt' into consideration; how does "Convert All" choose files?
+  set actDescr "$descr; config in '$cfgPath'"
+ 
   if { "" == [set hMC1 [cmd__open_multi_conversion $cfgPath]] }  {
     return  0;  # need to abort; error already printed
   }
@@ -257,20 +281,13 @@ proc ::spm::cmd__align_all {inpType origExt} {
         ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]]) }  {
     return  0;  # error already printed
   }
-  set actDescr "alignment multi-conversion; config in '$cfgPath'"
   puts "-I- Commanded to start $actDescr"
   # now there may appear multiple confirmation dialogs; press "y" for each one
   # - press Alt-F4 when:
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
-  set winTextPatternToResponseKeySeq [dict create \
-    "Confirm Conversion Start"          "y" \
-    {.alv$}                             "y" \
-    [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
-    [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
-  ]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-        $winTextPatternToResponseKeySeq 3 20 "alignment multi-conversion"
+                                  $winTextPatternToResponseKeySeq 3 20 $descr
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
   set hList [::twapi::find_windows -match string -text "Multi Conversion"]
   set cntErr 0
