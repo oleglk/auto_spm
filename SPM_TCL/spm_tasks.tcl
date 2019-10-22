@@ -32,6 +32,7 @@ proc ::spm::cmd__align_all {inpType origExt} {
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
   set winTextPatternToResponseKeySeq [dict create \
+    {^Folder.*doesn't exist.*\?$}       "y" \
     "Confirm Conversion Start"          "y" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
