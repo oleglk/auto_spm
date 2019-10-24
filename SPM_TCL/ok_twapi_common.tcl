@@ -84,12 +84,16 @@ proc ::ok_twapi::focus_singleton {context {targetHwnd 0}}  {
   } else {                            set explicitTarget 1 }
   twapi::set_focus $targetHwnd
   after 200
+  set currWnd [twapi::get_foreground_window]
   set isOK [expr { ($explicitTarget == 1)? \
-                        ($targetHwnd == [twapi::get_foreground_window])   : \
+                        ($currWnd == $targetHwnd)   : \
                         (1 == [is_current_window_related]) }]
   if { $isOK == 1 }  {
     puts "-I- Success $descr";    return  1
   } else {
+    set currWndText [expr {($currWnd != "")? \
+              "'[twapi::get_window_text $currWnd]' ($currWnd)" : "UNKNOWN"}]
+    puts "-E- Focused window $currWndText instead of '[twapi::get_window_text $targetHwnd]' ($targetHwnd)"
     puts "-E- Failed $descr";     return  0
   }
 }

@@ -27,12 +27,14 @@ proc ::spm::cmd__align_all {inpType origExt} {
     return  0
   }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
+  variable WA_ROOT
+  set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
   if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
     return  0;  # need to abort; error already printed
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
   set winTextPatternToResponseKeySeq [dict create \
-    {^Folder.*doesn't exist.*\?$}       "y" \
+    [format {^%s$} $outDirFullPath]     "y" \
     "Confirm Conversion Start"          "y" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
