@@ -239,9 +239,8 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
 #          to (optional) confirmation dialogs
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-proc ::spm::cmd__multiconvert {descr cfgPath origExt \
+proc ::spm::cmd__multiconvert {descr cfgPath \
                                 winTextPatternToResponseKeySeq} {
-  # TODO: take 'origExt' into consideration; how does "Convert All" choose files?
   set actDescr "$descr; config in '$cfgPath'"
  
   if { "" == [set hMC1 [cmd__open_multi_conversion $cfgPath]] }  {

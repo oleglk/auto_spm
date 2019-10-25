@@ -20,8 +20,7 @@ source [file join $SCRIPT_DIR "spm_basics.tcl"]
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-proc ::spm::cmd__align_all {inpType origExt} {
-  # TODO: take 'origExt' into consideration
+proc ::spm::cmd__align_all {inpType} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is curently supported"
     return  0
@@ -41,7 +40,7 @@ proc ::spm::cmd__align_all {inpType origExt} {
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
   ]
   return  [spm::cmd__multiconvert "alignment multi-conversion" $cfgPath \
-                                  $origExt $winTextPatternToResponseKeySeq]
+                                  $winTextPatternToResponseKeySeq]
 }
 
 
