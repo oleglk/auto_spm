@@ -22,6 +22,7 @@ namespace eval ::spm:: {
   variable SUBDIR_INP "FIXED";  # subdirectory for to-be-aligned images
   variable SUBDIR_PRE "Pre";    # subdirectory for pre-aligned images
   variable SUBDIR_CFG "CONFIG";  # subdirectory for session-specific config files
+  variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
   variable SPM_TITLE  "StereoPhoto Maker" ;   # title of the main SPM window
 
@@ -142,6 +143,20 @@ proc ::spm::quit_spm {}  {
 # Returns 1 if the current foreground window is SPM-top or its descendant
 proc ::spm::is_current_window_spm {} {
   return  [::ok_twapi::is_current_window_related]
+}
+
+
+# Builds and returns full path of alignment subdirectory
+proc ::spm::BuildAlignDirPath {inpType}  {
+  variable WA_ROOT;  variable SUBDIR_ALIGN
+  set alignDir [switch -nocase $inpType {
+    SBS   {file join $WA_ROOT $SUBDIR_ALIGN}
+    LR    {file join $WA_ROOT "L" $SUBDIR_ALIGN}
+    default {
+      puts "-E- Unknown input type '$inpType'";   set alignDir ""
+    }
+  }]
+  return  $alignDir
 }
 
 

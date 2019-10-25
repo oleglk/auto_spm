@@ -20,7 +20,7 @@ source [file join $SCRIPT_DIR "spm_basics.tcl"]
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-proc ::spm::cmd__align_all {inpType} {
+proc ::spm::cmd__align_all {inpType reuseAlignData} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is curently supported"
     return  0
@@ -30,6 +30,16 @@ proc ::spm::cmd__align_all {inpType} {
   set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
   if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
     return  0;  # need to abort; error already printed
+  }
+  set alignDir [spm::BuildAlignDirPath $inpType]
+  if { [file exists $alignDir] }  {
+    if { $reuseAlignData == 0 }  {
+      if { [ok_utils::ok_force_delete_dir $alignDir] }  {
+        puts "-I- Deleted old alignment data in '$alignDir'"
+      };  # if failed to delete, error is printed
+    } else {
+      puts "-I- Will reuse old alignment data in '$alignDir'"
+    }
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
   set winTextPatternToResponseKeySeq [dict create \
