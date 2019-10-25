@@ -12,6 +12,7 @@ package require twapi;  #  TODO: check errors
 set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
+source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 
 set SPM_SETTINGS_TEMPLATES_DIR [file join $SCRIPT_DIR ".." "SPM_INI"]
 
@@ -29,8 +30,6 @@ namespace eval ::spm:: {
   
   variable WA_ROOT "";  # work-area root directory
   
-  variable TABSTOPS 0; # 2-level dict of wnd-title :: control-name :: tabstop
-
   
   namespace export  \
     # (DO NOT EXPORT:)  start_singleton  \
@@ -38,76 +37,32 @@ namespace eval ::spm:: {
 }
 
 
-################################################################################
-# Builds ::spm::TABSTOPS dictionary that tells how many times to press TAB
-#                 in order to focus specific control AFTER FILENAME ENTRY
-#    E.g.: press Alt-n, then count the tabstops
-# For "Multi Conversion" window  this order holds only if open programmatically!
-proc ::spm::_build_tabstops_dict {}   {
-  variable TABSTOPS; # 2-level dict of wnd-title :: control-name :: tabstop
-  set TABSTOPS [dict create]
-  dict set TABSTOPS   "Multi Conversion"    "File name"                 0
-  dict set TABSTOPS   "Multi Conversion"    "Input File Type"           1
-  dict set TABSTOPS   "Multi Conversion"    "Cancel"                    2
-  dict set TABSTOPS   "Multi Conversion"    "Convert Selected Files"    3
-  dict set TABSTOPS   "Multi Conversion"    "Convert All Files"         4
-  dict set TABSTOPS   "Multi Conversion"    "Multi Job"                 5
-  
-  dict set TABSTOPS   "Multi Conversion"    "Output File Type"          9
-  dict set TABSTOPS   "Multi Conversion"    "Output File Format"        10
-  dict set TABSTOPS   "Multi Conversion"    "Auto Align"                11
-  dict set TABSTOPS   "Multi Conversion"    "Auto Alignment Settings"   12
 
-  dict set TABSTOPS   "Multi Conversion"    "Auto Crop After Adjustment" 15
-
-  dict set TABSTOPS   "Multi Conversion"    "Auto Color Adjustment"     18
-  dict set TABSTOPS   "Multi Conversion"    "Gamma"                     19
-  dict set TABSTOPS   "Multi Conversion"    "Gamma L"                   20
-  dict set TABSTOPS   "Multi Conversion"    "Gamma R"                   21
-  dict set TABSTOPS   "Multi Conversion"    "Crop"                      22
-  dict set TABSTOPS   "Multi Conversion"    "Crop X1"                   23
-  dict set TABSTOPS   "Multi Conversion"    "Crop Y1"                   24
-  dict set TABSTOPS   "Multi Conversion"    "Crop X2"                   25
-  dict set TABSTOPS   "Multi Conversion"    "Crop Y2"                   26
-  dict set TABSTOPS   "Multi Conversion"    "Resize"                    27
-  dict set TABSTOPS   "Multi Conversion"    "Width"                     28
-  dict set TABSTOPS   "Multi Conversion"    "Height"                    29
-  dict set TABSTOPS   "Multi Conversion"    "Input Side-By-Side"        30
-  
-  dict set TABSTOPS   "Multi Conversion"    "Add Text"                  34
-
-
-  dict set TABSTOPS   "Multi Conversion"    "Output Folder"             36
-  dict set TABSTOPS   "Multi Conversion"    "Output Folder Browse"      37
-  
-  dict set TABSTOPS   "Multi Conversion"    "Restore(File)"             39
-  dict set TABSTOPS   "Multi Conversion"    "Restore"                   40
-  dict set TABSTOPS   "Multi Conversion"    "Save"                      41
-  #dict set TABSTOPS   "Multi Conversion"    "todo"        todo
-}
-
-# Returns tabstop number or -1 on error
+# Returns tabstop number (zero, positive or negative) or -999 on error
+#  'TABSTOPS' == 2-level dict of wnd-title :: control-name :: tabstop
 proc ::spm::_get_tabstop {wndTitle controlName}   {
-  variable TABSTOPS; # 2-level dict of wnd-title :: control-name :: tabstop
-  if { ! [info exists TABSTOPS] }  {
-    puts "-E- TABSTOPS dictionary not built yet"
-    return  -1
+  variable TABSTOPS;  # should point at the current TABSTOPS_XXX; 0 == unknown
+  if { $TABSTOPS == 0 }  {
+    puts "-E- TABSTOPS dictionary not chosen yet"
+    return  -999
   }
   if { ! [dict exists $TABSTOPS $wndTitle $controlName] }  {
     puts "-E- Unknown UI control '$controlName' in window '$wndTitle'"
-    return  -1
+    return  -999
   }
   return  [dict get $TABSTOPS $wndTitle $controlName]
 }
 
-# Returns srring of repeated TAB-s (by tabstop number) or "ERROR" on error
+
+# Returns string of repeated TAB-s (by tabstop number) or "ERROR" on error
 proc ::spm::_format_tabstop  {wndTitle controlName}   {
-  if { -1 == [set nTabs [_get_tabstop $wndTitle $controlName]] }  {
+  if { -999 == [set nTabs [_get_tabstop $wndTitle $controlName]] }  {
     return  "ERROR"
   }
   if { $nTabs == 0 }  { return "" }
-  set seq "{TAB}"
-  for {set i 1} {$i < $nTabs} {incr i}  { append seq " " "{TAB}"  }
+  set one [expr { ($nTabs > 0)?  "{TAB}"  :  "+{TAB}" }] ;  # TAB or Shift-TAB
+  set seq $one
+  for {set i 1} {$i < $nTabs} {incr i}  { append seq " " $one  }
   return  $seq
 }
 
@@ -123,7 +78,7 @@ proc ::spm::start_spm {{workarea_rootdir ""}}  {
       puts "-E- Invalid or inexistent directory '$workarea_rootdir'"
       return  0
     }
-    if { ($::spm::TABSTOPS == 0) && (0 == [_build_tabstops_dict]) }   {
+    if { ($::spm::TABSTOPS_DFL == 0) && (0 == [_build_tabstops_dict]) }   {
       return  0;  # error already printed
     }
     set WA_ROOT [file normalize $workarea_rootdir]
@@ -239,6 +194,7 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
         ("" == [set hMC2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]]) }  {
     return  "";  # error already printed
   }
+#return  "";  # OK_TMP
   if { $hMC2 != $hMC }   {
     puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings"
     return  ""

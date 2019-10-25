@@ -12,6 +12,7 @@ package require twapi;  #  TODO: check errors
 set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
+source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 source [file join $SCRIPT_DIR "spm_basics.tcl"]
 
 
@@ -49,8 +50,10 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
   ]
-  return  [spm::cmd__multiconvert "alignment multi-conversion" $cfgPath \
+  set rc [spm::cmd__multiconvert "alignment multi-conversion" $cfgPath \
                                   $winTextPatternToResponseKeySeq]
+  set spm::TABSTOPS $spm::TABSTOPS_DFL
+  return  $rc
 }
 
 
