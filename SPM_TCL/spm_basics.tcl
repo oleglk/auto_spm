@@ -22,6 +22,7 @@ namespace eval ::spm:: {
 #  variable SUBDIR_INP "";  # subdirectory for to-be-aligned images - DEFAULT
   variable SUBDIR_INP "FIXED";  # subdirectory for to-be-aligned images
   variable SUBDIR_PRE "Pre";    # subdirectory for pre-aligned images
+  variable SUBDIR_SBS "SBS";    # subdirectory for final images
   variable SUBDIR_CFG "CONFIG";  # subdirectory for session-specific config files
   variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
@@ -140,8 +141,9 @@ proc ::spm::cmd__return_to_top {} {
 
 
 # Opens multi-convert GUI; if 'cfgPath' given, loads settings from it.
+# 'inpSubDir' is subdirectory name under work-area root or "" for root directory
 # Returns handle of resulting window or "" on error.
-proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
+proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   variable WA_ROOT
   puts -nonewline "-I- Commanded to open multi-convert GUI"
   if { $cfgPath == "" }  { puts ""
@@ -164,12 +166,13 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   }
   #twapi::unblock_input
   set hMC [::ok_twapi::set_latest_app_wnd_to_current]
-  if { $cfgPath == "" }  {  return  $hMC }
+  # change input directory
   if { $hMC == "" }  { return  "" };  # error already printed
   # multi-convert GUI is open in FG; focus "File Name" textbox and type input dir path
+  set inpDirPath [file join $WA_ROOT $inpSubDir]
   set iDescr "specify input directory"
   twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
-  set inpPathSeq "[file nativename $WA_ROOT]"
+  set inpPathSeq "[file nativename $inpDirPath]"
   twapi::send_input_text $inpPathSeq
 #return  "";  # OK_TMP
   twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
@@ -177,6 +180,8 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
     return  "";  # error already printed
   }
   puts "-I- Commanded to change input directory to '$inpPathSeq'"
+  if { $cfgPath == "" }  {  return  $hMC }
+  
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
 
 # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
@@ -191,13 +196,16 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
   # type 'cfgPath' then hit  OK by pressing Alt-o (used to be ENTER in old SPM)
   set pDescr "Specify settings-file path"
   set nativeCfgPath [file nativename $cfgPath]
-  if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) || \
-        ("" == [set hMC2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]]) }  {
+  if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) }   {
+     return  "";  # error already printed
+  }
+ return  "";  # OK_TMP
+  if { ("" == [set hMC2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]]) }  {
     return  "";  # error already printed
   }
 #return  "";  # OK_TMP
   if { $hMC2 != $hMC }   {
-    puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings"
+    puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings from '$cfgPath'"
     return  ""
   }
   return  $hMC2
@@ -207,15 +215,16 @@ proc ::spm::cmd__open_multi_conversion {{cfgPath ""}} {
 
 # Opens multi-convert GUI, loads settings from 'cfgPath',
 # starts conversion and waits for it to finish.
+# 'inpSubDir' is subdirectory name under work-area root or "" for root directory
 # 'winTextPatternToResponseKeySeq' tells how to respond
 #          to (optional) confirmation dialogs
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-proc ::spm::cmd__multiconvert {descr cfgPath \
+proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
                                 winTextPatternToResponseKeySeq} {
   set actDescr "$descr; config in '$cfgPath'"
  
-  if { "" == [set hMC1 [cmd__open_multi_conversion $cfgPath]] }  {
+  if { "" == [set hMC1 [cmd__open_multi_conversion $inpSubDir $cfgPath]] }  {
     return  0;  # need to abort; error already printed
   }
   # arrange for commanding to start alignment multi-conversion

@@ -50,8 +50,43 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
   ]
-  set rc [spm::cmd__multiconvert "alignment multi-conversion" $cfgPath \
-                                  $winTextPatternToResponseKeySeq]
+  set rc [spm::cmd__multiconvert  "alignment multi-conversion" ""         \
+                                  $cfgPath $winTextPatternToResponseKeySeq]
+  set spm::TABSTOPS $spm::TABSTOPS_DFL
+  return  $rc
+}
+
+
+# Prepares CFG, opens multi-convert GUI, loads settings from the CFG,
+# starts conversion and waits for it to finish.
+# Returns to the top SPM window.
+# Returns 1 on success, 0 on error.
+proc ::spm::cmd__crop_all {inpType left top right bottom} {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is curently supported"
+    return  0
+  }
+  variable SUBDIR_PRE;  # subdirectory for pre-aligned images - input
+  variable SUBDIR_SBS;  # subdirectory for cropped images     - output
+  variable WA_ROOT
+  # input directory - the one with pre-aligned images
+  
+  set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
+  if { "" == [set cfgPath [_prepare_settings__crop_all $inpType   \
+                                                $left $top $right $bottom]] }  {
+    return  0;  # need to abort; error already printed
+  }
+
+  # there may appear confirmation dialogs; tell to press "y" for each one
+  set winTextPatternToResponseKeySeq [dict create \
+    [format {^%s$} $outDirFullPath]     "y" \
+    "Confirm Conversion Start"          "y" \
+    {.alv$}                             "y" \
+    [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
+    [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
+  ]
+  set rc [spm::cmd__multiconvert  "cropping multi-conversion" $SUBDIR_PRE \
+                                  $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
 }
@@ -75,6 +110,35 @@ proc ::spm::_align_all__SettingsModifierCB {inpType iniArrName}  {
   upvar $iniArrName iniArr
   # should filepath be converted into native format? Works in TCL format too...
   set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_PRE]
+  return  1
+}
+
+
+# Builds INI file with settings for align-all action
+# Returns new CFG file path on success, "" on error.
+proc ::spm::_prepare_settings__crop_all {inpType left top right bottom}  {
+  # name of settings' file is the same as action templates' name
+  set cfgName [format "crop_%s.mcv" [string tolower $inpType]]
+  return  [spm::_make_settings_file_from_template $inpType $cfgName \
+                      "::spm::_crop_all__SettingsModifierCB"  "crop-all" \
+                      $left $top $right $bottom]
+}
+
+
+proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName \
+                                            left top right bottom}  {
+  # TODO: take 'inpType' into consideration
+  variable WA_ROOT
+  variable SUBDIR_SBS;  # subdirectory for final images
+  upvar $iniArrName iniArr
+  # should filepath be converted into native format? Works in TCL format too...
+  set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_SBS]
+  #
+  set iniArr(-\[Data\]__Crop)       1
+  set iniArr(-\[Data\]__CropLeft)   $left
+  set iniArr(-\[Data\]__CropTop)    $top
+  set iniArr(-\[Data\]__CropRight)  $right
+  set iniArr(-\[Data\]__CropBottom) $bottom
   return  1
 }
 ########### End:   procedures to prepare SPM settings' files per task ########## 
