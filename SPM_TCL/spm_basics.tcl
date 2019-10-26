@@ -62,7 +62,8 @@ proc ::spm::_format_tabstop  {wndTitle controlName}   {
   if { $nTabs == 0 }  { return "" }
   set one [expr { ($nTabs > 0)?  "{TAB}"  :  "+{TAB}" }] ;  # TAB or Shift-TAB
   set seq $one
-  for {set i 1} {$i < $nTabs} {incr i}  { append seq " " $one  }
+  set abs_nTabs [expr abs($nTabs)]
+  for {set i 1} {$i < $abs_nTabs} {incr i}  { append seq " " $one  }
   return  $seq
 }
 
