@@ -35,6 +35,6 @@ AutoAlignment=1
 AutoAlignArrange=0
 AutoAlignBarrel=5100
 AutoAlignReport=0
-AutoAlignDeviation=1
+AutoAlignDeviation=2
 ValueAlignOn=0
 AddText=0
