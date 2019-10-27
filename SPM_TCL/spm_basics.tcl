@@ -180,9 +180,11 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
     return  "";  # error already printed
   }
   puts "-I- Commanded to change input directory to '$inpPathSeq'"
+  puts "-I- (Note, 'BACK' button became accessible and accounted for by tabstops"
   if { $cfgPath == "" }  {  return  $hMC }
   
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
+ #return  "";  # OK_TMP
 
 # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
@@ -199,7 +201,7 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   if {  ("" == [ok_twapi::_send_cmd_keys $nativeCfgPath $pDescr 0]) }   {
      return  "";  # error already printed
   }
- return  "";  # OK_TMP
+ #return  "";  # OK_TMP
   if { ("" == [set hMC2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]]) }  {
     return  "";  # error already printed
   }

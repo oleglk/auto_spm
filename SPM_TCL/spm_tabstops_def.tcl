@@ -14,6 +14,7 @@ namespace eval ::spm:: {
 #    E.g.: press Alt-n, then count the tabstops
 # Negative value tells to press Shift-TAB instead 
 #     (to bypass fields inserted when "Resize" is checked)
+# Tabstops here assume that "Back" button (tabstop=-4) isn't greyed-out!
 # For "Multi Conversion" window  this order holds only if open programmatically!
 proc ::spm::_build_tabstops_dict {}   {
   ##############################################################################
@@ -50,12 +51,14 @@ proc ::spm::_build_tabstops_dict {}   {
   dict set TABSTOPS_DFL   "Multi Conversion"    "Add Text"                  34
 
 
-  dict set TABSTOPS_DFL   "Multi Conversion"    "Output Folder"             -10 ; # 36
+  dict set TABSTOPS_DFL   "Multi Conversion"    "Output Folder"            -11 ; # 36
   dict set TABSTOPS_DFL   "Multi Conversion"    "Output Folder Browse"      37
   
-  dict set TABSTOPS_DFL   "Multi Conversion"    "Restore(File)"             -7 ; # 39
-  dict set TABSTOPS_DFL   "Multi Conversion"    "Restore"                   -6 ; # 40
-  dict set TABSTOPS_DFL   "Multi Conversion"    "Save"                      -5 ; # 41
+  dict set TABSTOPS_DFL   "Multi Conversion"    "Restore(File)"             -8 ; # 39
+  dict set TABSTOPS_DFL   "Multi Conversion"    "Restore"                   -7 ; # 40
+  dict set TABSTOPS_DFL   "Multi Conversion"    "Save"                      -6 ; # 41
+  dict set TABSTOPS_DFL   "Multi Conversion"    "Back"                      -4 ; # 43?
+  
   #dict set TABSTOPS_DFL   "Multi Conversion"    "todo"        todo
 
   ##############################################################################
@@ -63,10 +66,11 @@ proc ::spm::_build_tabstops_dict {}   {
   set TABSTOPS_CANV [dict create]
   dict set TABSTOPS_CANV  "Multi Conversion"    "Convert All Files"         4
   dict set TABSTOPS_CANV  "Multi Conversion"    "Resize"                    27
-  dict set TABSTOPS_CANV  "Multi Conversion"    "Output Folder"            -10
-  dict set TABSTOPS_CANV  "Multi Conversion"    "Restore(File)"             -7 ; # 39
-  dict set TABSTOPS_CANV  "Multi Conversion"    "Restore"                   -6 ; # 40
-  dict set TABSTOPS_CANV  "Multi Conversion"    "Save"                      -5 ; # 41
+  dict set TABSTOPS_CANV  "Multi Conversion"    "Output Folder"            -11
+  dict set TABSTOPS_CANV  "Multi Conversion"    "Restore(File)"             -8 ; # 39
+  dict set TABSTOPS_CANV  "Multi Conversion"    "Restore"                   -7 ; # 40
+  dict set TABSTOPS_CANV  "Multi Conversion"    "Save"                      -6 ; # 41
+  dict set TABSTOPS_CANV  "Multi Conversion"    "Back"                      -4 ; # 43?
 
   ##############################################################################
   variable TABSTOPS;  # should point at the current TABSTOPS_XXX; 0 == unknown
