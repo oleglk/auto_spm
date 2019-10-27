@@ -92,6 +92,40 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 }
 
 
+# Opens multi-convert GUI, loads settings from the cfgPath,
+# starts conversion and waits for it to finish.
+# Returns to the top SPM window.
+# Returns 1 on success, 0 on error.
+proc ::spm::cmd__adjust_all {inpType cfgPath} {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is curently supported"
+    return  0
+  }
+  if { ![file exists $cfgPath] }  {
+    puts "-E- Inexistent adjustment settings file '$cfgPath'"
+    return  0
+  }
+  variable SUBDIR_PRE;  # subdirectory for pre-aligned images - input
+  variable SUBDIR_SBS;  # subdirectory for adjusted images    - output
+  variable WA_ROOT
+  # input directory - the one with pre-aligned images
+  
+  set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
+
+  # there may appear confirmation dialogs; tell to press "y" for each one
+  set winTextPatternToResponseKeySeq [dict create \
+    [format {^%s$} $outDirFullPath]     "y" \
+    "Confirm Conversion Start"          "y" \
+    [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
+    [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
+  ]
+  set rc [spm::cmd__multiconvert  "adjust-by-example multi-conversion" $SUBDIR_PRE \
+                                  $cfgPath $winTextPatternToResponseKeySeq]
+  set spm::TABSTOPS $spm::TABSTOPS_DFL
+  return  $rc
+}
+
+
 ########### Begin: procedures to prepare SPM settings' files per task ########## 
 # Builds INI file with settings for align-all action
 # Returns new CFG file path on success, "" on error.
