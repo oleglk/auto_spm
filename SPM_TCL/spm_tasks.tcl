@@ -126,6 +126,13 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
 }
 
 
+proc ::spm::cmd__fuzzy_border_one {imgPath width gradient corners}  {
+  if { ![file exists $imgPath] }  {
+    puts "-E- Inexistent input image file '$imgPath'";    return  ""
+  }
+}
+
+
 ########### Begin: procedures to prepare SPM settings' files per task ########## 
 # Builds INI file with settings for align-all action
 # Returns new CFG file path on success, "" on error.
