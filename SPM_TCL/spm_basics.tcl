@@ -10,6 +10,7 @@
 package require twapi;  #  TODO: check errors
 
 set SCRIPT_DIR [file dirname [info script]]
+source [file join $SCRIPT_DIR "ok_utils" "common.tcl"]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
 source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
@@ -151,6 +152,12 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   set descr [lindex [info level 0] 0]
   if { ![::ok_twapi::verify_singleton_running $descr] }  { return  ""}; # FIRST!
   #twapi::block_input
+  # build and validate the ultimate input dir path ('inpSubDir' MUST BE subdir)
+  set inpDirPath [file join $WA_ROOT $inpSubDir]
+  if { ! [ok_utils::ok_filepath_is_existent_dir $inpDirPath] }  {
+    puts "-E- Invalid or inexistent multi-convert input directory '$inpDirPath'"
+    return  ""
+  }
   # _send_cmd_keys {{MENU}f} $descr [::ok_twapi::get_top_app_wnd]
   if { 0 == [::ok_twapi::open_menu_top_level "f" $descr] }  {
     return  "";  # error already printed
@@ -169,7 +176,6 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   # change input directory
   if { $hMC == "" }  { return  "" };  # error already printed
   # multi-convert GUI is open in FG; focus "File Name" textbox and type input dir path
-  set inpDirPath [file join $WA_ROOT $inpSubDir]
   set iDescr "specify input directory"
   twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
   set inpPathSeq "[file nativename $inpDirPath]"
