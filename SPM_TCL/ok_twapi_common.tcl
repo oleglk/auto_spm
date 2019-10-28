@@ -321,7 +321,7 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
         twapi::send_keys $subSeq
       }
      }
-    after 200; # avoid an access denied error
+    after 500; # avoid an access denied error
     puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";         return  ""

@@ -1,5 +1,8 @@
 # spm_tabstops_def.tcl
 
+# Note, tabstops for windows with any kind of FILE DIALOG should assume DETAILS/TABLE mode which is the default for new folders !!
+
+
 namespace eval ::spm:: {
   # TABSTOPS_XXX == 2-level dict-s of wnd-title :: control-name :: tabstop
   variable TABSTOPS_DFL 0; # tabstops for ?default? content of Multi-Convert dialog
