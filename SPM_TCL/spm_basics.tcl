@@ -282,32 +282,33 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   set lDescr "open stereopair in '$imgPath'"
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is curently supported"
-    return  0
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   if { ![::ok_twapi::verify_singleton_running $lDescr] }  { return  0}; # FIRST!
     if { 0 == [::ok_twapi::focus_singleton "focus to $lDescr" 0] }  {
-    return  0;  # warning already printed
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   if { ![file exists $imgPath] }  {
     puts "-E- Inexistent input image file '$imgPath'";    return  0
   }
   set hSPM [ok_twapi::get_top_app_wnd];      # window handle of StereoPhotoMaker
   if { "" == [ok_twapi::_send_cmd_keys "w" $lDescr 0] }  {
-    return  0;  # error already printed
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   # type 'imgPath' then hit OK by pressing Alt-o (used to be ENTER in old SPM)
   set pDescr "specify stereopair-file path"
   set nativeImgPath [file nativename $imgPath]
   if { "" == [ok_twapi::_send_cmd_keys $nativeImgPath $pDescr 0] }   {
-     return  0;  # error already printed
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
  #return  "";  # OK_TMP
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
 #return  "";  # OK_TMP
   if { $hSPM2 != $hSPM }   {
     puts "-E- Unexpected window '[twapi::get_window_text $hSPM2]' after loading stereopair from '$imgPath'"
-    return  0
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
+  puts "-I- Success to $lDescr"
   return  1
 }
 

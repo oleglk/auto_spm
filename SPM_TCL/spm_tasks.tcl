@@ -126,10 +126,11 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
 }
 
 
-proc ::spm::cmd__fuzzy_border_one {imgPath width gradient corners}  {
-  if { ![file exists $imgPath] }  {
-    puts "-E- Inexistent input image file '$imgPath'";    return  ""
+proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
+  if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
+    return  "";   # error already printed
   }
+  # TODO: to make tabstops available in border dialog, press Alt-TAB twice
 }
 
 
