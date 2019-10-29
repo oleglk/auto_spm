@@ -176,22 +176,29 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   set hMC [::ok_twapi::set_latest_app_wnd_to_current]
   # change input directory
   if { $hMC == "" }  { return  "" };  # error already printed
-  # multi-convert GUI is open in FG; focus "File Name" textbox and type input dir path
-  set iDescr "specify input directory"
-  twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
-  set inpPathSeq "[file nativename $inpDirPath]"
-  twapi::send_input_text $inpPathSeq
 #return  "";  # OK_TMP
-  twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
-  if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
-    return  "";  # error already printed
+  # multi-convert GUI is open in FG; focus "File Name" textbox and type input dir path
+  # do it twice to force expected tabstop order ---woodoo----
+  for {set di 1}  {$di <= 2}  {incr di 1}  {
+    puts "-I- Change input directory - commamd #$di of 2"
+    twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
+    set inpPathSeq "[file nativename $inpDirPath]"
+    twapi::send_input_text $inpPathSeq
+  #return  "";  # OK_TMP
+    twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
+    if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
+      return  "";  # error already printed
+    }
+    after 500
   }
+after 5000
+  # TODO: consider cleaning filename field
   puts "-I- Commanded to change input directory to '$inpPathSeq'"
   puts "-I- (Note, 'BACK' button became accessible and accounted for by tabstops"
   if { $cfgPath == "" }  {  return  $hMC }
   
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
- #return  "";  # OK_TMP
+#return  "";  # OK_TMP
 
 # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
