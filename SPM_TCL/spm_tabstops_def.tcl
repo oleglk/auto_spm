@@ -75,6 +75,18 @@ proc ::spm::_build_tabstops_dict {}   {
   dict set TABSTOPS_CANV  "Multi Conversion"    "Save"                      -6 ; # 41
   dict set TABSTOPS_CANV  "Multi Conversion"    "Back"                      -4 ; # 43?
 
+
+  ##############################################################################
+  # tabstops for Add-Fuzzy-Border dialog
+  # assume 'TABSTOPS_DFL' is already created
+  dict set TABSTOPS_DFL   "Add Fuzzy Border"    "OK"                 0
+  dict set TABSTOPS_DFL   "Add Fuzzy Border"    "Cancel"             1
+  dict set TABSTOPS_DFL   "Add Fuzzy Border"    "Color"              2
+  dict set TABSTOPS_DFL   "Add Fuzzy Border"    "Border width"       3
+  dict set TABSTOPS_DFL   "Add Fuzzy Border"    "Fuzzy gradient"     4
+  dict set TABSTOPS_DFL   "Add Fuzzy Border"    "Round corners"      5
+  ############################################################################## 
+  
   ##############################################################################
   variable TABSTOPS;  # should point at the current TABSTOPS_XXX; 0 == unknown
   set TABSTOPS $TABSTOPS_DFL;   # TODO: "reset

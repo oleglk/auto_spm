@@ -57,7 +57,7 @@ proc ::spm::_get_tabstop {wndTitle controlName}   {
 
 
 # Returns string of repeated TAB-s (by tabstop number) or "ERROR" on error
-proc ::spm::_format_tabstop  {wndTitle controlName}   {
+proc ::spm::format_tabstop  {wndTitle controlName}   {
   if { -999 == [set nTabs [_get_tabstop $wndTitle $controlName]] }  {
     return  "ERROR"
   }
@@ -185,7 +185,8 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
     twapi::send_input_text $inpPathSeq
   #return  "";  # OK_TMP
     twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
-    if { 0 == [ok_twapi::verify_current_window_by_title "Multi Conversion" 1] }  {
+    if { 0 == [ok_twapi::verify_current_window_by_title   "Multi Conversion" \
+                                                          "exact" 1] }  {
       return  "";  # error already printed
     }
     after 500
@@ -203,7 +204,7 @@ after 5000
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
   #~ set keySeqLoadCfg [format "{{{TAB} %d} {SPACE}}" $tabStop]
   set lDescr "Press 'Restore(File)' button"
-  set tabsStr [_format_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
+  set tabsStr [format_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
   if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $lDescr 0]) || \
         ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
     return  "";  # error already printed
@@ -245,7 +246,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # arrange for commanding to start alignment multi-conversion
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
   set sDescr "Press 'Convert All Files' button"
-  set tabsStr [_format_tabstop  "Multi Conversion"  "Convert All Files"]; # safe
+  set tabsStr [format_tabstop  "Multi Conversion"  "Convert All Files"]; # safe
   if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $sDescr 0]) || \
         ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]]) }  {
     return  0;  # error already printed
@@ -303,6 +304,12 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   }
  #return  "";  # OK_TMP
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
+  set targetWndTitle [build_image_window_title_regexp_pattern sbs $imgPath]
+  set hSPM2 [ok_twapi::wait_for_window_title_to_raise $targetWndTitle "regexp"]
+  if { $hSPM2 == "" } {
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
+  }
+
 #return  "";  # OK_TMP
   if { $hSPM2 != $hSPM }   {
     puts "-E- Unexpected window '[twapi::get_window_text $hSPM2]' after loading stereopair from '$imgPath'"
@@ -310,6 +317,19 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   }
   puts "-I- Success to $lDescr"
   return  1
+}
+
+
+# 
+proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is curently supported"
+    return  "ERROR: unsupported"
+  }
+  set imgName [file tail $imgPath]
+  set targetWndTitlePattern [format {^Left Image[(]%s - .*Right Image[(]%s - } \
+                                    $imgName $imgName]
+  return  $targetWndTitlePattern
 }
 
 

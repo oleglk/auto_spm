@@ -127,10 +127,64 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
 
 
 proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
+  variable TABSTOPS_DFL
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  "";   # error already printed
   }
-  # TODO: to make tabstops available in border dialog, press Alt-TAB twice
+  set imgWnd [twapi::get_foreground_window]
+  set title [twapi::get_window_text $imgWnd]
+  if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
+    puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
+  }
+  set dDescr "command to open 'Add Fuzzy Border' dialog"
+  if { "" == [ok_twapi::_send_cmd_keys {+b} $dDescr 0] }  {
+    return  "";  # error already printed
+  }
+  set hB [ok_twapi::wait_for_window_title_to_raise "Add Fuzzy Border" "exact"]
+  if { $hB == "" } {
+    puts "-E- Failed to $dDescr";    return  0;  # error details already printed
+  }
+  # to make tabstops available in border dialog, press Alt-TAB twice
+  set fDescr "switch-from-then-back to fuzzy-border dialog in order to make tabstops available"
+  twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
+  set hB [ok_twapi::wait_for_window_title_to_raise "Add Fuzzy Border" "exact"]
+  if { $hB == "" } {
+    puts "-E- Failed to $fDescr";    return  0;  # error details already printed
+  }
+  puts "-I- Success to $fDescr"
+  after 1000; # wait after returning to the dialog
+  # Go over all fields in ascending tabstops order and process each one
+  set allStops [lindex [dict filter $TABSTOPS_DFL key "Add Fuzzy Border"] 1]
+  set nStops [expr [llength $allStops] / 2]
+  puts "-D- There are $nStops tabstop(s) for 'Add Fuzzy Border' dialog"
+
+  set numToName [dict create]
+  dict for {name num} $allStops  { dict set numToName $num $name }
+  
+  set nameToVal [dict create      \
+      "Border width"    $width    \
+      "Fuzzy gradient"  $gradient \
+      "Round corners"   $corners  ]
+  for {set num 0} {$num < $nStops} {incr num 1}  {
+    set name [dict get $numToName $num]
+    if { [dict exists $nameToVal $name] }   {
+      set val [dict get $nameToVal $name]
+      puts "-I- Typing '$val' for '$name' in stop #$num of 'Add Fuzzy Border' dialog"
+      twapi::send_input_text $val
+    } else {
+      puts "-D- Skipping '$name' in stop #$num of 'Add Fuzzy Border' dialog"
+    }
+    after 500
+    twapi::send_keys [list {TAB}];  after 300;  # go to the next tabstop
+  }
+  set dDescr "command to close 'Add Fuzzy Border' dialog"
+  if { "" == [ok_twapi::_send_cmd_keys [list {ENTER}] $dDescr 0] }  {
+    puts "-E- Failed performing 'Add Fuzzy Border'"
+    return  0;  # error already printed
+  }
+  # TODO: verify we returned to the image window ($imgWnd)
+  puts "-I- Success performing 'Add Fuzzy Border'"
+  return  1
 }
 
 

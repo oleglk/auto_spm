@@ -143,12 +143,18 @@ proc ::ok_twapi::verify_singleton_running {contextDescr}  {
 }
 
 
-proc ::ok_twapi::verify_current_window_by_title {title {loud 1}}  {
+proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 1}}  {
   set h  [twapi::get_foreground_window]
-  set txt [twapi::get_window_text $h]
-  if { $txt != $title } {
+  set txt [expr {($h != "")? [twapi::get_window_text $h] : "NO-WINDOW-HANDLE"}]
+  set isMatch [switch $matchType  {
+    {exact}   { expr {$txt == $titleOrPattern} }
+    {glob}    { string match $titleOrPattern $txt }
+    {regexp}  { regexp -nocase -- $titleOrPattern $txt }
+    default   { puts "-E- Unsupported matchType '$matchType'";  expr 0  }
+  }]
+  if { $isMatch == 0 } {
     if { $loud }  {
-      puts "-I- Unexpected foreground window '$txt' instead of '$title'"
+      puts "-I- Unexpected foreground window '$txt' - doesn't match '$titleOrPattern'"
     }
     return  0
   }
@@ -264,7 +270,7 @@ proc  ::ok_twapi::travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
     return  "";  # error already printed
   }
   if { $targetWndTitle == "" }  { return  $h }; # done; no verification requested
-  set h [_wait_for_window_title_to_raise $targetWndTitle]
+  set h [wait_for_window_title_to_raise $targetWndTitle "exact"]
   set wndText [expr {($h != "")? [twapi::get_window_text $h] : "NONE"}]
   puts "-D- Key sequence '$keySeqStr' led to window '$wndText'"
   return  [expr {($wndText == $targetWndTitle)? $h : ""}]
@@ -272,15 +278,15 @@ proc  ::ok_twapi::travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
 
 
 # Waits with active polling
-proc ::ok_twapi::_wait_for_window_title_to_raise {titleStr}  {
-  return  [_wait_for_window_title_to_raise__configurable $titleStr 500 20000]
+proc ::ok_twapi::wait_for_window_title_to_raise {titleStr matchType}  {
+  return  [wait_for_window_title_to_raise__configurable $titleStr $matchType 500 20000]
 }
 
 
 # Waits with active polling - configurable
 # Returns handle of resulting window or "" on error.
-proc ::ok_twapi::_wait_for_window_title_to_raise__configurable { \
-                                        titleStr pollPeriodMsec maxWaitMsec}  {
+proc ::ok_twapi::wait_for_window_title_to_raise__configurable { \
+                                        titleStr matchType pollPeriodMsec maxWaitMsec}  {
   if { $titleStr == "" }  {
     puts "-E- No title provided for [lindex [info level 0] 0]";   return  ""
   }
@@ -288,7 +294,7 @@ proc ::ok_twapi::_wait_for_window_title_to_raise__configurable { \
   if { $nAttempts == 0 }  { set nAttempts 1 }
   ### after 2000 ;  # unfortunetly need to wait
   for {set i 1} {$i <= $nAttempts} {incr i 1}   {
-    if { 1 == [verify_current_window_by_title $titleStr] }  {
+    if { 1 == [verify_current_window_by_title $titleStr $matchType 0] }  {
       set h [twapi::get_foreground_window]
       if { ($h != "") && (1 == [twapi::window_visible $h]) }  {
         puts "-I- Window '$titleStr' did appear after [expr {$i * $pollPeriodMsec}] msec"
