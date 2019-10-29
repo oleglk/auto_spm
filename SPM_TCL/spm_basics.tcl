@@ -154,7 +154,8 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   #twapi::block_input
   # build and validate the ultimate input dir path ('inpSubDir' MUST BE subdir)
   set inpDirPath [file join $WA_ROOT $inpSubDir]
-  if { ! [ok_utils::ok_filepath_is_existent_dir $inpDirPath] }  {
+  if { ($inpSubDir != "") && \
+       (! [ok_utils::ok_filepath_is_existent_dir $inpDirPath]) }  {
     puts "-E- Invalid or inexistent multi-convert input directory '$inpDirPath'"
     return  ""
   }
