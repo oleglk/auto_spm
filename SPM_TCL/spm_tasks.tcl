@@ -126,13 +126,14 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
 }
 
 
+# Example: spm::cmd__fuzzy_border_one SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 10 70 300
 proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   variable TABSTOPS_DFL
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  "";   # error already printed
   }
-  set imgWnd [twapi::get_foreground_window]
-  set title [twapi::get_window_text $imgWnd]
+  set imgWnd      [twapi::get_foreground_window]
+  set imgWndTitle [twapi::get_window_text $imgWnd]
   if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
     puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
   }
@@ -146,6 +147,8 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   }
   # to make tabstops available in border dialog, press Alt-TAB twice
   set fDescr "switch-from-then-back to fuzzy-border dialog in order to make tabstops available"
+  # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
+  # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
   twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
   set hB [ok_twapi::wait_for_window_title_to_raise "Add Fuzzy Border" "exact"]
   if { $hB == "" } {
@@ -153,8 +156,11 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   }
   puts "-I- Success to $fDescr"
   after 1000; # wait after returning to the dialog
+
   # Go over all fields in ascending tabstops order and process each one
   set allStops [lindex [dict filter $TABSTOPS_DFL key "Add Fuzzy Border"] 1]
+  
+  # TODO: make generic proc ok_twapi::_fill_dialog_fields
   set nStops [expr [llength $allStops] / 2]
   puts "-D- There are $nStops tabstop(s) for 'Add Fuzzy Border' dialog"
 
@@ -175,14 +181,20 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
       puts "-D- Skipping '$name' in stop #$num of 'Add Fuzzy Border' dialog"
     }
     after 500
-    twapi::send_keys [list {TAB}];  after 300;  # go to the next tabstop
+    # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
+    # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
+    twapi::send_keys {{TAB}};  after 300;  # go to the next tabstop
   }
   set dDescr "command to close 'Add Fuzzy Border' dialog"
-  if { "" == [ok_twapi::_send_cmd_keys [list {ENTER}] $dDescr 0] }  {
+  if { "" == [ok_twapi::_send_cmd_keys {{ENTER}} $dDescr 0] }  {
     puts "-E- Failed performing 'Add Fuzzy Border'"
     return  0;  # error already printed
   }
-  # TODO: verify we returned to the image window ($imgWnd)
+  # verify we returned to the image window (title = $imgWndTitle)
+  set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "exact"]
+  if { $hI == "" } {
+    puts "-E- Failed returning to image window";  return  0; # error details printed
+  }
   puts "-I- Success performing 'Add Fuzzy Border'"
   return  1
 }
