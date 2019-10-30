@@ -345,6 +345,36 @@ proc ::ok_twapi::focus_then_send_keys {keySeqStr descr targetHwnd} {
   puts "-E- Cannot $descr";           return  ""
 }
 
+# Goes over all fields of the current foreground (and focused) window
+#   in ascending-tabstops order and fills relevant fields
+# Example:
+##  #(set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key "Add Fuzzy Border"] 1])
+##  set nameToStopNum [dict create "OK" 0  "Cancel" 1  "Border width" 10  "Fuzzy gradient" 70 "Round corners" 300] 
+##  set nameToVal [dict create "Border width" 10 "Fuzzy gradient" 70 "Round corners" 300]
+##  set isOK [ok_twapi::_fill_fields_in_open_dialog  $nameToStopNum  $nameToVal  "'border' dialog"]
+proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
+                                              tabStopsNameToVal descr} {
+  set nStops [expr [llength $tabStopsNameToNum] / 2]
+  puts "-D- There are $nStops tabstop(s) in $descr"
+
+  set numToName [dict create]
+  dict for {name num} $tabStopsNameToNum  { dict set numToName $num $name }
+  
+  for {set num 0} {$num < $nStops} {incr num 1}  {
+    set name [dict get $numToName $num]
+    if { [dict exists $tabStopsNameToVal $name] }   {
+      set val [dict get $tabStopsNameToVal $name]
+      puts "-I- Typing '$val' for '$name' in stop #$num of $descr"
+      twapi::send_input_text $val
+    } else {
+      puts "-D- Skipping '$name' in stop #$num of $descr"
+    }
+    after 500
+    # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
+    # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
+    twapi::send_keys {{TAB}};  after 300;  # go to the next tabstop
+  }
+}
 
 # Sends given keys while taking care of occurences of {MENU}.
 # If 'targetHwnd' given, first focuses this window
