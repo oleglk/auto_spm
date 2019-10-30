@@ -304,6 +304,9 @@ proc ::ok_twapi::wait_for_window_title_to_raise__configurable { \
     after $pollPeriodMsec
   }
   puts "-E- Window '$titleStr' did not appear after [expr {$nAttempts * $pollPeriodMsec}] msec"
+  set h [twapi::get_foreground_window]
+  set currTitle [expr {($h != "")? [twapi::get_window_text $h]  :  "NONE"}]
+  puts "-E- (The foreground window is '$currTitle')"
   return  ""
 }
 

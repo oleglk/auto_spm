@@ -8,6 +8,7 @@
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
 package require twapi;  #  TODO: check errors
+#package require twapi_clipboard
 
 set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "common.tcl"]
@@ -316,6 +317,60 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   puts "-I- Success to $lDescr"
+  return  1
+}
+
+
+# Commands to save current image in 'outDirPath' as SBS TIFF
+proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
+  if { ! [ok_utils::ok_filepath_is_existent_dir $outDirPath] }  {
+    puts "-E- Invalid or inexistent save-to directory '$outDirPath'"
+    return  ""
+  }
+  set sDescr "save current image"
+
+  if { ![::ok_twapi::verify_singleton_running $sDescr] }  { return  0}; # FIRST!
+    if { 0 == [::ok_twapi::focus_singleton "focus to $sDescr" 0] }  {
+    puts "-E- Failed to $sDescr";    return  0;  # error details already printed
+  }
+  # memorize the image window for further return
+  set imgWnd      [twapi::get_foreground_window]
+  set imgWndTitle [twapi::get_window_text $imgWnd]
+  if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
+    puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
+  }
+  
+  # open "Save Stereo Image" dialog
+  if { "" == [ok_twapi::_send_cmd_keys "s" $sDescr 0] }  {
+    puts "-E- Failed commanding to $sDescr";    return  0;  # error details already printed
+  }
+
+  puts "-I- Changing output directory path to '$outDirPath'"
+  twapi::send_keys {%n};  # focus filename entry
+  set outDirSeq [file nativename $outDirPath]
+  twapi::send_input_text $outDirSeq
+  twapi::send_keys {{ENTER}};  # perform directory change
+  after 300
+  # image name in the field should be restored; change output format to TIFF
+  puts "-I- Changing output image format to TIFF"
+  twapi::send_keys {%t};  # focus file-type entry
+  after 300
+  twapi::send_keys {t};  # select TIFF format - the only option starting from T
+  after 300
+  puts "-I- Commanding to perform the save"
+  twapi::send_keys {%s};  # command to save the image
+  
+  # confirm save if requested
+  set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
+  ok_twapi::respond_to_popup_windows_based_on_text  \
+                                  $winTextPatternToResponseKeySeq 2 10 $sDescr
+  # verify we returned to the image window (title = $imgWndTitle)
+  set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "exact"]
+  if { $hI == "" } {
+    puts "-E- Failed returning to image window";  return  0; # error details printed
+  }
+  
+  puts "-I- Success performing '$sDescr'"
   return  1
 }
 
