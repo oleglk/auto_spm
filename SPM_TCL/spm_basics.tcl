@@ -364,12 +364,17 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   after 300
   set outDirSeq "[file nativename $outDirPath][file separator]"
   twapi::send_input_text $outDirSeq
-  twapi::send_keys {{ENTER}};  # perform directory change
+  puts "-I- Commanding to apply output-path change AND perform the save"
+  twapi::send_keys {{ENTER}};  # perform directory change and save the image
   after 300
-  # image name in the field should be restored
+  ## no need for Alt-S (command to save the image) - saving already done by {ENTER}
 
-  puts "-I- Commanding to perform the save"
-  twapi::send_keys {%s};  # command to save the image
+  #~ if { $hS != [set hC [twapi::get_foreground_window]] }  {
+    #~ puts "-W- Focus jumped from window '[twapi::get_window_text $hS]' to '[twapi::get_window_text $hC]'; refocusing"
+    #~ twapi::set_focus $hS
+  #~ }
+  #~ puts "-I- Commanding to perform the save...";   # after 1000
+  #~ twapi::send_keys {%s};  # command to save the image
   
   # confirm save if requested
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
