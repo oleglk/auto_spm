@@ -49,6 +49,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
+    {^Attention}                        "{SPACE}" \
   ]
   set rc [spm::cmd__multiconvert  "alignment multi-conversion" ""         \
                                   $cfgPath $winTextPatternToResponseKeySeq]
@@ -118,6 +119,7 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
     "Confirm Conversion Start"          "y" \
     [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
     [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
+    {^Attention}                        "{SPACE}" \
   ]
   set rc [spm::cmd__multiconvert  "adjust-by-example multi-conversion" $SUBDIR_PRE \
                                   $cfgPath $winTextPatternToResponseKeySeq]
@@ -132,7 +134,7 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   variable TABSTOPS_DFL
   set ADD_BORDER "Add Fuzzy Border";  # dialog name / key / description
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
-    return  "";   # error already printed
+    return  0;   # error already printed
   }
   set imgWnd      [twapi::get_foreground_window]
   set imgWndTitle [twapi::get_window_text $imgWnd]
@@ -141,7 +143,7 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   }
   set dDescr "command to open '$ADD_BORDER' dialog"
   if { "" == [ok_twapi::_send_cmd_keys {+b} $dDescr 0] }  {
-    return  "";  # error already printed
+    return  0;  # error already printed
   }
   set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
   if { $hB == "" } {
@@ -179,13 +181,46 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   }
   puts "-I- Success performing '$ADD_BORDER'"
   
-  # TODO: save
+  # save
   set outDirPath [file dirname $imgPath]
   set saveWithBorderDescr "save image after '$ADD_BORDER' in directory '$outDirPath'"
   if { 0 == [spm::save_current_image_as_one_tiff $outDirPath] } {
     puts "-E- Failed to $saveWithBorderDescr";  return  0
   }
   puts "-I- Success to $saveWithBorderDescr";   return  1
+}
+
+
+# Adds the border to all stereopair(s) in 'imgDirPath',
+#   saves them under the same names, but as .tif .
+# Example: spm::cmd__fuzzy_border_all SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS" 10 70 300
+proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
+  set ADD_BORDER "Add Fuzzy Border";  # action description
+  if { ! [ok_utils::ok_filepath_is_existent_dir $imgDirPath] }  {
+    puts "-E- Invalid or inexistent images' input/output directory '$imgDirPath'"
+    return  0
+  }
+  set imgPaths [concat  [glob -nocomplain -directory $imgDirPath -- "*.jpg"]  \
+                        [glob -nocomplain -directory $imgDirPath -- "*.tif"]  ]
+  set imgPaths [lsort $imgPaths]
+  set cntImgs [llength $imgPaths]
+  set addBorderAllDescr "'$ADD_BORDER' to $cntImgs image(s) in directory '$imgDirPath'"
+  set errCnt 0
+  puts "-I- Start to $addBorderAllDescr"
+  foreach imgPath $imgPaths {
+    if { 0 == [cmd__fuzzy_border_one  $inpType $imgPath \
+                                      $width $gradient $corners] } {
+      incr errCnt 1;  # error already printed
+    }
+  }
+  if { $errCnt == 0 }   {
+    puts "-I- Finished to $addBorderAllDescr; no errors occurred"
+  } elseif { $errCnt == $cntImgs }  {
+    puts "-E- Failed to $addBorderAllDescr; error(s) occurred for all $cntImgs image(s)"
+  } else   {
+    puts "-W- Finished to $addBorderAllDescr; $errCnt error(s) occurred"
+  }
+  return  [expr {$errCnt == 0}]
 }
 
 

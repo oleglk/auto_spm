@@ -261,14 +261,18 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
                                   $winTextPatternToResponseKeySeq 3 20 $descr
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
   set hList [::twapi::find_windows -match string -text "Multi Conversion"]
+  set closedWnds [dict create];  # handles of already closed windows
   set cntErr 0
   foreach hwnd $hList {
+    if { [dict exists $closedWnds $hwnd] }  { continue } ;        # skip closed
     if { $hwnd == [ok_twapi::get_latest_app_wnd] }  { continue } ;# skip original
     set wDescr "close {[twapi::get_window_text $hwnd]}"
     if { "" != [ok_twapi::focus_then_send_keys {%{F4}} $wDescr $hwnd] }  {
       set lastActionTime [clock seconds];   # success
+      dict set closedWnds $hwnd 1
     } else {
-      incr cntErr 1                     ;   # error
+      incr cntErr 1               ;   # error
+      dict set closedWnds $hwnd 1 ;   # TODO: done for "safety"; should not do it
     }
   }
   ok_twapi::set_latest_app_wnd_to_current;  # should be the top SPM window
