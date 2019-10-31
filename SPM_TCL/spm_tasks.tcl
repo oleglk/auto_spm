@@ -126,6 +126,7 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
 }
 
 
+# Loads stereopair from 'imgPath', adds the border, saves under the same name as .tif .
 # Example: spm::cmd__fuzzy_border_one SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 10 70 300
 proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   variable TABSTOPS_DFL
@@ -177,7 +178,14 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
     puts "-E- Failed returning to image window";  return  0; # error details printed
   }
   puts "-I- Success performing '$ADD_BORDER'"
-  return  1
+  
+  # TODO: save
+  set outDirPath [file dirname $imgPath]
+  set saveWithBorderDescr "save image after '$ADD_BORDER' in directory '$outDirPath'"
+  if { 0 == [spm::save_current_image_as_one_tiff $outDirPath] } {
+    puts "-E- Failed to $saveWithBorderDescr";  return  0
+  }
+  puts "-I- Success to $saveWithBorderDescr";   return  1
 }
 
 
