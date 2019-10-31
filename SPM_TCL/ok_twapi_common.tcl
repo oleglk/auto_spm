@@ -148,6 +148,7 @@ proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 
   set txt [expr {($h != "")? [twapi::get_window_text $h] : "NO-WINDOW-HANDLE"}]
   set isMatch [switch $matchType  {
     {exact}   { expr {$txt == $titleOrPattern} }
+    {nocase}  { string equal -nocase $titleOrPattern $txt }
     {glob}    { string match $titleOrPattern $txt }
     {regexp}  { regexp -nocase -- $titleOrPattern $txt }
     default   { puts "-E- Unsupported matchType '$matchType'";  expr 0  }
@@ -278,6 +279,7 @@ proc  ::ok_twapi::travel_meny_hierarchy {keySeqStr descr {targetWndTitle ""}}  {
 
 
 # Waits with active polling
+# Returns handle of resulting window or "" on error.
 proc ::ok_twapi::wait_for_window_title_to_raise {titleStr matchType}  {
   return  [wait_for_window_title_to_raise__configurable $titleStr $matchType 500 20000]
 }

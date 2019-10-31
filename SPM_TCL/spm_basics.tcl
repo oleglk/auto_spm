@@ -344,19 +344,30 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   if { "" == [ok_twapi::_send_cmd_keys "s" $sDescr 0] }  {
     puts "-E- Failed commanding to $sDescr";    return  0;  # error details already printed
   }
-
-  puts "-I- Changing output directory path to '$outDirPath'"
-  twapi::send_keys {%n};  # focus filename entry
-  set outDirSeq [file nativename $outDirPath]
-  twapi::send_input_text $outDirSeq
-  twapi::send_keys {{ENTER}};  # perform directory change
-  after 300
-  # image name in the field should be restored; change output format to TIFF
+  set hS [ok_twapi::wait_for_window_title_to_raise "Save Stereo Image" "exact"]
+  if { $hS == "" } {
+    puts "-E- Failed opening 'Save Stereo Image' dialog";  return  0
+  }
+  
+  ### To avoid saving as <dir-name>.TIF, first set output format, then directory
+  # image name should appear in the field; change output format to TIFF
   puts "-I- Changing output image format to TIFF"
   twapi::send_keys {%t};  # focus file-type entry
   after 300
   twapi::send_keys {t};  # select TIFF format - the only option starting from T
   after 300
+  
+  puts "-I- Prepending output filename with output directory path '$outDirPath'"
+  twapi::send_keys {%n};  # focus filename entry; filename should become selected
+  after 300
+  twapi::send_keys {{HOME}};  # stay at the beginning of filename string
+  after 300
+  set outDirSeq "[file nativename $outDirPath][file separator]"
+  twapi::send_input_text $outDirSeq
+  twapi::send_keys {{ENTER}};  # perform directory change
+  after 300
+  # image name in the field should be restored
+
   puts "-I- Commanding to perform the save"
   twapi::send_keys {%s};  # command to save the image
   
@@ -364,8 +375,8 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
   ok_twapi::respond_to_popup_windows_based_on_text  \
                                   $winTextPatternToResponseKeySeq 2 10 $sDescr
-  # verify we returned to the image window (title = $imgWndTitle)
-  set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "exact"]
+  # verify we returned to the image window (title = $imgWndTitle - case can change)
+  set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"]
   if { $hI == "" } {
     puts "-E- Failed returning to image window";  return  0; # error details printed
   }
