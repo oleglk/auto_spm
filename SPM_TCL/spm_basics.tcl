@@ -264,22 +264,48 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     return  0;  # error already printed
   }
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
-  set hList [::twapi::find_windows -match string -text "Multi Conversion"]
+  # closing the last "temporary" window causes close of the original too
   set closedWnds [dict create];  # handles of already closed windows
-  set cntErr 0
-  foreach hwnd $hList {
-    if { [dict exists $closedWnds $hwnd] }  { continue } ;        # skip closed
-    if { $hwnd == [ok_twapi::get_latest_app_wnd] }  { continue } ;# skip original
-    set wDescr "close {[twapi::get_window_text $hwnd]}"
-    if { "" != [ok_twapi::focus_then_send_keys {%{F4}} $wDescr $hwnd] }  {
+  set cntErr 0;  set nIter 0
+  # At each iteration find all relevant windows and delete _one_ explicitly
+  while { 0 < [llength [set hList [::twapi::find_windows \
+                                  -match string -text "Multi Conversion"]]] } {
+    incr nIter 1
+    if { [dict size $closedWnds] >= 2 } {
+      puts "-E- Unexpected temporary multi-conversion window(s): {$hList}"
+      # TODO: print window text(s)
+      return  0
+    }
+    puts "-D- Need to close [llength $hList] multi-conversion window(s) at iteration #$nIter :  {$hList}"
+    set hwnd ""
+    foreach mcWnd $hList {;  # pick any not-yet-closed- non-original window
+      set isOrininalMCWindow [expr {$mcWnd == [ok_twapi::get_latest_app_wnd]}]
+      if { ![dict exists $closedWnds $mcWnd] && !$isOrininalMCWindow }  {
+        set hwnd $mcWnd;  break
+      }
+    }
+    if { $hwnd == "" }  {
+      puts "-D- All [llength $hList] multi-conversion window(s) at iteration #$nIter are either original- or already closed:  {$hList}"
+      break
+    }
+    set wDescr "close {[twapi::get_window_text $hwnd]}" 
+    puts "-D- Going to $wDescr"
+    #if { "" != [ok_twapi::focus_then_send_keys {%{F4}} $wDescr $hwnd] }  {}
+    if { 1 == [twapi::close_window $hwnd -wait 3000] }  {
       set lastActionTime [clock seconds];   # success
       dict set closedWnds $hwnd 1
+      puts "-I- Success to $wDescr"
     } else {
       incr cntErr 1               ;   # error
-      dict set closedWnds $hwnd 1 ;   # TODO: done for "safety"; should not do it
+      puts "-E- Failed to $wDescr"
     }
   }
-  ok_twapi::set_latest_app_wnd_to_current;  # should be the top SPM window
+  puts "-D- Closed [dict size $closedWnds] temporary multi-conversion window(s)"
+  # expect the oringinal multi-conversion window to be already closed; go to top
+  if { 1 == [ok_twapi::focus_singleton "finished multi-conversion" \
+                                        [ok_twapi::get_top_app_wnd]] }  {
+    ok_twapi::set_latest_app_wnd_to_current;  # should be the top SPM window
+  } ;   # else error is printed
   if { [ok_twapi::get_latest_app_wnd] != [ok_twapi::get_top_app_wnd] }  {
     puts "-W- Unexpected window '[twapi::get_window_text [ok_twapi::get_top_app_wnd]]' after multi-conversion is finished. Should be the top SPM window"
   }

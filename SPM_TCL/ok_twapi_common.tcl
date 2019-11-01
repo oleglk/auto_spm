@@ -248,8 +248,8 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
         } else {
           dict incr winTextPatternToCntErrors $pattern 1     ; # count errors
         }
-     }
-   }
+      }
+    }
     after [expr {1000 * $pollPeriodSec}]
   }
   set cntGood 0;  set cntBad 0
@@ -257,10 +257,19 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   foreach n [dict values $winTextPatternToCntErrors]      { incr cntBad  $n }
   set msg "Responded to $cntGood pop-up(s) for $descr; $cntBad error(s) occured"
   if { 0 == $cntBad } {
-    puts "-I- $msg" }  else  { puts "-E- $msg" }
+    puts "-I- $msg" }  else  { puts "-W- $msg" }
   puts "-D- winTextPatternToCntResponded = {$winTextPatternToCntResponded}"
   puts "-D- winTextPatternToCntErrors    = {$winTextPatternToCntErrors}"
-  return  [expr {$cntBad == 0}]
+  # ultimately if no relevant windows left, it's a success
+  #  - some were closed by repeated attempts
+  set badList [::twapi::find_windows -match regexp -text $pattern]
+  set cntLeft [llength $badList]
+  if { $cntLeft > 0 }   {
+    puts "-I- Success responding to all pop-up(s) for $descr"
+  } else {
+    puts "-E- Failed responding to $cntLeft pop-up(s) for $descr"
+  }
+  return  [expr {$cntLeft == 0}]
 }
 
 
