@@ -246,6 +246,9 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   }
   # de-maximize to help popups be visible
   twapi::restore_window $hMC1 -sync
+  
+  #TODO: Find and memorize _OLD_ "Exit" windows
+  
   # arrange for commanding to start alignment multi-conversion
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
   set sDescr "Press 'Convert All Files' button"
@@ -256,13 +259,18 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   }
   puts "-I- Commanded to start $actDescr"
   # now there may appear multiple confirmation dialogs; press "y" for each one
-  # - press Alt-F4 when:
+  # - press Alt-F4 when ----- (the below is unachievable good wish) :( ---------
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
                             $winTextPatternToResponseKeySeq 3 20 $descr] }  {
     return  0;  # error already printed
   }
+  
+  #TODO: Find _NEW_ "Exit" windows and pres {SPACE} at each; example:
+  #TODO: (TWAPI) 109 % set exitList [::twapi::find_windows -match string -text "Exit"];  foreach h $exitList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $exitList { puts "Click at ($h)";   twapi::set_focus $h;  twapi::send_keys {{SPACE}}  }
+
+    ########## The below suffers from early interruption ############
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
   # closing the last "temporary" window causes close of the original too
   set closedWnds [dict create];  # handles of already closed windows
