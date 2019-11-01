@@ -247,6 +247,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # de-maximize to help popups be visible
   twapi::restore_window $hMC1 -sync
   
+  #TODO: Find and memorize _OLD_ "Back" windows
   #TODO: Find and memorize _OLD_ "Exit" windows
   
   # arrange for commanding to start alignment multi-conversion
@@ -267,8 +268,16 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     return  0;  # error already printed
   }
   
+  #TODO: Find _NEW_ "Back" windows and pres {SPACE} at each; example:
+  #TODO: set backList [::twapi::find_windows -match string -text "Back"];  foreach h $backList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $backList { puts "Click at ($h)";   twapi::set_focus $h;  twapi::send_keys {{SPACE}}  ; after 2000}
+  #TODO: for some reason it sees two windows woth "Back" and sends {SPACE} to filename entry; not a big deal for now
+  
   #TODO: Find _NEW_ "Exit" windows and pres {SPACE} at each; example:
-  #TODO: (TWAPI) 109 % set exitList [::twapi::find_windows -match string -text "Exit"];  foreach h $exitList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $exitList { puts "Click at ($h)";   twapi::set_focus $h;  twapi::send_keys {{SPACE}}  }
+  #TODO: set exitList [::twapi::find_windows -match string -text "Exit"];  foreach h $exitList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $exitList { puts "Click at ($h)";   twapi::set_focus $h;  twapi::send_keys {{SPACE}}  }
+  
+  #TODO: expect returning to top-SPM or original MC window; press 'Cancel' button
+  #TODO: set mcList [::twapi::find_windows -match string -text "Multi Conversion"];  foreach h $mcList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $mcList { puts "ESC at ($h)";   twapi::set_focus $h;  twapi::send_keys {{ESCAPE}}  ; after 2000}
+
 
     ########## The below suffers from early interruption ############
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
