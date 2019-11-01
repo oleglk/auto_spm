@@ -244,6 +244,8 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   if { "" == [set hMC1 [cmd__open_multi_conversion $inpSubDir $cfgPath]] }  {
     return  0;  # need to abort; error already printed
   }
+  # de-maximize to help popups be visible
+  twapi::restore_window $hMC1 -sync
   # arrange for commanding to start alignment multi-conversion
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
   set sDescr "Press 'Convert All Files' button"
@@ -257,8 +259,10 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # - press Alt-F4 when:
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
-  ok_twapi::respond_to_popup_windows_based_on_text  \
-                                  $winTextPatternToResponseKeySeq 3 20 $descr
+  if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
+                            $winTextPatternToResponseKeySeq 3 20 $descr] }  {
+    return  0;  # error already printed
+  }
   # there should be up to 3 windows titled "Multi Conversion"; close all but original
   set hList [::twapi::find_windows -match string -text "Multi Conversion"]
   set closedWnds [dict create];  # handles of already closed windows
@@ -384,6 +388,7 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
   ok_twapi::respond_to_popup_windows_based_on_text  \
                                   $winTextPatternToResponseKeySeq 2 10 $sDescr
+  # do not check for errors since the proc is finished
   # verify we returned to the image window (title = $imgWndTitle - case can change)
   set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"]
   if { $hI == "" } {

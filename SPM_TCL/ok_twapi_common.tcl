@@ -82,6 +82,8 @@ proc ::ok_twapi::focus_singleton {context {targetHwnd 0}}  {
     # TODO: chek validity of 'LATEST_APP_WND'
     set targetHwnd $LATEST_APP_WND;   set explicitTarget 0
   } else {                            set explicitTarget 1 }
+  twapi::set_foreground_window $targetHwnd
+  after 200
   twapi::set_focus $targetHwnd
   after 200
   set currWnd [twapi::get_foreground_window]
@@ -258,7 +260,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
     puts "-I- $msg" }  else  { puts "-E- $msg" }
   puts "-D- winTextPatternToCntResponded = {$winTextPatternToCntResponded}"
   puts "-D- winTextPatternToCntErrors    = {$winTextPatternToCntErrors}"
-  return
+  return  [expr {$cntBad == 0}]
 }
 
 
