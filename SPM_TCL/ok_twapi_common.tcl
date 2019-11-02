@@ -239,8 +239,9 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   #   until none appears during 'maxIdleTimeSec'
   while { [expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec }  {
     dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
-      set hList [::twapi::find_windows -match regexp -text $pattern]
-      foreach hwnd $hList {
+      while { 0 != [llength [set hList [::twapi::find_windows \
+                                        -match regexp -text $pattern]]] }  { 
+        set hwnd [lindex $hList 0]
         set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
         if { "" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd] }  {
           dict incr winTextPatternToCntResponded $pattern 1  ; # count successes

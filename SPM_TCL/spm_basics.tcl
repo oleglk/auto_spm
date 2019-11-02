@@ -277,46 +277,31 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # Timeout is very high to allow for long processing - 1 hour
   set timeWaitSec [expr {10 * 60}]; # TODO: [expr {60 * 60}]
   set pollPeriodSec 10
-  set timeToStopSec [expr {[clock seconds] + $timeWaitSec}]
-  set wndsWithBack_new [list];  set wndsWithExit_new [list]
-  set cntBack 0;  set cntExit 0
-  puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds](sec)"
-  while { [expr { ([clock seconds] < $timeToStopSec) || \
-                  ($cntBack == 0) || ($cntExit == 0)}] }  {
-    set wndsWithBack_all [::twapi::find_windows -match string -text "Back"]
-    set wndsWithExit_all [::twapi::find_windows -match string -text "Exit"]
-    # TODO: filter-out old windows, then count new ones
-    set wndsWithBack_new [ok_utils::ok_subtract_list_from_list \
-                                          $wndsWithBack_all $wndsWithBack_old]
-    set wndsWithExit_new [ok_utils::ok_subtract_list_from_list \
-                                          $wndsWithExit_all $wndsWithExit_old]
-    set cntBack [llength $wndsWithBack_new]
-    set cntExit [llength $wndsWithExit_new]
-    after [expr {$pollPeriodSec * 1000}]
+  if { 0 == [_wait_for_end_of_multiconversion $timeWaitSec $pollPeriodSec \
+                          wndsWithBack_new wndsWithExit_new               \
+                          $wndsWithBack_old $wndsWithExit_old] }  {
+    return  0;  # abort; error already printed
   }
-  puts "-I- End   waiting for _NEW_ 'Back' and 'Exit' window(s). Time=[clock seconds](sec)."
-  if { (0 != $cntBack) && (0 != $cntExit) }  {
-    puts "-I- Detected after multi-conversion: $cntBack 'Back'-button- and $cntExit 'Exit'-button window(s)"
-  } else {
-    if { 0 == $cntBack }  {
-      puts "-E- Missing after multi-conversion: new 'Back'-button window(s)"
-    }
-    if { 0 == $cntExit }  {
-      puts "-E- Missing after multi-conversion: new 'Exit'-button window(s)"
-    }
-    return  0;  # abort
-  }
+  #### End-of multi-conversion indicator did appear
+  
   # Press {SPACE} at each _NEW_ "Back" window
   #TODO: for some reason it sees two windows with "Back" and sends {SPACE} to filename entry; not a big deal for now
-  foreach h $wndsWithBack_new {
+  while { 0 != [llength \
+    [set wndsWithBack [ok_utils::ok_subtract_list_from_list \
+      [::twapi::find_windows -match string -text "Back"] $wndsWithBack_old] }  {
+    set h [lindex $wndsWithBack 0]
     puts "-D- Click at 'Back' button ($h)"
     twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
   }
   # Press {SPACE} at each _NEW_ "Exit" window
-  foreach h $wndsWithExit_new {
+  while { 0 != [llength \
+    [set wndsWithExit [ok_utils::ok_subtract_list_from_list \
+      [::twapi::find_windows -match string -text "Exit"] $wndsWithExit_old] }  {
+    set h [lindex $wndsWithExit 0]
     puts "-D- Click at 'Exit' button ($h)"
     twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
   }
+
   # expect returning to top-SPM or original MC window; press {ESCAPE} key in the latter
   while { 0 != [llength [set mcList [::twapi::find_windows \
                   -match string -text "Multi Conversion"]]] }   {
@@ -511,4 +496,44 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
   }
   puts "-I- Settings template for $descr written into '$cfgPath'"
   return  $cfgPath
+}
+
+
+# Waits for _NEW_ window(s), both "Back" and "Exit", to appear.
+# Note, timeout should be very high to allow for long processing >= 1 hour
+proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
+                          wndsWithBack_new wndsWithExit_new             \
+                          {wndsWithBack_old {}} {wndsWithExit_old {}}}  {
+  upvar $wndsWithBack_new wndsWithBack
+  upvar $wndsWithExit_new wndsWithExit
+  set timeToStopSec [expr {[clock seconds] + $timeWaitSec}]
+  set wndsWithBack [list];  set wndsWithExit [list]
+  set cntBack 0;  set cntExit 0
+  puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds](sec)"
+  while { [expr { ([clock seconds] < $timeToStopSec) || \
+                  ($cntBack == 0) || ($cntExit == 0)}] }  {
+    set wndsWithBack_all [::twapi::find_windows -match string -text "Back"]
+    set wndsWithExit_all [::twapi::find_windows -match string -text "Exit"]
+    # filter-out old windows, then count new ones
+    set wndsWithBack [ok_utils::ok_subtract_list_from_list \
+                                          $wndsWithBack_all $wndsWithBack_old]
+    set wndsWithExit [ok_utils::ok_subtract_list_from_list \
+                                          $wndsWithExit_all $wndsWithExit_old]
+    set cntBack [llength $wndsWithBack]
+    set cntExit [llength $wndsWithExit]
+    after [expr {$pollPeriodSec * 1000}]
+  }
+  puts "-I- End   waiting for _NEW_ 'Back' and 'Exit' window(s). Time=[clock seconds](sec)."
+  if { (0 != $cntBack) && (0 != $cntExit) }  {
+    puts "-I- Detected after multi-conversion: $cntBack 'Back'-button- and $cntExit 'Exit'-button window(s)"
+  } else {
+    if { 0 == $cntBack }  {
+      puts "-E- Missing after multi-conversion: new 'Back'-button window(s)"
+    }
+    if { 0 == $cntExit }  {
+      puts "-E- Missing after multi-conversion: new 'Exit'-button window(s)"
+    }
+    return  0;  # failure
+  }
+  return  1;    # success
 }
