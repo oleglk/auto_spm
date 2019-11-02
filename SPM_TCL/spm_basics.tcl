@@ -286,22 +286,34 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   
   # Press {SPACE} at each _NEW_ "Back" window
   #TODO: for some reason it sees two windows with "Back" and sends {SPACE} to filename entry; not a big deal for now
+  set attempts 5
   while { 0 != [llength \
     [set wndsWithBack [ok_utils::ok_subtract_list_from_list \
-      [::twapi::find_windows -match string -text "Back"] $wndsWithBack_old] }  {
+     [::twapi::find_windows -match string -text "Back"] $wndsWithBack_old]]] } {
+    incr attempts -1;   if { $attempts < 0 }  { break }
     set h [lindex $wndsWithBack 0]
     puts "-D- Click at 'Back' button ($h)"
-    twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
+    twapi::set_focus $h;  twapi::send_keys {{SPACE}};   after 2000
   }
+  if { $attempts == 0 }   {
+    puts "-E- Failed closing multi-conversion window(s) with 'Back' button"
+    return  0
+  }
+  set attempts 5
   # Press {SPACE} at each _NEW_ "Exit" window
   while { 0 != [llength \
     [set wndsWithExit [ok_utils::ok_subtract_list_from_list \
-      [::twapi::find_windows -match string -text "Exit"] $wndsWithExit_old] }  {
+     [::twapi::find_windows -match string -text "Exit"] $wndsWithExit_old]]] } {
+    incr attempts -1;   if { $attempts < 0 }  { break }
     set h [lindex $wndsWithExit 0]
     puts "-D- Click at 'Exit' button ($h)"
-    twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
+    twapi::set_focus $h;  twapi::send_keys {{SPACE}};   after 2000
   }
-
+  if { $attempts == 0 }   {
+    puts "-E- Failed closing multi-conversion window(s) with 'Exit' button"
+    return  0
+  }
+  
   # expect returning to top-SPM or original MC window; press {ESCAPE} key in the latter
   while { 0 != [llength [set mcList [::twapi::find_windows \
                   -match string -text "Multi Conversion"]]] }   {
@@ -502,15 +514,15 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
 # Waits for _NEW_ window(s), both "Back" and "Exit", to appear.
 # Note, timeout should be very high to allow for long processing >= 1 hour
 proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
-                          wndsWithBack_new wndsWithExit_new             \
-                          {wndsWithBack_old {}} {wndsWithExit_old {}}}  {
+                        wndsWithBack_new wndsWithExit_new             \
+                        {wndsWithBack_old [list]} {wndsWithExit_old [list]}}  {
   upvar $wndsWithBack_new wndsWithBack
   upvar $wndsWithExit_new wndsWithExit
   set timeToStopSec [expr {[clock seconds] + $timeWaitSec}]
   set wndsWithBack [list];  set wndsWithExit [list]
   set cntBack 0;  set cntExit 0
   puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds](sec)"
-  while { [expr { ([clock seconds] < $timeToStopSec) || \
+  while { [expr { ([clock seconds] < $timeToStopSec) && \
                   ($cntBack == 0) || ($cntExit == 0)}] }  {
     set wndsWithBack_all [::twapi::find_windows -match string -text "Back"]
     set wndsWithExit_all [::twapi::find_windows -match string -text "Exit"]
@@ -521,6 +533,7 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
                                           $wndsWithExit_all $wndsWithExit_old]
     set cntBack [llength $wndsWithBack]
     set cntExit [llength $wndsWithExit]
+    puts "-D- @@@ time=[clock seconds];  cntBack=$cntBack;  cntExit=$cntExit"
     after [expr {$pollPeriodSec * 1000}]
   }
   puts "-I- End   waiting for _NEW_ 'Back' and 'Exit' window(s). Time=[clock seconds](sec)."
