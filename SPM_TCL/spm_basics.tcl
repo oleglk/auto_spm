@@ -278,72 +278,69 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   set timeWaitSec [expr {10 * 60}]; # TODO: [expr {60 * 60}]
   set pollPeriodSec 10
   set timeToStopSec [expr {[clock seconds] + $timeWaitSec}]
+  set wndsWithBack_new [list];  set wndsWithExit_new [list]
   set cntBack 0;  set cntExit 0
-  puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds]"
+  puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToStopSec) || \
                   ($cntBack == 0) || ($cntExit == 0)}] }  {
     set wndsWithBack_all [::twapi::find_windows -match string -text "Back"]
     set wndsWithExit_all [::twapi::find_windows -match string -text "Exit"]
     # TODO: filter-out old windows, then count new ones
+    set wndsWithBack_new [ok_utils::ok_subtract_list_from_list \
+                                          $wndsWithBack_all $wndsWithBack_old]
+    set wndsWithExit_new [ok_utils::ok_subtract_list_from_list \
+                                          $wndsWithExit_all $wndsWithExit_old]
+    set cntBack [llength $wndsWithBack_new]
+    set cntExit [llength $wndsWithExit_new]
     after [expr {$pollPeriodSec * 1000}]
   }
-  puts "-I- End   waiting for _NEW_ 'Back' and 'Exit' window(s). Time=[clock seconds]."
-  if { (0 != [llength $wndsWithBack_new]) && \
-       (0 != [llength $wndsWithExit_new) }  {
-    puts "-I- Detected 
-  foreach h $wndsWithBack_old {
+  puts "-I- End   waiting for _NEW_ 'Back' and 'Exit' window(s). Time=[clock seconds](sec)."
+  if { (0 != $cntBack) && (0 != $cntExit) }  {
+    puts "-I- Detected after multi-conversion: $cntBack 'Back'-button- and $cntExit 'Exit'-button window(s)"
+  } else {
+    if { 0 == $cntBack }  {
+      puts "-E- Missing after multi-conversion: new 'Back'-button window(s)"
+    }
+    if { 0 == $cntExit }  {
+      puts "-E- Missing after multi-conversion: new 'Exit'-button window(s)"
+    }
+    return  0;  # abort
+  }
+  # Press {SPACE} at each _NEW_ "Back" window
+  #TODO: for some reason it sees two windows with "Back" and sends {SPACE} to filename entry; not a big deal for now
+  foreach h $wndsWithBack_new {
     puts "-D- Click at 'Back' button ($h)"
     twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
   }
-  #TODO: for some reason it sees two windows woth "Back" and sends {SPACE} to filename entry; not a big deal for now
-  
-  #TODO: Find _NEW_ "Exit" windows and pres {SPACE} at each; example:
-  #TODO: set exitList [::twapi::find_windows -match string -text "Exit"];  foreach h $exitList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $exitList { puts "Click at ($h)";   twapi::set_focus $h;  twapi::send_keys {{SPACE}}  }
-  
-  #TODO: expect returning to top-SPM or original MC window; press 'Cancel' button
-  #TODO: set mcList [::twapi::find_windows -match string -text "Multi Conversion"];  foreach h $mcList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $mcList { puts "ESC at ($h)";   twapi::set_focus $h;  twapi::send_keys {{ESCAPE}}  ; after 2000}
-
-
-    ########## The below suffers from early interruption ############
-  # there should be up to 3 windows titled "Multi Conversion"; close all but original
-  # closing the last "temporary" window causes close of the original too
-  set closedWnds [dict create];  # handles of already closed windows
-  set cntErr 0;  set nIter 0
-  # At each iteration find all relevant windows and delete _one_ explicitly
-  while { 0 < [llength [set hList [::twapi::find_windows \
-                                  -match string -text "Multi Conversion"]]] } {
-    incr nIter 1
-    if { [dict size $closedWnds] >= 2 } {
-      puts "-E- Unexpected temporary multi-conversion window(s): {$hList}"
-      # TODO: print window text(s)
-      return  0
-    }
-    puts "-D- Need to close [llength $hList] multi-conversion window(s) at iteration #$nIter :  {$hList}"
-    set hwnd ""
-    foreach mcWnd $hList {;  # pick any not-yet-closed- non-original window
-      set isOrininalMCWindow [expr {$mcWnd == [ok_twapi::get_latest_app_wnd]}]
-      if { ![dict exists $closedWnds $mcWnd] && !$isOrininalMCWindow }  {
-        set hwnd $mcWnd;  break
-      }
-    }
-    if { $hwnd == "" }  {
-      puts "-D- All [llength $hList] multi-conversion window(s) at iteration #$nIter are either original- or already closed:  {$hList}"
-      break
-    }
-    set wDescr "close {[twapi::get_window_text $hwnd]}" 
-    puts "-D- Going to $wDescr"
-    #if { "" != [ok_twapi::focus_then_send_keys {%{F4}} $wDescr $hwnd] }  {}
-    if { 1 == [twapi::close_window $hwnd -wait 3000] }  {
-      set lastActionTime [clock seconds];   # success
-      dict set closedWnds $hwnd 1
-      puts "-I- Success to $wDescr"
-    } else {
-      incr cntErr 1               ;   # error
-      puts "-E- Failed to $wDescr"
-    }
+  # Press {SPACE} at each _NEW_ "Exit" window
+  foreach h $wndsWithExit_new {
+    puts "-D- Click at 'Exit' button ($h)"
+    twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
   }
-  puts "-D- Closed [dict size $closedWnds] temporary multi-conversion window(s)"
-  # expect the oringinal multi-conversion window to be already closed; go to top
+  # expect returning to top-SPM or original MC window; press {ESCAPE} key in the latter
+  while { 0 != [llength [set mcList [::twapi::find_windows \
+                  -match string -text "Multi Conversion"]]] }   {
+    puts "-I- After pressing all 'Back' and 'Exit' buttons found [llength $mcList] 'Multi Conversion' window(s)"
+    set h [lindex $mcList 0]
+    puts "-I- Send {ESC} to 'Multi Conversion' window ($h)"
+    twapi::set_focus $h;  twapi::send_keys {{ESCAPE}};  after 2000
+  }
+
+  # verify the oringinal multi-conversion window is already closed
+  for {set attempts 5}  {$attempts > 0}  {incr attempts -1}  {
+    if { 0 == [llength [set mcList [::twapi::find_windows \
+                                  -match string -text "Multi Conversion"]]] } {
+      break;  # no multi-conversion windows left
+    }
+    after 2000
+  }
+  if { $attempts == 0 }   {
+    puts "-E- Failed closing 'Multi Conversion' window(s); [llength $mcList] left"
+    return  0;  # abort
+  }
+  puts "-I- Success closing 'Multi Conversion' window(s)"
+  
+  # go to the top SPM window
   if { 1 == [ok_twapi::focus_singleton "finished multi-conversion" \
                                         [ok_twapi::get_top_app_wnd]] }  {
     ok_twapi::set_latest_app_wnd_to_current;  # should be the top SPM window
@@ -352,7 +349,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     puts "-W- Unexpected window '[twapi::get_window_text [ok_twapi::get_top_app_wnd]]' after multi-conversion is finished. Should be the top SPM window"
   }
   puts "-I- Finished $actDescr"
-  return  [expr {$cntErr == 0}];  # OK_TMP
+  return  1;  # success
 }
 
 
