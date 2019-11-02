@@ -247,8 +247,13 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # de-maximize to help popups be visible
   twapi::restore_window $hMC1 -sync
   
-  #TODO: Find and memorize _OLD_ "Back" windows
-  #TODO: Find and memorize _OLD_ "Exit" windows
+  # Find and memorize _OLD_ "Back" and "Exit" windows
+  set wndsWithBack_old [::twapi::find_windows -match string -text "Back"]
+  set wndsWithExit_old [::twapi::find_windows -match string -text "Exit"]
+  if { 0 != \
+      [expr {[llength $wndsWithBack_old] + [llength $wndsWithExit_old]}] }  {
+    puts "-W- Detected 'Back' and/or 'Exit window(s) before starting multi-convert for $descr"
+  }
   
   # arrange for commanding to start alignment multi-conversion
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
@@ -268,8 +273,28 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     return  0;  # error already printed
   }
   
-  #TODO: Find _NEW_ "Back" windows and pres {SPACE} at each; example:
-  #TODO: set backList [::twapi::find_windows -match string -text "Back"];  foreach h $backList { puts "($h) ==> '[twapi::get_window_text $h] ==> styles{[twapi::get_window_style $h]}" };         foreach h $backList { puts "Click at ($h)";   twapi::set_focus $h;  twapi::send_keys {{SPACE}}  ; after 2000}
+  # Wait for _NEW_ window(s), both "Back" and "Exit", to appear.
+  # Timeout is very high to allow for long processing - 1 hour
+  set timeWaitSec [expr {10 * 60}]; # TODO: [expr {60 * 60}]
+  set pollPeriodSec 10
+  set timeToStopSec [expr {[clock seconds] + $timeWaitSec}]
+  set cntBack 0;  set cntExit 0
+  puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds]"
+  while { [expr { ([clock seconds] < $timeToStopSec) || \
+                  ($cntBack == 0) || ($cntExit == 0)}] }  {
+    set wndsWithBack_all [::twapi::find_windows -match string -text "Back"]
+    set wndsWithExit_all [::twapi::find_windows -match string -text "Exit"]
+    # TODO: filter-out old windows, then count new ones
+    after [expr {$pollPeriodSec * 1000}]
+  }
+  puts "-I- End   waiting for _NEW_ 'Back' and 'Exit' window(s). Time=[clock seconds]."
+  if { (0 != [llength $wndsWithBack_new]) && \
+       (0 != [llength $wndsWithExit_new) }  {
+    puts "-I- Detected 
+  foreach h $wndsWithBack_old {
+    puts "-D- Click at 'Back' button ($h)"
+    twapi::set_focus $h;  twapi::send_keys {{SPACE}};    after 2000
+  }
   #TODO: for some reason it sees two windows woth "Back" and sends {SPACE} to filename entry; not a big deal for now
   
   #TODO: Find _NEW_ "Exit" windows and pres {SPACE} at each; example:
