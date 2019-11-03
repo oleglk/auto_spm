@@ -514,16 +514,18 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
 # Waits for _NEW_ window(s), both "Back" and "Exit", to appear.
 # Note, timeout should be very high to allow for long processing >= 1 hour
 proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
-                        wndsWithBack_new wndsWithExit_new             \
-                        {wndsWithBack_old [list]} {wndsWithExit_old [list]}}  {
-  upvar $wndsWithBack_new wndsWithBack
-  upvar $wndsWithExit_new wndsWithExit
+                                              {origMCWnd ""}  {
   set timeToStopSec [expr {[clock seconds] + $timeWaitSec}]
-  set wndsWithBack [list];  set wndsWithExit [list]
-  set cntBack 0;  set cntExit 0
+  set cntStop 0
+  puts "-I- Begin waiting for ALL multi-conversion windows with 'Stop' button to disappear. Time=[clock seconds](sec)"
+  while { [expr { ([clock seconds] < $timeToStopSec) && ($cntStop > 0) }] }  {
+    set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
+    set cntStop TODO
+  }
   puts "-I- Begin waiting for _NEW_ 'Back' and 'Exit' window(s) to appear. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToStopSec) && \
                   ($cntBack == 0) || ($cntExit == 0)}] }  {
+    _find_multiconversion_buttons $origMCWnd
     set wndsWithBack_all [::twapi::find_windows -match string -text "Back"]
     set wndsWithExit_all [::twapi::find_windows -match string -text "Exit"]
     # filter-out old windows, then count new ones
@@ -549,4 +551,25 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
     return  0;  # failure
   }
   return  1;    # success
+}
+
+
+# Looks for window(s), with text "Stop", "Back" and "Exit"
+# that are descendants of any "Multi Conversion" window".
+# Returns dict of {mc-window-handle : name (Stop|Back|Exit) : button-wnd-handle}
+# If 'origMCWnd' given, MC window with this handle is ignored as original
+proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
+  set mcWndToButtons [dict create]
+  foreach mcWnd [::twapi::find_windows -match string -text "Multi Conversion"] {
+    if { $mcWnd == $origMCWnd }   { continue };   # skip the original MC-window
+    foreach btn [set btns [twapi::get_descendent_windows $mcWnd]] {
+      set title [get_window_text $btn]
+      foreach btnName {"Stop" "Back" "Exit"}  {
+        if { $title == $btnName }   {
+          dict set mcWndToButtonWnds $mcWnd $title $btn
+        }
+      }
+    }
+  }
+  return  $mcWndToButtons
 }
