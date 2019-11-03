@@ -308,32 +308,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
 
 
 
-    #~ [set wndsWithBack [ok_utils::ok_subtract_list_from_list \
-     #~ [::twapi::find_windows -match string -text "Back"] $wndsWithBack_old]]] } {
-    #~ incr attempts -1;   if { $attempts < 0 }  { break }
-    #~ set h [lindex $wndsWithBack 0]
-    #~ puts "-D- Click at 'Back' button ($h)"
-    #~ twapi::set_focus $h;  twapi::send_keys {{SPACE}};   after 2000
-  #~ }
-  #~ if { $attempts == 0 }   {
-    #~ puts "-E- Failed closing multi-conversion window(s) with 'Back' button"
-    #~ return  0
-  #~ }
-  #~ set attempts 5
-  #~ # Press {SPACE} at each _NEW_ "Exit" window
-  #~ while { 0 != [llength \
-    #~ [set wndsWithExit [ok_utils::ok_subtract_list_from_list \
-     #~ [::twapi::find_windows -match string -text "Exit"] $wndsWithExit_old]]] } {
-    #~ incr attempts -1;   if { $attempts < 0 }  { break }
-    #~ set h [lindex $wndsWithExit 0]
-    #~ puts "-D- Click at 'Exit' button ($h)"
-    #~ twapi::set_focus $h;  twapi::send_keys {{SPACE}};   after 2000
-  #~ }
-  #~ if { $attempts == 0 }   {
-    #~ puts "-E- Failed closing multi-conversion window(s) with 'Exit' button"
-    #~ return  0
-  #~ }
-  
+ 
   # expect returning to top-SPM or original MC window; press {ESCAPE} key in the latter
   while { 0 != [llength [set mcList [::twapi::find_windows \
                   -match string -text "Multi Conversion"]]] }   {
@@ -534,7 +509,7 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
 # Waits for _NEW_ window(s), both "Back" and "Exit", to appear.
 # Note, timeout should be very high to allow for long processing >= 1 hour
 proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
-                                              {origMCWnd ""}  {
+                                              {origMCWnd ""}}  {
   set timeToEndSec [expr {[clock seconds] + $timeWaitSec}]
 
   set waitForStartDescr "waiting for ANY multi-conversion window to appear"
@@ -544,14 +519,14 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
     set cntStartedMC [dict size $mcWndToButtons]
   }
-  if { $cntStartedMC > 0 } {
+  if { $cntStartedMC == 0 } {
     puts "-I- Failed $waitForStartDescr - timeout. Time=[clock seconds](sec)"
     return  0;  # failure
   }
   puts "-I- End   $waitForStartDescr. Time=[clock seconds](sec)"
   
   set waitForStopDescr "waiting for ALL 'Stop' buttons in multi-conversion windows to disappear"
-  set cntStop 0
+  set cntStop 77; # dummy init
   puts "-I- Begin $waitForStopDescr. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToEndSec) && ($cntStop > 0) }] }  {
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
@@ -567,24 +542,28 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
   }
   puts "-I- End   $waitForStopDescr. Time=[clock seconds](sec)"
   
-  set waitForBackDescr "waiting for ALL multi-conversion windows to expose 'Back' buttons"
-  set wndsWithBack [dict create];   # for MC windows with 'Back' button
-  set cntWndsWithBack 0;            # count of MC windows with 'Back' button
-  puts "-I- Begin $waitForBackDescr. Time=[clock seconds](sec)"
-  while { [expr { ([clock seconds] < $timeToEndSec) && ($cntWndsWithBack == 0) }] }  {
+  set waitForExitDescr "waiting for ALL multi-conversion windows to expose 'Exit' buttons"
+  set wndsWithExit [dict create];   # for MC windows with 'Exit' button
+  set cntWnds 77;                   # count of all MC windows
+  set cntWndsWithExit 0;            # count of MC windows with 'Exit' button
+  puts "-I- Begin $waitForExitDescr. Time=[clock seconds](sec)"
+  while { [expr { ([clock seconds] < $timeToEndSec) && \
+                  ($cntWndsWithExit < $cntWnds) }] }  {
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
     if { 0 == [dict size $mcWndToButtons] } {
-      puts "-E- No multi-conversion windows found while $waitForStopDescr - FATAL error"
+      puts "-E- No multi-conversion windows found while $waitForExitDescr - FATAL error"
       return  0
     }
-    set wndsWithBack [dict filter $mcWndToButtons value {Back*}]
-    set cntWndsWithBack [dict size $wndsWithBack]
+    set cntWnds [dict size $mcWndToButtons]
+    set wndsWithExit [dict filter $mcWndToButtons value {Exit*}]
+    set cntWndsWithExit [dict size $wndsWithExit]
   }
-  if { $cntWndsWithBack == 0 } {
-    puts "-I- Failed $waitForBackDescr - timeout. Time=[clock seconds](sec)"
+  if { $cntWndsWithExit == 0 } {
+    puts "-I- Failed $waitForExitDescr - timeout. Time=[clock seconds](sec)"
     return  0;  # failure
   }
-  puts "-I- End   $waitForBackDescr. Time=[clock seconds](sec)"
+  puts "-I- End   $waitForExitDescr. Time=[clock seconds](sec)"
+  
   puts "-I- Multi-conversion is ended."
   return  1;    # success
 }
@@ -595,11 +574,13 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
 # Returns dict of {mc-window-handle : name (Stop|Back|Exit) : button-wnd-handle}
 # If 'origMCWnd' given, MC window with this handle is ignored as original
 proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
-  set mcWndToButtons [dict create]
+  set mcWndToButtonWnds [dict create]
   foreach mcWnd [::twapi::find_windows -match string -text "Multi Conversion"] {
     if { $mcWnd == $origMCWnd }   { continue };   # skip the original MC-window
     foreach btn [set btns [twapi::get_descendent_windows $mcWnd]] {
-      set title [get_window_text $btn]
+      #TODO: catch exception and skip invalid handles
+      set title [twapi::get_window_text $btn]
+      puts "-D- Check MC descendent '$title' ($btn)"
       foreach btnName {"Stop" "Back" "Exit"}  {
         if { $title == $btnName }   {
           dict set mcWndToButtonWnds $mcWnd $title $btn
@@ -607,5 +588,5 @@ proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
       }
     }
   }
-  return  $mcWndToButtons
+  return  $mcWndToButtonWnds
 }
