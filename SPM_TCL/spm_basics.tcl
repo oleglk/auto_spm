@@ -284,7 +284,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   while { 0 == [dict size [set wndsWithExit                                    \
           [dict filter                                                         \
               [set mcWndToButtons [_find_multiconversion_buttons $hMC1]]       \
-                                    value {Exit*}]]] }  {
+                                    value {*Exit*}]]] }  {
     if { $attempts == 0 } {
       puts "-E- No $bDescr found after finishing multi-conversion - FATAL error"
       return  0
@@ -528,10 +528,10 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
     puts "-D- Wait for 'Stop' ABSENT in {$mcWndToButtons}"
     if { 0 == [dict size $mcWndToButtons] } {
-      puts "-E- No multi-conversion-progress windows found while $waitForStopDescr - FATAL error"
-      return  0
+      puts "-D- No more multi-conversion-progress windows found while $waitForStopDescr"
+      break;  # this scenario happens when converting in single thread
     }
-    set cntStop [dict size [dict filter $mcWndToButtons value {Stop*}]]
+    set cntStop [dict size [dict filter $mcWndToButtons value {*Stop*}]]
   }
   if { $cntStop > 0 } {
     puts "-I- Failed $waitForStopDescr - timeout. Time=[clock seconds](sec)"
@@ -547,12 +547,13 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
   while { [expr { ([clock seconds] < $timeToEndSec) && \
                   ($cntWndsWithExit < $cntWnds) }] }  {
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
+    puts "-D- Wait for 'Exit' PRESENT in {$mcWndToButtons}"
     if { 0 == [dict size $mcWndToButtons] } {
       puts "-E- No multi-conversion-progress windows found while $waitForExitDescr - FATAL error"
       return  0
     }
     set cntWnds [dict size $mcWndToButtons]
-    set wndsWithExit [dict filter $mcWndToButtons value {Exit*}]
+    set wndsWithExit [dict filter $mcWndToButtons value {*Exit*}]
     set cntWndsWithExit [dict size $wndsWithExit]
   }
   if { $cntWndsWithExit == 0 } {
@@ -599,7 +600,7 @@ proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
 
 proc ::spm::_find_first_multiconversion_button {btnTitle {origMCWnd ""}}  {
   set mcWndToButtonWnds [_find_multiconversion_buttons $origMCWnd]
-  set pattern [format {%s*} $btnTitle]
+  set pattern [format {*%s*} $btnTitle]
   set wndsWithBtn [dict filter $mcWndToButtonWnds value $pattern]
   set cntWndsWithBtn [dict size $wndsWithBtn]
   if { $cntWndsWithBtn == 0 }   { return  "" }
