@@ -274,32 +274,31 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     return  0;  # abort; error already printed
   }
   #### End-of multi-conversion indicator did appear
-  return  999;  #OK_TMP
+  #return  999;  #OK_TMP
   
-  # Verify there exist non-original multi-conversion window(s) with "Back" button
-  #TODO: for some reason it sees two windows with "Back" and sends {SPACE} to filename entry; not a big deal for now
+  # Verify there exist non-original multi-conversion window(s) with "Exit" button
+  #TODO: for some reason it sees two windows with "Exit" and sends {SPACE} to filename entry; not a big deal for now
   set attempts 5
-  while { 0 == [dict size [set wndsWithBack                                    \
+  while { 0 == [dict size [set wndsWithExit                                    \
           [dict filter                                                         \
-              [set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]   \
-                                    value {Back*}]]] }  {
+              [set mcWndToButtons [_find_multiconversion_buttons $hMC1]]       \
+                                    value {Exit*}]]] }  {
     if { $attempts == 0 } {
-      puts "-E- No multi-conversion windows with 'Back' buttons found after finishing multi-conversion - FATAL error"
+      puts "-E- No multi-conversion windows with 'Exit' buttons found after finishing multi-conversion - FATAL error"
       return  0
     }
     after 2000;   incr attempts -1
   }
   return  888;  #OK_TMP
    
-  # Press {SPACE} at each _NEW_ "Back" window
-  #TODO: for some reason it sees two windows with "Back" and sends {SPACE} to filename entry; not a big deal for now
+  # Press {SPACE} at each _NEW_ "Exit" window
   set attempts 2
-  while { 0 != [dict size [set wndsWithBack                                    \
+  while { 0 != [dict size [set wndsWithExit                                    \
           [dict filter                                                         \
-              [set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]   \
-                                    value {Back*}]]] }  {
-    set h [dict GETFIRST $wndsWithBack 0]
-    puts "-D- Click at 'Back' button ($h)"
+              [set mcWndToButtons [_find_multiconversion_buttons $hMC1]        \
+                                    value {Exit*}]]] }  {
+    set h [dict TODO_GETFIRST $wndsWithExit 0]
+    puts "-D- Click at 'Exit' button ($h)"
     twapi::set_focus $h;  twapi::send_keys {{SPACE}};   after 2000
     after 2000;   incr attempts -1
   }
@@ -578,13 +577,17 @@ proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
   foreach mcWnd [::twapi::find_windows -match string -text "Multi Conversion"] {
     if { $mcWnd == $origMCWnd }   { continue };   # skip the original MC-window
     foreach btn [set btns [twapi::get_descendent_windows $mcWnd]] {
-      #TODO: catch exception and skip invalid handles
-      set title [twapi::get_window_text $btn]
-      puts "-D- Check MC descendent '$title' ($btn)"
-      foreach btnName {"Stop" "Back" "Exit"}  {
-        if { $title == $btnName }   {
-          dict set mcWndToButtonWnds $mcWnd $title $btn
+      set tclExecResult [catch { ;  # catch exceptions to skip invalid handles
+        set title [twapi::get_window_text $btn]
+        puts "-D- Check MC descendent '$title' ($btn)"
+        foreach btnName {"Stop" "Back" "Exit"}  {
+          if { $title == $btnName }   {
+            dict set mcWndToButtonWnds $mcWnd $title $btn
+          }
         }
+      }  evalExecResult]
+      if { $tclExecResult != 0 } {
+        puts "-D- Ignoring invalid button-window handle ($btn)";  continue
       }
     }
   }
