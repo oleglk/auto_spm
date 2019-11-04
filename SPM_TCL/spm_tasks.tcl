@@ -97,6 +97,7 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
+# Example:  spm::cmd__adjust_all SBS [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop__sbs.mcv}]
 proc ::spm::cmd__adjust_all {inpType cfgPath} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is curently supported"
