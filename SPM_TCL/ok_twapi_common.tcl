@@ -229,8 +229,13 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 }
 
 
+# Detects emerging popup windows by regexp patters in 'winTextPatternToResponseKeySeq'.
+# Sends specified confirmation key to each.
+# Finishes when 'cbWhenToStop' callback returns 1
+#    or after 'maxIdleTimeSec' seconds of no new pop-ups.
 proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
-        winTextPatternToResponseKeySeq pollPeriodSec maxIdleTimeSec descr}  {
+        winTextPatternToResponseKeySeq pollPeriodSec maxIdleTimeSec descr \
+        {cbWhenToStop 0}}  {
   set winTextPatternToCntResponded  [dict create]
   set winTextPatternToCntErrors     [dict create]
   set startTime [clock seconds]
@@ -238,6 +243,12 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   # routinely search for windows of each listed "type"-
   #   until none appears during 'maxIdleTimeSec'
   while { [expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec }  {
+    if { ($cbWhenToStop != 0) && \
+         (1 == [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]) }  {
+      # ???? !!! TODO: MOVE DOWN !!!
+      puts "-I- Stopped detecting popup-s for $descr - callback has fired"
+      break
+    }
     dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
       while { 0 != [llength [set hList [::twapi::find_windows \
                                         -match regexp -text $pattern]]] }  { 
@@ -263,7 +274,11 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   puts "-D- winTextPatternToCntErrors    = {$winTextPatternToCntErrors}"
   # ultimately if no relevant windows left, it's a success
   #  - some were closed by repeated attempts
-  set badList [::twapi::find_windows -match regexp -text $pattern]
+  set badList [list]
+  foreach pattern [dict keys $winTextPatternToResponseKeySeq] {
+    set badList [concat $badList \
+                  [::twapi::find_windows -match regexp -text $pattern]]
+  }
   set cntLeft [llength $badList]
   if { $cntLeft > 0 }   {
     puts "-I- Success responding to all pop-up(s) for $descr"

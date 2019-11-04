@@ -261,8 +261,9 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # - press Alt-F4 when ----- (the below is unachievable good wish) :( ---------
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
-  if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
-                            $winTextPatternToResponseKeySeq 3 20 $descr] }  {
+  if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
+                        $winTextPatternToResponseKeySeq 3 30 $descr           \
+                        "::spm::_is_multiconversion_most_likely_finished"] }  {
     return  0;  # error already printed
   }
   
@@ -611,3 +612,21 @@ proc ::spm::_find_first_multiconversion_button {btnTitle {origMCWnd ""}}  {
   return  $handle
 }
 
+
+proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
+                                                      {origMCWnd ""}}  {
+  for  {set i 1}  {$i <= 5}  {incr i 1}  {
+    if { $i > 1 }   { after 2000 }
+    # some of the known titles may pop up before start of multi-conversion
+    foreach title $knownPopupTitles  {
+      if { 0 != [llength [set stList [::twapi::find_windows \
+                                    -match regexp -text $title]]] }   {
+        return  0;  # multi-conversion may not yet have started
+      }
+    }
+    if { "" != [_find_first_multiconversion_button "Stop" $origMCWnd] }   {
+      return  0;  # MC window with visible "Stop" button; not finished for sure
+    }
+  }
+  return  1
+}
