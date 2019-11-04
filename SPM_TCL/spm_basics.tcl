@@ -292,7 +292,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     after 2000;   incr attempts -1
     puts "-I- Found [dict size $wndsWithExit] $bDescr"
   }
-  return  888;  #OK_TMP
+  #return  888;  #OK_TMP
    
   # Press {SPACE} at each _NEW_ "Exit" window;
   set maxNumOfExitButtons 2;  # 1 or 2; all should be ready at this point
@@ -566,7 +566,7 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
 }
 
 
-# Looks for window(s), with text "Stop", "Back" and "Exit"
+# Looks for _VISIBLE_ window(s), with text "Stop", "Back" and "Exit"
 # that are descendants of any "Multi Conversion" window".
 # Returns dict of {mc-window-handle : name (Stop|Back|Exit) : button-wnd-handle}
 # If 'origMCWnd' given, MC window with this handle is ignored as original
@@ -583,7 +583,7 @@ proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
         set title [twapi::get_window_text $btn]
         #puts "-D- Check MC descendent '$title' ($btn)"
         foreach btnName {"Stop" "Back" "Exit"}  {
-          if { $title == $btnName }   {
+          if { ($title == $btnName) && [ok_twapi::is_window_visible $btn] }   {
             dict set mcWndToButtonWnds $mcWnd $title $btn
           }
         }
@@ -595,6 +595,7 @@ proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
   }
   return  $mcWndToButtonWnds
 }
+
 
 proc ::spm::_find_first_multiconversion_button {btnTitle {origMCWnd ""}}  {
   set mcWndToButtonWnds [_find_multiconversion_buttons $origMCWnd]

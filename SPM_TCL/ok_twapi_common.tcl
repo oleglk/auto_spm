@@ -362,6 +362,14 @@ proc ::ok_twapi::focus_then_send_keys {keySeqStr descr targetHwnd} {
   puts "-E- Cannot $descr";           return  ""
 }
 
+
+proc ::ok_twapi::is_window_visible {hwnd} {
+  if { $hwnd == "" }  { return  0 }
+  set styles [twapi::get_window_style $hwnd]
+  return  [expr {0 <= [lsearch -exact $styles "visible"]}]
+}
+
+
 # Goes over all fields of the current foreground (and focused) window
 #   in ascending-tabstops order and fills relevant fields
 # Example:
