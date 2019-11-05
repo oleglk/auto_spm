@@ -100,6 +100,21 @@ proc ::ok_twapi::focus_singleton {context {targetHwnd 0}}  {
   }
 }
 
+
+proc ::ok_twapi::raise_wnd_and_send_keys {targetHwnd keySeq} {
+  set descr "raising window {$targetHwnd} and sending keys {$keySeq}"
+  twapi::set_foreground_window $targetHwnd
+  after 200
+  twapi::set_focus $targetHwnd
+  after 200
+  if { $targetHwnd == [twapi::get_foreground_window] }  {
+    twapi::send_keys $keySeq
+    puts "-I- Success $descr";  return  1
+  }
+  puts "-E- Failed $descr";     return  0
+}
+
+
 proc ::ok_twapi::get_top_app_wnd {}   {
   variable HWND;      # window handle of the controlled app
   return  $HWND

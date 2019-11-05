@@ -302,15 +302,27 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   }
   #return  888;  #OK_TMP
    
-  # Press {SPACE} at each _NEW_ "Exit" window;
   set maxNumOfExitButtons 2;  # 1 or 2; all should be ready at this point
-  while { ("" != [set wndWithExit \
-                [_find_first_multiconversion_button_window "Exit" $hMC1]]) && \
-          ($maxNumOfExitButtons > 0) }   {
-    puts "-D- Close window with 'Exit' button ($wndWithExit)"
-    twapi::close_window $wndWithExit
-    after 2000;   incr maxNumOfExitButtons -1
+  set maxAttempts [expr {3 * $maxNumOfExitButtons}]
+  # ------- Press {SPACE} at each _NEW_ "Exit" window ------
+  while { ("" != [set wndOfExit \
+                  [_find_first_multiconversion_button "Exit" $hMC1]])   &&  \
+          ($maxNumOfExitButtons > 0) && ($maxAttempts > 0) }   {
+    puts "-D- Click at 'Exit' button ($wndOfExit); attempts left: $maxAttempts"
+    if { 1 == [ok_twapi::raise_wnd_and_send_keys $wndOfExit {{SPACE}}] }  {
+      incr maxNumOfExitButtons -1
+    }
+    incr maxAttempts -1;  after 2000
   }
+  # ------- (Breaks OS; DO NOT:) Close each _NEW_ window with "Exit" button ------
+  #~ while { ("" != [set wndWithExit \
+                #~ [_find_first_multiconversion_button_window "Exit" $hMC1]]) && \
+          #~ ($maxNumOfExitButtons > 0) }   {
+    #~ puts "-D- Close window with 'Exit' button ($wndWithExit)"
+    #~ twapi::close_window $wndWithExit
+    #~ after 2000;   incr maxNumOfExitButtons -1
+  #~ }
+  
   #return  777;  #OK_TMP
     
   #~ # expect returning to top-SPM or original MC window; press {ESCAPE} key in the latter
