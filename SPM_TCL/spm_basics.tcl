@@ -264,8 +264,14 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
                         $winTextPatternToResponseKeySeq 3 30 $descr           \
                         "::spm::_is_multiconversion_most_likely_finished"] }  {
-    return  0;  # error already printed
+    # popup processing had errors, but maybe some were confirmed by 2nd attempt
+    if { 0 == [spm::_is_multiconversion_most_likely_finished \
+          [dict keys $winTextPatternToResponseKeySeq] }   {
+      return  0;  # error already printed
+    }
+    puts "-I- Though popup processing had errors, multiconversion appears to be finished; allowed to proceed"
   }
+  # at this point the job should be done
   
   # Wait for _NEW_ window(s), both "Back" and "Exit", to appear.
   # Timeout is very high to allow for long processing - 1 hour
@@ -299,10 +305,10 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # Press {SPACE} at each _NEW_ "Exit" window;
   set maxNumOfExitButtons 2;  # 1 or 2; all should be ready at this point
   while { ("" != [set wndWithExit \
-                  [_find_first_multiconversion_button "Exit" $hMC1]])   &&  \
+                [_find_first_multiconversion_button_window "Exit" $hMC1]]) && \
           ($maxNumOfExitButtons > 0) }   {
-    puts "-D- Click at 'Exit' button ($wndWithExit)"
-    twapi::set_focus $wndWithExit;  twapi::send_keys {{SPACE}};   after 2000
+    puts "-D- Close window with 'Exit' button ($wndWithExit)"
+    twapi::close_window $wndWithExit
     after 2000;   incr maxNumOfExitButtons -1
   }
   #return  777;  #OK_TMP
@@ -597,6 +603,19 @@ proc ::spm::_find_multiconversion_buttons {{origMCWnd ""}}  {
     }
   }
   return  $mcWndToButtonWnds
+}
+
+
+proc ::spm::_find_first_multiconversion_button_window {btnTitle \
+                                                        {origMCWnd ""}}  {
+  set mcWndToButtonWnds [_find_multiconversion_buttons $origMCWnd]
+  set pattern [format {*%s*} $btnTitle]
+  set wndsWithBtn [dict filter $mcWndToButtonWnds value $pattern]
+  set cntWndsWithBtn [dict size $wndsWithBtn]
+  if { $cntWndsWithBtn == 0 }   { return  "" }
+  set wndHandle [lindex [dict keys $wndsWithBtn] 0]
+  puts "-D- Picked first MC window with button {$wndHandle [dict get $wndsWithBtn $wndHandle]} out of $cntWndsWithBtn"
+  return  $wndHandle
 }
 
 
