@@ -533,11 +533,16 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
   set cntStop 77; # dummy init
   puts "-I- Begin $waitForStopDescr. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToEndSec) && ($cntStop > 0) }] }  {
-    set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
+    # sometimes it catches no windows; make several attempts
+    for {set attempts 3} {$attempts > 0} {incr attempts -1}   {
+      set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
+      if { [dict size $mcWndToButtons] > 0 }  { break } ; # found some window(s)
+      after 2000
+    }
     puts "-D- Wait for 'Stop' ABSENT in {$mcWndToButtons}"
     if { 0 == [dict size $mcWndToButtons] } {
       puts "-D- No more multi-conversion-progress windows found while $waitForStopDescr"
-      break;  # this scenario happens when converting in single thread
+      set cntStop 0;  break;  # happens when converting in single thread
     }
     set cntStop [dict size [dict filter $mcWndToButtons value {*Stop*}]]
   }
