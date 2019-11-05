@@ -97,8 +97,8 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-# Example:  spm::cmd__adjust_all SBS [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop__sbs.mcv}]
-proc ::spm::cmd__adjust_all {inpType cfgPath} {
+# Example:  spm::cmd__adjust_all SBS "Pre" "SBS" [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop__sbs.mcv}]
+proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is curently supported"
     return  0
@@ -107,25 +107,45 @@ proc ::spm::cmd__adjust_all {inpType cfgPath} {
     puts "-E- Inexistent adjustment settings file '$cfgPath'"
     return  0
   }
-  variable SUBDIR_PRE;  # subdirectory for pre-aligned images - input
-  variable SUBDIR_SBS;  # subdirectory for adjusted images    - output
+
   variable WA_ROOT
-  # input directory - the one with pre-aligned images
   
-  set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
+  set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
 
   # there may appear confirmation dialogs; tell to press "y" for each one
   set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirFullPath]     "y" \
-    "Confirm Conversion Start"          "y" \
-    [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
-    [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
+    [format {^%s$} $outDirFullPath]       "y" \
+    "Confirm Conversion Start"            "y" \
+    [format {%s.*\.jpg$} $outSubdirName]  "y" \
+    [format {%s.*\.tif$} $outSubdirName]  "y" \
     {^Attention}                        "{SPACE}" \
   ]
-  set rc [spm::cmd__multiconvert  "adjust-by-example multi-conversion" $SUBDIR_PRE \
+  set rc [spm::cmd__multiconvert  "adjust-by-example multi-conversion" $inpSubdirName \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
+}
+
+
+# Prepares CFG, opens multi-convert GUI, loads settings from the CFG,
+# starts conversion and waits for it to finish.
+# Returns to the top SPM window.
+# Returns 1 on success, 0 on error.
+proc ::spm::cmd__format_all {inpType prepareSettingsCB outSubdirName} {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is curently supported"
+    return  0
+  }
+  variable SUBDIR_SBS;  # subdirectory with inputs - finished stereopairs
+  variable WA_ROOT
+  
+  set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
+  if { "" == [set cfgPath [$prepareSettingsCB $inpType $outDirFullPath]] }  {
+    return  0;  # need to abort; error already printed
+  }
+  
+  set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_SBS $outSubdirName]
+  return  $res
 }
 
 
@@ -247,7 +267,7 @@ proc ::spm::_align_all__SettingsModifierCB {inpType iniArrName}  {
 }
 
 
-# Builds INI file with settings for align-all action
+# Builds INI file with settings for crop-all action
 # Returns new CFG file path on success, "" on error.
 proc ::spm::_prepare_settings__crop_all {inpType left top right bottom}  {
   # name of settings' file is the same as action templates' name
@@ -274,4 +294,16 @@ proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName \
   set iniArr(-\[Data\]__CropBottom) $bottom
   return  1
 }
+
+# Builds INI file with settings for align-all action
+# Returns new CFG file path on success, "" on error.
+proc ::spm::_prepare_settings__format_all__HAB_1920x1080 {inpType outDirPath}  {
+  # name of settings' file is the same as action templates' name
+  set cfgName [format "format_%s__HAB_1920x1080.mcv" [string tolower $inpType]]
+  # TODO:implement. ??? How to send 'outDirPath'???
+  return  [spm::_make_settings_file_from_template $inpType $cfgName \
+                      "::spm::_align_all__SettingsModifierCB"  "align-all"]
+}
+
+
 ########### End:   procedures to prepare SPM settings' files per task ########## 
