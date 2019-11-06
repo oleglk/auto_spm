@@ -651,16 +651,19 @@ proc ::spm::_find_first_multiconversion_button {btnTitle {origMCWnd ""}}  {
 
 proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
                                                       {origMCWnd ""}}  {
-  for  {set i 1}  {$i <= 5}  {incr i 1}  {
-    if { $i > 1 }   { after 2000 }
+  set firstIter 1
+  for  {set attempts 5}  {$attempts > 0}  {incr attempts -1}  {
+    if { ! $firstIter }   { after 2000;   set firstIter 0 }
     # some of the known titles may pop up before start of multi-conversion
     foreach title $knownPopupTitles  {
       if { 0 != [llength [set stList [::twapi::find_windows \
                                     -match regexp -text $title]]] }   {
+        puts "-D- Multi-conversion not finished - popup detected; attempts left: $attempts"
         return  0;  # multi-conversion may not yet have started
       }
     }
     if { "" != [_find_first_multiconversion_button "Stop" $origMCWnd] }   {
+      puts "-D- Multi-conversion not finished - MC window with visible 'Stop' detected; attempts left: $attempts"
       return  0;  # MC window with visible "Stop" button; not finished for sure
     }
   }
