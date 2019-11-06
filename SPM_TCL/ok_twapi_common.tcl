@@ -255,15 +255,13 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   set winTextPatternToCntErrors     [dict create]
   set startTime [clock seconds]
   set lastActionTime $startTime
+  set cbFired 0
   # routinely search for windows of each listed "type"-
-  #   until none appears during 'maxIdleTimeSec'
-  while { [expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec }  {
-    if { ($cbWhenToStop != 0) && \
-         (1 == [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]) }  {
-      # ???? !!! TODO: MOVE DOWN !!!
-      puts "-I- Stopped detecting popup-s for $descr - callback has fired"
-      break
-    }
+  #   until none appears during 'maxIdleTimeSec' AND the callback allows to finish
+  while { ([expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec)  ||  \
+          ( ($cbWhenToStop != 0) && \
+            (0 == [set cbFired  \
+              [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]]) )} {
     dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
       while { 0 != [llength [set hList [::twapi::find_windows \
                                         -match regexp -text $pattern]]] }  { 
@@ -279,6 +277,9 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
     }
     after [expr {1000 * $pollPeriodSec}]
   }
+  set abortReason [expr {$cbFired? "callback has fired" : "timeout"}]
+  puts "-I- Stopped detecting popup-s for $descr - $abortReason"
+
   set cntGood 0;  set cntBad 0
   foreach n [dict values $winTextPatternToCntResponded]   { incr cntGood $n }
   foreach n [dict values $winTextPatternToCntErrors]      { incr cntBad  $n }
@@ -295,7 +296,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
                   [::twapi::find_windows -match regexp -text $pattern]]
   }
   set cntLeft [llength $badList]
-  if { $cntLeft > 0 }   {
+  if { $cntLeft == 0 }   {
     puts "-I- Success responding to all pop-up(s) for $descr"
   } else {
     puts "-E- Failed responding to $cntLeft pop-up(s) for $descr"
