@@ -266,7 +266,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
                         "::spm::_is_multiconversion_most_likely_finished"] }  {
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
-          [dict keys $winTextPatternToResponseKeySeq] }   {
+                          [dict keys $winTextPatternToResponseKeySeq]] }   {
       return  0;  # error already printed
     }
     puts "-I- Though popup processing had errors, multiconversion appears to be finished; allowed to proceed"
