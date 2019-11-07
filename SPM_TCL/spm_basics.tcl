@@ -364,7 +364,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
 proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   set lDescr "open stereopair in '$imgPath'"
   if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
+    puts "-E- Only SBS input type is currently supported"
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   if { ![::ok_twapi::verify_singleton_running $lDescr] }  { return  0}; # FIRST!
@@ -476,7 +476,7 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
 # 
 proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
   if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
+    puts "-E- Only SBS input type is currently supported"
     return  "ERROR: unsupported"
   }
   set imgName [file tail $imgPath]
@@ -491,7 +491,7 @@ proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
 #         proc modifierCB {inpType iniArrName}  {}
 # Returns new CFG file path on success, "" on error.
 proc ::spm::_make_settings_file_from_template {inpType cfgName \
-                                              modifierCB descr}  {
+                      modifierCB descr {optionalParamForCB ""}}  {
   variable WA_ROOT
 #  variable ORIG_PATTERN
 #  variable SUBDIR_INP;  # subdirectory for to-be-aligned images
@@ -510,14 +510,16 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
   }
   puts "-I- Settings template for $descr loaded from '$templatePath'"
   # 'modifierCB' procedure alters "iniArr' as needed
-  if { 0 == [$modifierCB $inpType iniArr] }  {
-    return  "";  # need to abort; error already printed
-  }
+  set ret [expr { ($optionalParamForCB == "")?                                \
+                            [$modifierCB $inpType iniArr]   :                 \
+                            [$modifierCB $inpType iniArr $optionalParamForCB] }]
+  if { $ret == 0 }  { return  ""  };  # need to abort; error already printed
+
   set cfgPath [file join $WA_ROOT $SUBDIR_CFG $cfgName]
   if { 0 == [ok_utils::ini_arr_to_ini_file iniArr $cfgPath 1] }  {
     return  "";  # need to abort; error already printed
   }
-  puts "-I- Settings template for $descr written into '$cfgPath'"
+  puts "-I- Ultimate settings file for $descr written into '$cfgPath'"
   return  $cfgPath
 }
 

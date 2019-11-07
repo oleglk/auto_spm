@@ -23,7 +23,7 @@ source [file join $SCRIPT_DIR "spm_basics.tcl"]
 # Returns 1 on success, 0 on error.
 proc ::spm::cmd__align_all {inpType reuseAlignData} {
   if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
+    puts "-E- Only SBS input type is currently supported"
     return  0
   }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
@@ -62,9 +62,10 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
+# Example for DC101: ::spm::cmd__crop_all SBS 208 256 1372 1908
 proc ::spm::cmd__crop_all {inpType left top right bottom} {
   if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
+    puts "-E- Only SBS input type is currently supported"
     return  0
   }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images - input
@@ -93,14 +94,39 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 }
 
 
+# Prepares CFG, opens multi-convert GUI, loads settings from the CFG,
+# starts conversion and waits for it to finish.
+# Returns to the top SPM window.
+# Returns 1 on success, 0 on error.
+# Example: (for DC101)  ::spm::cmd__window_crop_all  SBS  527  208 356  1372 1908
+proc ::spm::cmd__window_crop_all {inpType horizPos left top right bottom} {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is currently supported"
+    return  0
+  }
+  variable SUBDIR_PRE;  # subdirectory for pre-aligned images     - input
+  variable SUBDIR_SBS;  # subdirectory with finished stereopairs  - output
+
+  # Output directory name is hardcoded inside 'settingsModifierCB'
+  #   AND should be 'SUBDIR_SBS'
+  if { "" == [set cfgPath [_prepare_settings__window_crop_all $inpType \
+                                   $horizPos $left $top $right $bottom]] }  {
+    return  0;  # need to abort; error already printed
+  }
+ 
+  set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_PRE $SUBDIR_SBS]
+  return  $res
+}
+
+
 # Opens multi-convert GUI, loads settings from the cfgPath,
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-# Example:  spm::cmd__adjust_all SBS "Pre" "SBS" [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop__sbs.mcv}]
+# Example:  spm::cmd__adjust_all SBS [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop__sbs.mcv}] "Pre" "SBS"
 proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
+    puts "-E- Only SBS input type is currently supported"
     return  0
   }
   if { ![file exists $cfgPath] }  {
@@ -134,7 +160,7 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
 proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
                                                           outSubdirName descr} {
   if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is curently supported"
+    puts "-E- Only SBS input type is currently supported"
     return  0
   }
   variable SUBDIR_SBS;  # subdirectory with inputs - finished stereopairs
@@ -142,20 +168,25 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   
   # name of settings' file is the same as action templates' name
   set cfgName $settingsTemplateName
-  # TODO:implement. ??? How to send 'outDirPath'??? - through settingsModifierCB
-  # TODO:implement. ??? How to send outdir name to settingsModifierCB
-  return  [spm::_make_settings_file_from_template $inpType $cfgName \
-                                                  $settingsModifierCB $descr]
 
-  set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
-  if { "" == [set cfgPath [$prepareSettingsCB $inpType $outDirFullPath]] }  {
+  # Output directory name is hardcoded inside 'settingsModifierCB'
+  #   AND should match 'outSubdirName'
+  if { "" == [set cfgPath [spm::_make_settings_file_from_template \
+                      $inpType $cfgName $settingsModifierCB $descr]] } {
     return  0;  # need to abort; error already printed
   }
-  
+  #set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
+ 
   set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_SBS $outSubdirName]
   return  $res
 }
 
+
+proc ::spm::cmd__format_all__HAB_1920x1080 {inpType} {
+  return  [cmd__format_all  $inpType "convert_sbs_to_hab_1920x1080.mcv" \
+                            "::spm::_out_format_HAB__SettingsModifierCB" \
+                            "HAB" "convert into HAB, 1920x1080"]
+}
 
 # Loads stereopair from 'imgPath', adds the border, saves under the same name as .tif .
 # Example: spm::cmd__fuzzy_border_one SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 10 70 300
@@ -222,7 +253,7 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
 
 # Adds the border to all stereopair(s) in 'imgDirPath',
 #   saves them under the same names, but as .tif .
-# Example: spm::cmd__fuzzy_border_all SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS" 10 70 300
+# Example: spm::cmd__fuzzy_border_all  SBS  [file join $::spm::WA_ROOT "SBS"]  10 70 300
 proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
   set ADD_BORDER "Add Fuzzy Border";  # action description
   if { ! [ok_utils::ok_filepath_is_existent_dir $imgDirPath] }  {
@@ -275,6 +306,35 @@ proc ::spm::_align_all__SettingsModifierCB {inpType iniArrName}  {
 }
 
 
+# Builds INI file with settings for window-and-crop-all action
+# Returns new CFG file path on success, "" on error.
+proc ::spm::_prepare_settings__window_crop_all {inpType \
+                                          horizPoz left top right bottom}  {
+  # name of settings' file is the same as action templates' name
+  set cfgName [format "window_crop_%s.mcv" [string tolower $inpType]]
+  set paramDict [dict create                                                  \
+        "Position_H"        $horizPoz                                         \
+        "cropCoords_LTRB"   [list $left $top $right $bottom] ]
+  
+  return  [spm::_make_settings_file_from_template $inpType $cfgName \
+                      "::spm::_window_crop_all__SettingsModifierCB"  \
+                      "window-and-crop-all" $paramDict]
+}
+
+
+proc ::spm::_window_crop_all__SettingsModifierCB {inpType iniArrName \
+                                                  posAndCoordDict}  {
+  # TODO: take 'inpType' into consideration
+  upvar $iniArrName iniArr
+  set horizPoz  [dict get $posAndCoordDict "Position_H"]
+  set coordList [dict get $posAndCoordDict "cropCoords_LTRB"]
+  set iniArr(-\[Data\]__ValueAlignOn)       1
+  set iniArr(-\[Data\]__Position_H)         $horizPoz
+  # run the callback for pure crop - it will set both crop coords and output dir
+  return  [_crop_all__SettingsModifierCB $inpType iniArr $coordList]
+}
+
+
 # Builds INI file with settings for crop-all action
 # Returns new CFG file path on success, "" on error.
 proc ::spm::_prepare_settings__crop_all {inpType left top right bottom}  {
@@ -282,16 +342,17 @@ proc ::spm::_prepare_settings__crop_all {inpType left top right bottom}  {
   set cfgName [format "crop_%s.mcv" [string tolower $inpType]]
   return  [spm::_make_settings_file_from_template $inpType $cfgName \
                       "::spm::_crop_all__SettingsModifierCB"  "crop-all" \
-                      $left $top $right $bottom]
+                      [list $left $top $right $bottom]]
 }
 
 
-proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName \
-                                            left top right bottom}  {
+proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName coordList_LTRB}  {
   # TODO: take 'inpType' into consideration
   variable WA_ROOT
   variable SUBDIR_SBS;  # subdirectory for final images
   upvar $iniArrName iniArr
+  set left  [lindex $coordList_LTRB 0];  set top    [lindex $coordList_LTRB 1]
+  set right [lindex $coordList_LTRB 2];  set bottom [lindex $coordList_LTRB 3]
   # should filepath be converted into native format? Works in TCL format too...
   set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_SBS]
   #
@@ -304,8 +365,15 @@ proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName \
 }
 
 
-# Common-use config-modification callback that only sets output path 
-proc ::spm::_set_outdir__SettingsModifierCB {inpType iniArrName outSubdirName}  {
+proc ::spm::_out_format_HAB__SettingsModifierCB {inpType iniArrName}  {
+  # TODO: take 'inpType' into consideration
+  upvar $iniArrName iniArr
+  return  [_set_outdir_in_settings_modifier iniArr "HAB"]
+}
+  
+
+# Common-use config-modification utility that only sets output path 
+proc ::spm::_set_outdir_in_settings_modifier {iniArrName outSubdirName}  {
   # TODO: take 'inpType' into consideration
   variable WA_ROOT
   upvar $iniArrName iniArr
