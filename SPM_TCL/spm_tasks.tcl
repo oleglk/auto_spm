@@ -43,6 +43,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     }
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
+  # (patterns with input paths included to force checking for input errors)
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirFullPath]     "y" \
     "Confirm Conversion Start"          "y" \
@@ -50,7 +51,8 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
     {^Attention}                        "{SPACE}" \
-  ]
+    [format {%s.*\.jpg$} $WA_ROOT]      "" \
+    [format {%s.*\.tif$} $WA_ROOT]      "" \  ]
   set rc [spm::cmd__multiconvert  "alignment multi-conversion" ""         \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
@@ -80,12 +82,15 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   }
 
   # there may appear confirmation dialogs; tell to press "y" for each one
+  # (patterns with input paths included to force checking for input errors)
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirFullPath]     "y" \
     "Confirm Conversion Start"          "y" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
     [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
+    [format {%s.*\.jpg$} $SUBDIR_PRE]   "" \
+    [format {%s.*\.tif$} $SUBDIR_PRE]   "" \
   ]
   set rc [spm::cmd__multiconvert  "cropping multi-conversion" $SUBDIR_PRE \
                                   $cfgPath $winTextPatternToResponseKeySeq]
@@ -146,6 +151,11 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
     [format {%s.*\.tif$} $outSubdirName]  "y" \
     {^Attention}                        "{SPACE}" \
   ]
+  # (patterns with input paths included to force checking for input errors)
+  if { $inpSubdirName != $outSubdirName } {
+    dict set winTextPatternToResponseKeySeq  [format {%s.*\.jpg$} $inpSubdirName]  ""
+    dict set winTextPatternToResponseKeySeq  [format {%s.*\.tif$} $inpSubdirName]  ""
+  }
   set rc [spm::cmd__multiconvert  "adjust-by-example multi-conversion" $inpSubdirName \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL

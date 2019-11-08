@@ -29,6 +29,9 @@ namespace eval ::spm:: {
   variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
   variable SPM_TITLE  "StereoPhoto Maker" ;   # title of the main SPM window
+  
+  ### SPM_ERR_MSGS is a list of known error patterns in SPM popup-s
+  variable SPM_ERR_MSGS   {{Cannot Open Image}}
 
   
   variable WA_ROOT "";  # work-area root directory
@@ -240,6 +243,7 @@ after 5000
 # Returns 1 on success, 0 on error.
 proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
                                 winTextPatternToResponseKeySeq} {
+  variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
   set actDescr "$descr; config in '$cfgPath'"
  
   if { "" == [set hMC1 [cmd__open_multi_conversion $inpSubDir $cfgPath]] }  {
@@ -262,7 +266,8 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
-                        $winTextPatternToResponseKeySeq 3 30 $descr           \
+                        $winTextPatternToResponseKeySeq $SPM_ERR_MSGS         \
+                        3 30 $descr           \
                         "::spm::_is_multiconversion_most_likely_finished"] }  {
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
@@ -362,6 +367,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
 
 
 proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
+  variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
   set lDescr "open stereopair in '$imgPath'"
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is currently supported"
@@ -386,6 +392,16 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   }
  #return  "";  # OK_TMP
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
+  
+  # react to errors if requested
+  set winTextPatternToResponseKeySeq [dict create   \
+          [format {%s$} [file tail $imgPath]]   ""  \
+  ]
+  if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
+              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 $lDescr] }   {
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
+  }
+  
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $imgPath]
   set hSPM2 [ok_twapi::wait_for_window_title_to_raise $targetWndTitle "regexp"]
   if { $hSPM2 == "" } {
@@ -404,6 +420,7 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
 
 # Commands to save current image in 'outDirPath' as SBS TIFF
 proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
+  variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
   if { ! [ok_utils::ok_filepath_is_existent_dir $outDirPath] }  {
     puts "-E- Invalid or inexistent save-to directory '$outDirPath'"
     return  ""
@@ -460,7 +477,7 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   # confirm save if requested
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-                                  $winTextPatternToResponseKeySeq 2 10 $sDescr
+                      $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 $sDescr
   # do not check for errors since the proc is finished
   # verify we returned to the image window (title = $imgWndTitle - case can change)
   set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"]
