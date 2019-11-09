@@ -367,7 +367,7 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
         (1 == [focus_singleton "focus for $descr" $targetHwnd]) }  {
     set wndBefore [twapi::get_foreground_window];   # to detect focus loss
     after 1000
-    if { [complain_if_focus_moved $wndBefore $descr] }  { return  "" }
+    if { [complain_if_focus_moved $wndBefore $descr 1] }  { return  "" }
     if { 0 == [llength $subSeqList] }   {
       twapi::send_keys $keySeqStr
      } else {
@@ -377,8 +377,9 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
         twapi::send_keys $subSeq
       }
      }
-    if { [complain_if_focus_moved $wndBefore $descr] }  { return  "" }
+    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     after 500; # avoid an access denied error
+    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";         return  ""
@@ -388,7 +389,10 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
 proc ::ok_twapi::complain_if_focus_moved {wndBefore context mustExist}  {
   set wndNow [twapi::get_foreground_window]
   if { $wndBefore == $wndNow }  { return  0 } ;   # OK - didn't move
-  # TODO: if mustExist==0, the window could have been deleted
+  if { !$mustExist && ![twapi::window_exists $wndBefore] }  {
+    puts "-W- Focus moved from deleted window while $context"
+    return  0
+  }
   puts "-E- Focus moved while $context - from '[twapi::get_window_text $wndBefore]' to '[twapi::get_window_text $wndNow]'"
   return  1
 }
@@ -399,10 +403,11 @@ proc ::ok_twapi::focus_then_send_keys {keySeqStr descr targetHwnd} {
   if { 1 == [focus_singleton "focus for $descr" $targetHwnd] }  {
     set wndBefore [twapi::get_foreground_window];   # to detect focus loss
     after 1000
-    if { [complain_if_focus_moved $wndBefore $descr] }  { return  "" }
+    if { [complain_if_focus_moved $wndBefore $descr 1] }  { return  "" }
     twapi::send_keys $keySeqStr
-    if { [complain_if_focus_moved $wndBefore $descr] }  { return  "" }
+    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     after 200; # avoid an access denied error
+    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     puts "-I- Success to $descr";     return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";           return  ""
