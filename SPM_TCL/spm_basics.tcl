@@ -31,7 +31,10 @@ namespace eval ::spm:: {
   variable SPM_TITLE  "StereoPhoto Maker" ;   # title of the main SPM window
   
   ### SPM_ERR_MSGS is a list of known error patterns in SPM popup-s
-  variable SPM_ERR_MSGS   {{Cannot Open Image}}
+  variable SPM_ERR_MSGS   {                                                   \
+      {Cannot Open Image}                                                     \
+      {This file type is different. This file is skipped.}                    \
+  }
 
   
   variable WA_ROOT "";  # work-area root directory
