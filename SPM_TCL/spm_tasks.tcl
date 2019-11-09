@@ -198,6 +198,12 @@ proc ::spm::cmd__format_all__HAB_1920x1080 {inpType} {
                             "HAB" "convert into HAB, 1920x1080"]
 }
 
+proc ::spm::cmd__format_all__HSBS_1920x1080 {inpType} {
+  return  [cmd__format_all  $inpType "convert_sbs_to_hsbs_1920x1080.mcv" \
+                            "::spm::_out_format_HSBS__SettingsModifierCB" \
+                            "HSBS" "convert into HSBS, 1920x1080"]
+}
+
 # Loads stereopair from 'imgPath', adds the border, saves under the same name as .tif .
 # Example: spm::cmd__fuzzy_border_one SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 10 70 300
 proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
@@ -379,6 +385,12 @@ proc ::spm::_out_format_HAB__SettingsModifierCB {inpType iniArrName}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
   return  [_set_outdir_in_settings_modifier iniArr "HAB"]
+}
+
+proc ::spm::_out_format_HSBS__SettingsModifierCB {inpType iniArrName}  {
+  # TODO: take 'inpType' into consideration
+  upvar $iniArrName iniArr
+  return  [_set_outdir_in_settings_modifier iniArr "HSBS"]
 }
   
 
