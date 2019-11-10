@@ -246,10 +246,13 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 
 # Detects emerging popup windows by regexp patters in 'winTextPatternToResponseKeySeq'.
 # Sends specified confirmation key to each.
+# Error reported when a (listed!) popup has child window
+#      with text (not title) matching any pattern in 'errPatternList'.
 # Finishes when 'cbWhenToStop' callback returns 1
 #    or after 'maxIdleTimeSec' seconds of no new pop-ups.
 proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
-        winTextPatternToResponseKeySeq pollPeriodSec maxIdleTimeSec descr \
+        winTextPatternToResponseKeySeq errPatternList \
+        pollPeriodSec maxIdleTimeSec descr \
         {cbWhenToStop 0}}  {
   set winTextPatternToCntResponded  [dict create]
   set winTextPatternToCntErrors     [dict create]
@@ -264,10 +267,18 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
               [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]]) )} {
     dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
       while { 0 != [llength [set hList [::twapi::find_windows \
-                                        -match regexp -text $pattern]]] }  { 
+                                        -match regexp -text $pattern]]] }  {
         set hwnd [lindex $hList 0]
+        puts "-D- Checking window '[twapi::get_window_text $hwnd]' for being popup (pattern: {$pattern})"
+        # check for error message in any child window
+        if { "" != [set errResponseSeq [_is_error_popup \
+                                                    $hwnd $errPatternList]] }  {
+          set keySeq $errResponseSeq; # error alreay printed
+        }
         set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
-        if { "" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd] }  {
+        if { $keySeq == "" }  { continue } ;  # it was a dummy for error checking
+        if { ("" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd]) && \
+             ($errResponseSeq == "") }  {
           dict incr winTextPatternToCntResponded $pattern 1  ; # count successes
           set lastActionTime [clock seconds]
         } else {
@@ -306,6 +317,24 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
 
 
 ###################### Begin: subtask utilities ################################
+
+# Checks for error message in any child window - by patterns in 'errPatternList'.
+# If error found, returns key-sequence to respond to it; otherwise returns "".
+proc ::ok_twapi::_is_error_popup {hwnd errPatternList}  {
+  set children [::twapi::get_descendent_windows $hwnd]
+  foreach w $children {
+    set txt [::twapi::get_window_text $w]
+    foreach errPattern $errPatternList  {
+      if { 1 == [regexp -- $errPattern $txt] }  {
+        puts "-E- Error popup detected;  title: '[::twapi::get_window_text $hwnd]',  message: '$txt'"
+        # TODO: search for underlying buttons to determine the response
+        return  "{SPACE}";  # TODO: {SPACE} is typical response to error - OK buton
+      }
+    }
+  }
+  return  ""; # not an error popup
+}
+
 
 # Sends menu shortcut keys to travel pre-open menu
 # Returns handle of resulting window or "" on error.

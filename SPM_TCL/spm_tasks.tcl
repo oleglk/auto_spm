@@ -45,6 +45,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     }
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
+  # (patterns with input paths included to force checking for input errors)
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirFullPath]     "y" \
     "Confirm Conversion Start"          "y" \
@@ -52,6 +53,8 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
     {^Attention}                        "{SPACE}" \
+    [format {%s.*\.jpg$} $WA_ROOT]      "" \
+    [format {%s.*\.tif$} $WA_ROOT]      "" \  ]
   ]
   set rc [spm::cmd__multiconvert  $descr ""         \
                                   $cfgPath $winTextPatternToResponseKeySeq]
@@ -84,12 +87,15 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   }
 
   # there may appear confirmation dialogs; tell to press "y" for each one
+  # (patterns with input paths included to force checking for input errors)
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirFullPath]     "y" \
     "Confirm Conversion Start"          "y" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
     [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
+    [format {%s.*\.jpg$} $SUBDIR_PRE]   "" \
+    [format {%s.*\.tif$} $SUBDIR_PRE]   "" \
   ]
   set rc [spm::cmd__multiconvert  $descr $SUBDIR_PRE \
                                   $cfgPath $winTextPatternToResponseKeySeq]
@@ -154,6 +160,11 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
     [format {%s.*\.tif$} $outSubdirName]  "y" \
     {^Attention}                        "{SPACE}" \
   ]
+  # (patterns with input paths included to force checking for input errors)
+  if { $inpSubdirName != $outSubdirName } {
+    dict set winTextPatternToResponseKeySeq  [format {%s.*\.jpg$} $inpSubdirName]  ""
+    dict set winTextPatternToResponseKeySeq  [format {%s.*\.tif$} $inpSubdirName]  ""
+  }
   set rc [spm::cmd__multiconvert  $descr $inpSubdirName \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
@@ -195,6 +206,12 @@ proc ::spm::cmd__format_all__HAB_1920x1080 {inpType} {
   return  [cmd__format_all  $inpType "convert_sbs_to_hab_1920x1080.mcv" \
                             "::spm::_out_format_HAB__SettingsModifierCB" \
                             "HAB" "convert into HAB, 1920x1080"]
+}
+
+proc ::spm::cmd__format_all__HSBS_1920x1080 {inpType} {
+  return  [cmd__format_all  $inpType "convert_sbs_to_hsbs_1920x1080.mcv" \
+                            "::spm::_out_format_HSBS__SettingsModifierCB" \
+                            "HSBS" "convert into HSBS, 1920x1080"]
 }
 
 # Loads stereopair from 'imgPath', adds the border, saves under the same name as .tif .
@@ -380,6 +397,12 @@ proc ::spm::_out_format_HAB__SettingsModifierCB {inpType iniArrName}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
   return  [_set_outdir_in_settings_modifier iniArr "HAB"]
+}
+
+proc ::spm::_out_format_HSBS__SettingsModifierCB {inpType iniArrName}  {
+  # TODO: take 'inpType' into consideration
+  upvar $iniArrName iniArr
+  return  [_set_outdir_in_settings_modifier iniArr "HSBS"]
 }
   
 
