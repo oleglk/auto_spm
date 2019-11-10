@@ -26,6 +26,8 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
+  set descr "alignment multi-conversion"
+  if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   variable WA_ROOT
   set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
@@ -51,7 +53,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
     {^Attention}                        "{SPACE}" \
   ]
-  set rc [spm::cmd__multiconvert  "alignment multi-conversion" ""         \
+  set rc [spm::cmd__multiconvert  $descr ""         \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
@@ -68,6 +70,8 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
+  set descr "cropping multi-conversion"
+  if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images - input
   variable SUBDIR_SBS;  # subdirectory for cropped images     - output
   variable WA_ROOT
@@ -87,7 +91,7 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
     [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
     [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
   ]
-  set rc [spm::cmd__multiconvert  "cropping multi-conversion" $SUBDIR_PRE \
+  set rc [spm::cmd__multiconvert  $descr $SUBDIR_PRE \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
@@ -104,6 +108,8 @@ proc ::spm::cmd__window_crop_all {inpType horizPos left top right bottom} {
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
+  set descr "window and crop"
+  if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images     - input
   variable SUBDIR_SBS;  # subdirectory with finished stereopairs  - output
 
@@ -129,6 +135,8 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
+  set descr "adjust-by-example multi-conversion"
+  if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   if { ![file exists $cfgPath] }  {
     puts "-E- Inexistent adjustment settings file '$cfgPath'"
     return  0
@@ -146,7 +154,7 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
     [format {%s.*\.tif$} $outSubdirName]  "y" \
     {^Attention}                        "{SPACE}" \
   ]
-  set rc [spm::cmd__multiconvert  "adjust-by-example multi-conversion" $inpSubdirName \
+  set rc [spm::cmd__multiconvert  $descr $inpSubdirName \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
@@ -163,6 +171,7 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
+  if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_SBS;  # subdirectory with inputs - finished stereopairs
   variable WA_ROOT
   
@@ -193,6 +202,7 @@ proc ::spm::cmd__format_all__HAB_1920x1080 {inpType} {
 proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   variable TABSTOPS_DFL
   set ADD_BORDER "Add Fuzzy Border";  # dialog name / key / description
+  if { ![ok_twapi::verify_singleton_running $ADD_BORDER] } { return  0 }
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  0;   # error already printed
   }
@@ -256,6 +266,7 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
 # Example: spm::cmd__fuzzy_border_all  SBS  [file join $::spm::WA_ROOT "SBS"]  10 70 300
 proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
   set ADD_BORDER "Add Fuzzy Border";  # action description
+  if { ![ok_twapi::verify_singleton_running $ADD_BORDER] } { return  0 }
   if { ! [ok_utils::ok_filepath_is_existent_dir $imgDirPath] }  {
     puts "-E- Invalid or inexistent images' input/output directory '$imgDirPath'"
     return  0

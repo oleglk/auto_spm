@@ -365,7 +365,8 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
   set subSeqList [_split_key_seq_at_alt $keySeqStr]
   if { ($targetHwnd == 0) || \
         (1 == [focus_singleton "focus for $descr" $targetHwnd]) }  {
-    set wndBefore [twapi::get_foreground_window];   # to detect focus loss
+    set wndBefore [expr {($targetHwnd == 0)? [twapi::get_foreground_window] : \
+                                        $targetHwnd}];   # to detect focus loss
     after 1000
     if { [complain_if_focus_moved $wndBefore $descr 1] }  { return  "" }
     if { 0 == [llength $subSeqList] }   {
@@ -377,9 +378,7 @@ proc ::ok_twapi::_send_cmd_keys {keySeqStr descr {targetHwnd 0}} {
         twapi::send_keys $subSeq
       }
      }
-    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     after 500; # avoid an access denied error
-    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     puts "-I- Success $descr";      return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";         return  ""
@@ -401,13 +400,12 @@ proc ::ok_twapi::complain_if_focus_moved {wndBefore context mustExist}  {
 proc ::ok_twapi::focus_then_send_keys {keySeqStr descr targetHwnd} {
   set descr "send key-sequence {$keySeqStr} for $descr"
   if { 1 == [focus_singleton "focus for $descr" $targetHwnd] }  {
-    set wndBefore [twapi::get_foreground_window];   # to detect focus loss
+    set wndBefore [expr {($targetHwnd == 0)? [twapi::get_foreground_window] : \
+                                        $targetHwnd}];   # to detect focus loss
     after 1000
     if { [complain_if_focus_moved $wndBefore $descr 1] }  { return  "" }
     twapi::send_keys $keySeqStr
-    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     after 200; # avoid an access denied error
-    complain_if_focus_moved $wndBefore $descr 0; # don't know whether must exist
     puts "-I- Success to $descr";     return  [twapi::get_foreground_window]
   }
   puts "-E- Cannot $descr";           return  ""
