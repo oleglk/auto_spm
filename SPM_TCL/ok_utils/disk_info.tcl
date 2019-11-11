@@ -10,7 +10,8 @@ namespace eval ::ok_utils:: {
     ok_try_get_free_disk_space_kb \
     ok_get_filelist_disk_space_kb \
     ok_dir_list_size              \
-    ok_dir_size
+    ok_dir_size                   \
+    ok_read_all_files_stat_in_dir
 }
 
 # Copied from "proc df-k" at http://wiki.tcl.tk/526#pagetoc071ae01c
@@ -120,9 +121,9 @@ proc ::ok_utils::ok_dir_size {dirPath {priErr 1}} {
 }
 
 
-# Builds and retuns a dict  fileName :: list-of-file-stat-params
-proc ::ok_utils::ok_read_files_stat_in_dir {dirPath namePattern {priErr 1}} {
-  if { ![file exits $dirPath] || ![file isdirectory $dirPath] }  {
+# Builds and retuns a dict  pureName :: list-of-file-stat-params
+proc ::ok_utils::ok_read_all_files_stat_in_dir {dirPath namePattern {priErr 1}} {
+  if { ![file exists $dirPath] || ![file isdirectory $dirPath] }  {
     if { $priErr }  { ok_err_msg "Invalid or inexistent directory '$dirPath'" }
     return [dict create]
   }
@@ -131,7 +132,7 @@ proc ::ok_utils::ok_read_files_stat_in_dir {dirPath namePattern {priErr 1}} {
   foreach fPath $fileList {
     array unset stArr;    file stat $fPath stArr;
     set stList [array get stArr]
-    dict set filenameToStat [file tail $fPath] $stList
+    dict set filenameToStat [file rootname [file tail $fPath]] $stList
   }
   return  $filenameToStat
 }

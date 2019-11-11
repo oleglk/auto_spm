@@ -13,6 +13,7 @@ package require twapi;  #  TODO: check errors
 set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "common.tcl"]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
+source [file join $SCRIPT_DIR "ok_utils" "disk_info.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
 source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 
@@ -691,4 +692,45 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
     puts "-D- Multi-conversion appears finished; re-verification attempts left: $attempts"
   }
   return  1
+}
+
+
+proc ::spm::_verify_output_images_vs_inputs {inpType inpFileStatsDict \
+                                             outDirPath outExt}   {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is currently supported"
+    return  0
+  }
+  set descr "verifying output images vs inputs"
+  if { 0 == [dict size $inpFileStatsDict] }  {
+    puts "-E- Missing input-images' attributes for $descr"
+    return  0
+  }
+  set outFileStatsDict [ok_utils::ok_read_all_files_stat_in_dir $outDirPath \
+                                                                $outExt 1]
+  if { 0 == [dict size $outFileStatsDict] }  {
+    puts "-E- Failed reading output-images' attributes for $descr"
+    return  0
+  }
+  set badList [list]
+  foreach imgPureName [dict keys $inpFileStatsDict] {
+    set inpStats [dict get $inpFileStatsDict $imgPureName]
+    set outName "$imgPureName$outExt"
+    set outDescr "'$outName' ([file join $outDirPath $outName])"
+    if { ![dict exists $outFileStatsDict $outName] }  {
+      puts "-E- Missing output image $outDescr for $descr"
+      lappend badList $imgPureName;  continue
+    }
+    set outStats [dict get $outFileStatsDict $imgPureName]
+    if { [dict get $outStats size] < 1e+06 }  {
+      puts "-E- Output image $outDescr is too small"
+      lappend badList $imgPureName;  continue
+    }
+    if { [dict get $outStats mtime] < [dict get $inpStats mtime]  }  {
+      puts "-E- Output image $outDescr is older than the original"
+      lappend badList $imgPureName;  continue
+    } 
+  }
+
+  }
 }

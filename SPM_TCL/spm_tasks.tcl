@@ -11,6 +11,7 @@ package require twapi;  #  TODO: check errors
 
 set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
+source [file join $SCRIPT_DIR "ok_utils" "disk_info.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
 source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 source [file join $SCRIPT_DIR "spm_basics.tcl"]
