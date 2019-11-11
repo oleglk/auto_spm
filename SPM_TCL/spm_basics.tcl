@@ -731,6 +731,8 @@ proc ::spm::_verify_output_images_vs_inputs {inpType inpFileStatsDict \
       lappend badList $imgPureName;  continue
     } 
   }
-
-  }
+  set allGood [expr {0 == [llength $badList]}]
+  set msg "Finished $descr for [dict size $inpFileStatsDict] input image(s); [llength $badList] error(s) occured."
+  if { $$allGood }  { puts "-I- $msg" }  else  { puts "-E- $msg" }
+  return  $allGood
 }
