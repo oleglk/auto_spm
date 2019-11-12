@@ -507,6 +507,55 @@ proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
 }
 
 
+# Detects output images that are either invalid or older than their inputs;
+#   and returns as a list of purenames (no extension).
+# In case of fatal error returns "ERROR".
+### Example:
+###   set inpStats [ok_utils::ok_read_all_files_stat_in_dir $spm::WA_ROOT ".TIF" 1];
+###   set badListOrErr [spm::verify_output_images_vs_inputs SBS $inpStats "$spm::WA_ROOT/Pre" ".TIF"]
+proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
+                                             outDirPath outExt}   {
+  if { ![string equal -nocase $inpType "SBS"] }  {
+    puts "-E- Only SBS input type is currently supported"
+    return  "ERROR"
+  }
+  set descr "verifying output images vs inputs"
+  if { 0 == [dict size $inpFileStatsDict] }  {
+    puts "-E- Missing input-images' attributes for $descr"
+    return  "ERROR"
+  }
+  set outFileStatsDict [ok_utils::ok_read_all_files_stat_in_dir $outDirPath \
+                                                                "*$outExt" 1]
+  if { 0 == [dict size $outFileStatsDict] }  {
+    puts "-E- Failed reading output-images' attributes for $descr"
+    return  "ERROR"
+  }
+  set badList [list]
+  foreach imgPureName [dict keys $inpFileStatsDict] {
+    set inpStats [dict get $inpFileStatsDict $imgPureName]
+    set outName "$imgPureName$outExt"
+    set outDescr "'$outName' ([file join $outDirPath $outName])"
+    if { ![dict exists $outFileStatsDict $imgPureName] }  {
+      puts "-E- Missing output image $outDescr for $descr"
+      lappend badList $imgPureName;  continue
+    }
+    set outStats [dict get $outFileStatsDict $imgPureName]
+    if { [dict get $outStats size] < 1e+06 }  {
+      puts "-E- Output image $outDescr is too small"
+      lappend badList $imgPureName;  continue
+    }
+    if { [dict get $outStats mtime] < [dict get $inpStats mtime]  }  {
+      puts "-E- Output image $outDescr is older than the original"
+      lappend badList $imgPureName;  continue
+    } 
+  }
+  set allGood [expr {0 == [llength $badList]}]
+  set msg "Finished $descr for [dict size $inpFileStatsDict] input image(s); [llength $badList] error(s) occured."
+  if { $allGood }  { puts "-I- $msg" }  else  { puts "-E- $msg" }
+  return  $badList
+}
+
+
 # Builds INI file with settings from existent "standard" template 'cfgName'.
 # Changes from the template performed by 'modifierCB' callback procedure:
 #         proc modifierCB {inpType iniArrName}  {}
@@ -692,47 +741,4 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
     puts "-D- Multi-conversion appears finished; re-verification attempts left: $attempts"
   }
   return  1
-}
-
-
-proc ::spm::_verify_output_images_vs_inputs {inpType inpFileStatsDict \
-                                             outDirPath outExt}   {
-  if { ![string equal -nocase $inpType "SBS"] }  {
-    puts "-E- Only SBS input type is currently supported"
-    return  0
-  }
-  set descr "verifying output images vs inputs"
-  if { 0 == [dict size $inpFileStatsDict] }  {
-    puts "-E- Missing input-images' attributes for $descr"
-    return  0
-  }
-  set outFileStatsDict [ok_utils::ok_read_all_files_stat_in_dir $outDirPath \
-                                                                $outExt 1]
-  if { 0 == [dict size $outFileStatsDict] }  {
-    puts "-E- Failed reading output-images' attributes for $descr"
-    return  0
-  }
-  set badList [list]
-  foreach imgPureName [dict keys $inpFileStatsDict] {
-    set inpStats [dict get $inpFileStatsDict $imgPureName]
-    set outName "$imgPureName$outExt"
-    set outDescr "'$outName' ([file join $outDirPath $outName])"
-    if { ![dict exists $outFileStatsDict $outName] }  {
-      puts "-E- Missing output image $outDescr for $descr"
-      lappend badList $imgPureName;  continue
-    }
-    set outStats [dict get $outFileStatsDict $imgPureName]
-    if { [dict get $outStats size] < 1e+06 }  {
-      puts "-E- Output image $outDescr is too small"
-      lappend badList $imgPureName;  continue
-    }
-    if { [dict get $outStats mtime] < [dict get $inpStats mtime]  }  {
-      puts "-E- Output image $outDescr is older than the original"
-      lappend badList $imgPureName;  continue
-    } 
-  }
-  set allGood [expr {0 == [llength $badList]}]
-  set msg "Finished $descr for [dict size $inpFileStatsDict] input image(s); [llength $badList] error(s) occured."
-  if { $$allGood }  { puts "-I- $msg" }  else  { puts "-E- $msg" }
-  return  $allGood
 }
