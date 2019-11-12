@@ -31,6 +31,8 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   variable WA_ROOT
+  set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
+                                        $spm::WA_ROOT $spm::ORIG_PATTERN 1]
   set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
   if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
     return  0;  # need to abort; error already printed
@@ -55,11 +57,13 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
     {^Attention}                        "{SPACE}" \
     [format {%s.*\.jpg$} $WA_ROOT]      "" \
-    [format {%s.*\.tif$} $WA_ROOT]      "" \  ]
+    [format {%s.*\.tif$} $WA_ROOT]      "" \
   ]
   set rc [spm::cmd__multiconvert  $descr ""         \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
+  register_phase_results [lindex [info level 0] 0] \
+    [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
   return  $rc
 }
 
@@ -80,6 +84,9 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   variable SUBDIR_SBS;  # subdirectory for cropped images     - output
   variable WA_ROOT
   # input directory - the one with pre-aligned images
+  set inpDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
+  set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
+                                        $inpDirFullPath "*.TIF" 1]
   
   set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
   if { "" == [set cfgPath [_prepare_settings__crop_all $inpType   \
@@ -101,6 +108,9 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   set rc [spm::cmd__multiconvert  $descr $SUBDIR_PRE \
                                   $cfgPath $winTextPatternToResponseKeySeq]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
+  
+  register_phase_results [lindex [info level 0] 0] \
+    [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
   return  $rc
 }
 
@@ -119,6 +129,10 @@ proc ::spm::cmd__window_crop_all {inpType horizPos left top right bottom} {
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images     - input
   variable SUBDIR_SBS;  # subdirectory with finished stereopairs  - output
+  variable WA_ROOT
+  set inpDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
+  set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
+                                        $inpDirFullPath "*.TIF" 1]
 
   # Output directory name is hardcoded inside 'settingsModifierCB'
   #   AND should be 'SUBDIR_SBS'
@@ -128,6 +142,10 @@ proc ::spm::cmd__window_crop_all {inpType horizPos left top right bottom} {
   }
  
   set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_PRE $SUBDIR_SBS]
+  
+  set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
+  register_phase_results [lindex [info level 0] 0] \
+    [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
   return  $res
 }
 
@@ -186,7 +204,11 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_SBS;  # subdirectory with inputs - finished stereopairs
   variable WA_ROOT
-  
+  set phaseId "[lindex [info level 0] 0]::$settingsTemplateName::$settingsModifierCB"
+  set inpDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
+  set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
+                                        $inpDirFullPath "*.TIF" 1]
+ 
   # name of settings' file is the same as action templates' name
   set cfgName $settingsTemplateName
 
@@ -196,9 +218,12 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
                       $inpType $cfgName $settingsModifierCB $descr]] } {
     return  0;  # need to abort; error already printed
   }
-  #set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
  
   set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_SBS $outSubdirName]
+  
+  set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
+  register_phase_results $phaseId \
+    [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
   return  $res
 }
 
@@ -289,6 +314,12 @@ proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
     puts "-E- Invalid or inexistent images' input/output directory '$imgDirPath'"
     return  0
   }
+  set inpStats_JPG [ok_utils::ok_read_all_files_stat_in_dir \
+                                        $imgDirPath "*.JPG" 1]
+  set inpStats_TIF [ok_utils::ok_read_all_files_stat_in_dir \
+                                        $imgDirPath "*.TIF" 1]
+  set inpStats [dict merge $inpStats_JPG $inpStats_TIF] 
+
   set imgPaths [concat  [glob -nocomplain -directory $imgDirPath -- "*.jpg"]  \
                         [glob -nocomplain -directory $imgDirPath -- "*.tif"]  ]
   set imgPaths [lsort $imgPaths]
@@ -309,6 +340,9 @@ proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
   } else   {
     puts "-W- Finished to $addBorderAllDescr; $errCnt error(s) occurred"
   }
+  
+  register_phase_results [lindex [info level 0] 0] \
+    [verify_output_images_vs_inputs $inpType $inpStats $imgDirPath ".TIF"]
   return  [expr {$errCnt == 0}]
 }
 

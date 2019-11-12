@@ -20,8 +20,8 @@ source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 set SPM_SETTINGS_TEMPLATES_DIR [file join $SCRIPT_DIR ".." "SPM_INI"]
 
 namespace eval ::spm:: {
-  ### variable ORIG_PATTERN {*.tif}
-  variable ORIG_PATTERN {*.jpg}
+  variable ORIG_PATTERN {*.tif};  # Except for alignment stage it always are TIFFs
+  ### variable ORIG_PATTERN {*.jpg}
 #  variable SUBDIR_INP "";  # subdirectory for to-be-aligned images - DEFAULT
   variable SUBDIR_INP "FIXED";  # subdirectory for to-be-aligned images
   variable SUBDIR_PRE "Pre";    # subdirectory for pre-aligned images
@@ -39,6 +39,8 @@ namespace eval ::spm:: {
 
   
   variable WA_ROOT "";  # work-area root directory
+  
+  variable PER_PHASE_FAILED_IMG_PURENAMES 0;  # dict of phase-id :: list-of-failed-images
   
   
   namespace export  \
@@ -507,6 +509,8 @@ proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
 }
 
 
+#################### Begin: error monitoring ###################################
+
 # Detects output images that are either invalid or older than their inputs;
 #   and returns as a list of purenames (no extension).
 # In case of fatal error returns "ERROR".
@@ -554,6 +558,49 @@ proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
   if { $allGood }  { puts "-I- $msg" }  else  { puts "-E- $msg" }
   return  $badList
 }
+
+
+proc ::spm::init_phase_results {} {
+  variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
+  set PER_PHASE_FAILED_IMG_PURENAMES [dict create]
+}
+
+
+proc ::spm::register_phase_results {phaseId badPurenamesList} {
+  variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
+  if { $PER_PHASE_FAILED_IMG_PURENAMES == 0 }   {
+    puts "-E- spm::PER_PHASE_FAILED_IMG_PURENAMES uninitialized upon set-call for phase '$phaseId'"
+    return  0
+  }
+  dict set PER_PHASE_FAILED_IMG_PURENAMES $phaseId $badPurenamesList
+  return  1
+}
+
+
+proc ::spm::get_phase_errors {phaseId} {
+  variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
+  if { $PER_PHASE_FAILED_IMG_PURENAMES == 0 }   {
+    puts "-E- spm::PER_PHASE_FAILED_IMG_PURENAMES uninitialized upon get-call for phase '$phaseId'"
+    return  "ERROR"
+  }
+  if { ![dict exists $PER_PHASE_FAILED_IMG_PURENAMES $phaseId] }   {
+    puts "-E- Missing error data for phase '$phaseId'; this phase may not have been run"
+    return  "ERROR"
+  }
+  return  [dict get $PER_PHASE_FAILED_IMG_PURENAMES $phaseId]
+}
+
+
+proc ::spm::get_phase_list {} {
+  variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
+  if { $PER_PHASE_FAILED_IMG_PURENAMES == 0 }   {
+    puts "-E- spm::PER_PHASE_FAILED_IMG_PURENAMES uninitialized upon list-call for phases"
+    return  "ERROR"
+  }
+  return  [dict keys $PER_PHASE_FAILED_IMG_PURENAMES]
+}
+
+#################### End:   error monitoring ###################################
 
 
 # Builds INI file with settings from existent "standard" template 'cfgName'.
