@@ -196,7 +196,7 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
 proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
-                                                          outSubdirName descr} {
+                                             outSubdirName descr {phaseId ""}} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is currently supported"
     return  0
@@ -204,7 +204,10 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_SBS;  # subdirectory with inputs - finished stereopairs
   variable WA_ROOT
-  set phaseId "[lindex [info level 0] 0]::$settingsTemplateName::$settingsModifierCB"
+  if { $phaseId == "" }   {
+    set phaseId [format "%s--%s--%s"  [lindex [info level 0] 0] \
+                                    $settingsTemplateName $settingsModifierCB]
+  }
   set inpDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_SBS]]
   set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
                                         $inpDirFullPath "*.TIF" 1]
@@ -223,21 +226,23 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   
   set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
   register_phase_results $phaseId \
-    [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
+    [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".JPG"]
   return  $res
 }
 
 
 proc ::spm::cmd__format_all__HAB_1920x1080 {inpType} {
-  return  [cmd__format_all  $inpType "convert_sbs_to_hab_1920x1080.mcv" \
-                            "::spm::_out_format_HAB__SettingsModifierCB" \
-                            "HAB" "convert into HAB, 1920x1080"]
+  return  [cmd__format_all  $inpType "convert_sbs_to_hab_1920x1080.mcv"   \
+                            "::spm::_out_format_HAB__SettingsModifierCB"  \
+                            "HAB" "convert into HAB, 1920x1080"           \
+                            [lindex [info level 0] 0]]
 }
 
 proc ::spm::cmd__format_all__HSBS_1920x1080 {inpType} {
-  return  [cmd__format_all  $inpType "convert_sbs_to_hsbs_1920x1080.mcv" \
-                            "::spm::_out_format_HSBS__SettingsModifierCB" \
-                            "HSBS" "convert into HSBS, 1920x1080"]
+  return  [cmd__format_all  $inpType "convert_sbs_to_hsbs_1920x1080.mcv"    \
+                            "::spm::_out_format_HSBS__SettingsModifierCB"   \
+                            "HSBS" "convert into HSBS, 1920x1080"           \
+                            [lindex [info level 0] 0]]
 }
 
 # Loads stereopair from 'imgPath', adds the border, saves under the same name as .tif .

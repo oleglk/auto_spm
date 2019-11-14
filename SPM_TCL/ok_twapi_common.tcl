@@ -79,9 +79,10 @@ proc ::ok_twapi::focus_singleton {context {targetHwnd 0}}  {
     return  0;  # warning already printed
   }
   if { $targetHwnd == 0 }  {
-    # TODO: chek validity of 'LATEST_APP_WND'
+    # TODO: check validity of 'LATEST_APP_WND'
     set targetHwnd $LATEST_APP_WND;   set explicitTarget 0
   } else {                            set explicitTarget 1 }
+  # TODO: make it in a cycle !!!
   twapi::set_foreground_window $targetHwnd
   after 200
   twapi::set_focus $targetHwnd
@@ -152,7 +153,8 @@ proc ::ok_twapi::verify_singleton_running {contextDescr}  {
   variable HWND;      # window handle of StereoPhotoMaker
   if { $HWND == "" }  {
     if { $contextDescr != "" }  {
-      puts "-W- $APP_NAME instance not running; context: $contextDescr"
+      set appDescr [expr {([info exists APP_NAME])? $APP_NAME : "application"}]
+      puts "-W- $appDescr instance not running; context: $contextDescr"
     }
     return  0
   }

@@ -531,7 +531,7 @@ proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
   set outFileStatsDict [ok_utils::ok_read_all_files_stat_in_dir $outDirPath \
                                                                 "*$outExt" 1]
   if { 0 == [dict size $outFileStatsDict] }  {
-    puts "-E- Failed reading output-images' attributes for $descr"
+    puts "-E- Failed reading output-images' attributes for $descr;  directory='$outDirPath', pattern='*$outExt'"
     return  "ERROR"
   }
   set badList [list]
@@ -544,7 +544,7 @@ proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
       lappend badList $imgPureName;  continue
     }
     set outStats [dict get $outFileStatsDict $imgPureName]
-    if { [dict get $outStats size] < 1e+06 }  {
+    if { [dict get $outStats size] < 2e+05 }  {
       puts "-E- Output image $outDescr is too small"
       lappend badList $imgPureName;  continue
     }
@@ -563,6 +563,13 @@ proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
 proc ::spm::init_phase_results {} {
   variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
   set PER_PHASE_FAILED_IMG_PURENAMES [dict create]
+}
+
+
+proc ::spm::are_phase_results_initialized {} {
+  variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
+  return  [expr { [info exists PER_PHASE_FAILED_IMG_PURENAMES] &&   \
+                  ($PER_PHASE_FAILED_IMG_PURENAMES != 0) }]
 }
 
 
