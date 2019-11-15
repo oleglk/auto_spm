@@ -903,3 +903,46 @@ proc ::ok_utils::ok_run_loud_os_cmd {cmdList outputCheckCB}  {
   }
   return  1
 }
+
+
+#~ proc ::ok_utils::ok_abort_if_key_pressed {singleKeyCharNoModofier}  {
+  #~ # Enable non-blocking mode
+  #~ fconfigure stdin -blocking 0
+  #~ for {set i 1}  {$i <= 5}  {incr i 1}  {
+    #~ puts "...... ok_abort_if_key_pressed - at $i ......."
+    #~ if { [gets stdin] == $singleKeyCharNoModofier }   {
+      #~ set msg "-I- -/-/-/-/- User commanded to abort the script -/-/-/-/"
+      #~ puts "[_ok_callstack]"
+      #~ fconfigure stdin -blocking 1; # Set it back to normal
+      #~ error $msg
+    #~ }
+    #~ after 100;           # Slow the loop down!
+  #~ }
+
+  #~ # Set it back to normal
+  #~ fconfigure stdin -blocking 1
+#~ }
+
+
+# Proc callstack copied from: https://wiki.tcl-lang.org/page/List+the+call+stack
+proc _ok_callstack {} {
+    set stack [list "Stacktrace:"]
+
+    for {set i 1} {$i < [info level]} {incr i} {
+        set level [info level -$i]
+        set frame [info frame -$i]
+
+        if {[dict exists $frame proc]} {
+            set pname [dict get $frame proc]
+            set pargs [lrange $level 1 end]
+            lappend stack " - $pname"
+            foreach arg $pargs {
+                lappend stack "   * $arg"
+            }
+        } else {
+            lappend stack " - **unknown stack item**: $level $frame"
+        }
+    }
+
+    return [join $stack "\n"]
+}

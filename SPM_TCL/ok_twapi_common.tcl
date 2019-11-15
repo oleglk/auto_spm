@@ -267,11 +267,13 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
           ( ($cbWhenToStop != 0) && \
             (0 == [set cbFired  \
               [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]]) )} {
+    #ok_twapi::abort_if_key_pressed "q"
     dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
       while { 0 != [llength [set hList [::twapi::find_windows \
                                         -match regexp -text $pattern]]] }  {
         set hwnd [lindex $hList 0]
         puts "-D- Checking window '[twapi::get_window_text $hwnd]' for being popup (pattern: {$pattern})"
+        #ok_twapi::abort_if_key_pressed "q"
         # check for error message in any child window
         if { "" != [set errResponseSeq [_is_error_popup \
                                                     $hwnd $errPatternList]] }  {
@@ -512,3 +514,12 @@ proc ::ok_twapi::_split_key_seq_at_alt {keySeqStr} {
   return  $subSeqList
 }
 ######################   End: subtask utilities ################################
+
+proc ::ok_twapi::abort_if_key_pressed {singleKeyCharNoModofier}  {
+  set hkId [twapi::register_hotkey $singleKeyCharNoModofier {
+    # TODO: puts "[_ok_callstack]"
+    error "**ABORT**"
+    }]
+  after 500
+  twapi::unregister_hotkey $hkId
+}

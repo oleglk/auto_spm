@@ -654,12 +654,14 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
                                               {origMCWnd ""}}  {
   set timeToEndSec [expr {[clock seconds] + $timeWaitSec}]
 
-  set waitForStartDescr "waiting for ANY multi-conversion-progress window to appear"
+  set waitForStartDescr "waiting $timeWaitSec(sec) for ANY multi-conversion-progress window to appear"
   set mcWndToButtons [dict create];   set cntStartedMC 0
   puts "-I- Begin $waitForStartDescr. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToEndSec) && ($cntStartedMC == 0) }] }  {
+    after 1000
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
     set cntStartedMC [dict size $mcWndToButtons]
+    #ok_twapi::abort_if_key_pressed "q"
   }
   if { $cntStartedMC == 0 } {
     puts "-I- Failed $waitForStartDescr - timeout. Time=[clock seconds](sec)"

@@ -368,8 +368,8 @@ proc ::spm::_align_all__SettingsModifierCB {inpType iniArrName}  {
   variable WA_ROOT
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   upvar $iniArrName iniArr
-  # should filepath be converted into native format? Works in TCL format too...
-  set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_PRE]
+  # Do convert filepath into native format! TCL format OK for win10, not win7
+  set iniArr(-\[Data\]__OutputFolder)  [file nativename [file join $WA_ROOT $SUBDIR_PRE]]
   return  1
 }
 
@@ -421,8 +421,8 @@ proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName coordList_LTRB}  {
   upvar $iniArrName iniArr
   set left  [lindex $coordList_LTRB 0];  set top    [lindex $coordList_LTRB 1]
   set right [lindex $coordList_LTRB 2];  set bottom [lindex $coordList_LTRB 3]
-  # should filepath be converted into native format? Works in TCL format too...
-  set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $SUBDIR_SBS]
+  # Do convert filepath into native format! TCL format OK for win10, not win7
+  set iniArr(-\[Data\]__OutputFolder)  [file nativename [file join $WA_ROOT $SUBDIR_SBS]]
   #
   set iniArr(-\[Data\]__Crop)       1
   set iniArr(-\[Data\]__CropLeft)   $left
@@ -451,8 +451,8 @@ proc ::spm::_set_outdir_in_settings_modifier {iniArrName outSubdirName}  {
   # TODO: take 'inpType' into consideration
   variable WA_ROOT
   upvar $iniArrName iniArr
-  # should filepath be converted into native format? Works in TCL format too...
-  set iniArr(-\[Data\]__OutputFolder)  [file join $WA_ROOT $outSubdirName]
+  # Do convert filepath into native format! TCL format OK for win10, not win7
+  set iniArr(-\[Data\]__OutputFolder)  [file nativename [file join $WA_ROOT $outSubdirName]]
   #
   return  1
 }
