@@ -654,7 +654,7 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
                                               {origMCWnd ""}}  {
   set timeToEndSec [expr {[clock seconds] + $timeWaitSec}]
 
-  set waitForStartDescr "waiting $timeWaitSec(sec) for ANY multi-conversion-progress window to appear"
+  set waitForStartDescr "waiting $timeWaitSec (sec) for ANY multi-conversion-progress window to appear"
   set mcWndToButtons [dict create];   set cntStartedMC 0
   puts "-I- Begin $waitForStartDescr. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToEndSec) && ($cntStartedMC == 0) }] }  {

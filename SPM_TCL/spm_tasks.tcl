@@ -48,7 +48,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     }
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
-  # (patterns with input paths included to force checking for input errors)
+  # (patterns with image extensions included to force checking for input errors)
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirFullPath]     "y" \
     "Confirm Conversion Start"          "y" \
@@ -56,8 +56,8 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
     {^Attention}                        "{SPACE}" \
-    [format {%s.*\.jpg$} $WA_ROOT]      "" \
-    [format {%s.*\.tif$} $WA_ROOT]      "" \
+    {\.jpg$}                            "" \
+    {\.tif$}                            "" \
   ]
   set rc [spm::cmd__multiconvert  $descr ""         \
                                   $cfgPath $winTextPatternToResponseKeySeq]

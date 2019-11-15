@@ -274,7 +274,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
         set hwnd [lindex $hList 0]
         puts "-D- Checking window '[twapi::get_window_text $hwnd]' for being popup (pattern: {$pattern})"
         #ok_twapi::abort_if_key_pressed "q"
-        # check for error message in any child window
+        # first(!) check for error message in any child window
         if { "" != [set errResponseSeq [_is_error_popup \
                                                     $hwnd $errPatternList]] }  {
           set keySeq $errResponseSeq; # error alreay printed
