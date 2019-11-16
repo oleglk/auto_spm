@@ -45,6 +45,7 @@ namespace eval ::ok_utils:: {
 	ok_filepath_is_writable \
   ok_filepath_is_readable \
   ok_filepath_is_existent_dir \
+  ok_format_filepath_for_regexp \
 	ok_delete_file \
 	ok_force_delete_dir \
 	ok_mkdir \
@@ -565,6 +566,14 @@ proc ::ok_utils::ok_filepath_is_readable { fullPath } {
 
 proc ::ok_utils::ok_filepath_is_existent_dir {fullPath} {
   return  [expr {([file exists $fullPath]) && ([file isdirectory $fullPath])}]
+}
+
+
+# Replaces both native- and TCL-style separators with "." (match any)
+proc ::ok_utils::ok_format_filepath_for_regexp {filePath} {
+  set sepList [list "/" "."  [file separator] "."]
+  set filePathForRegexp [string map $sepList $filePath]
+  return  $filePathForRegexp
 }
 
 

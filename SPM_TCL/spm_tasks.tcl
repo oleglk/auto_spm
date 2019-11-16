@@ -49,8 +49,9 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
   }
   # there may appear confirmation dialogs; tell to press "y" for each one
   # (patterns with image extensions included to force checking for input errors)
+  set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirFullPath]     "y" \
+    [format {^%s$} $outDirForRegexp]    "y" \
     "Confirm Conversion Start"          "y" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
@@ -96,8 +97,9 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 
   # there may appear confirmation dialogs; tell to press "y" for each one
   # (patterns with input paths included to force checking for input errors)
+  set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirFullPath]     "y" \
+    [format {^%s$} $outDirForRegexp]    "y" \
     "Confirm Conversion Start"          "y" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
@@ -172,8 +174,9 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
 
   # there may appear confirmation dialogs; tell to press "y" for each one
+  set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirFullPath]       "y" \
+    [format {^%s$} $outDirForRegexp]      "y" \
     "Confirm Conversion Start"            "y" \
     [format {%s.*\.jpg$} $outSubdirName]  "y" \
     [format {%s.*\.tif$} $outSubdirName]  "y" \
