@@ -220,8 +220,9 @@ after 5000
         #~ ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
     #~ return  "";  # error already printed
   #~ }
-  if { 0 == [ok_twapi::_send_tabs_to_reach_subwindow_in_open_dialog   \
-                                                        "Restore(File)" 1] }  {
+  if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog   \
+                                                      "Restore(File)" 1]) ||  \
+       ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]])    }  {
     puts "-E- Faled to $lDescr";  return  ""
   }
   # type 'cfgPath' then hit  OK by pressing Alt-o (used to be ENTER in old SPM)
@@ -789,7 +790,7 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
     # some of the known titles may pop up before start of multi-conversion
     foreach title $knownPopupTitles  {
       if { 0 != [llength [set stList [::twapi::find_windows \
-                                    -match regexp -text $title]]] }   {
+                                -child false -match regexp -text $title]]] }   {
         puts "-D- Multi-conversion not finished - popup detected; re-verification attempts not used: $attempts"
         return  0;  # multi-conversion may not yet have started
       }

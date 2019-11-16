@@ -269,10 +269,11 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
               [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]]) )} {
     #ok_twapi::abort_if_key_pressed "q"
     dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
-      while { 0 != [llength [set hList [::twapi::find_windows \
-                                        -match regexp -text $pattern]]] }  {
+      while { 0 != [llength [set hList [twapi::find_windows \
+                              -child false -match regexp -text $pattern]]] }  {
         set hwnd [lindex $hList 0]
-        puts "-D- Checking window '[twapi::get_window_text $hwnd]' for being popup (pattern: {$pattern})"
+        set st [twapi::get_window_style $hwnd]
+        puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {$pattern})"
         #ok_twapi::abort_if_key_pressed "q"
         # first(!) check for error message in any child window
         if { "" != [set errResponseSeq [_is_error_popup \
@@ -280,7 +281,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
           set keySeq $errResponseSeq; # error alreay printed
         }
         set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
-        ok_utils::pause "@@@ Paused in respond_to_popup_windows_based_on_text - 01 @@@";  # OK_TMP
+        #ok_utils::pause "@@@ Paused in respond_to_popup_windows_based_on_text - 01 @@@";  # OK_TMP
         if { $keySeq == "" }  { ;   # either it was a dummy for error checking,
           continue ;  # or real message caught by too-generic dummy pattern;
         } ;    # Continuing gives it a chance to match an expected popup pattern
@@ -311,7 +312,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   set badList [list]
   foreach pattern [dict keys $winTextPatternToResponseKeySeq] {
     set badList [concat $badList \
-                  [::twapi::find_windows -match regexp -text $pattern]]
+              [::twapi::find_windows -child false -match regexp -text $pattern]]
   }
   set cntLeft [llength $badList]
   if { $cntLeft == 0 }   {
@@ -455,14 +456,17 @@ proc ::ok_twapi::is_window_visible {hwnd} {
 }
 
 
-proc ::ok_twapi::_send_tabs_to_reach_subwindow_in_open_dialog {wndText \
+proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
                                                                {goBack 0}}  {
   set keySeqStr [expr { ($goBack==0)? {{TAB}} : {+{TAB}} }]
-  set initWnd [twapi::get_foreground_window]
+  set fgWnd [twapi::get_foreground_window]
+  set tid [twapi::get_window_thread $fgWnd]
+  set initWnd [twapi::get_focus_window_for_thread $tid]
   set maxAttempts 200
   for {set i 0}  {$i < $maxAttempts}  {incr i 1}   {
-    set currWnd [twapi::get_foreground_window]
+    set currWnd [twapi::get_focus_window_for_thread $tid]
     set currText [twapi::get_window_text $currWnd]
+    puts "-D- Search for '$wndText' visits window '$currText'"
     if { $currText == $wndText }  {
       puts "-D- Window '$wndText' found at tabstop $i";   return  1
     }
