@@ -215,10 +215,14 @@ after 5000
   #~ set tabStop [_get_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
   #~ set keySeqLoadCfg [format "{{{TAB} %d} {SPACE}}" $tabStop]
   set lDescr "Press 'Restore(File)' button"
-  set tabsStr [format_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
-  if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $lDescr 0]) || \
-        ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
-    return  "";  # error already printed
+  #~ set tabsStr [format_tabstop  "Multi Conversion"  "Restore(File)"];  # existent
+  #~ if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $lDescr 0]) || \
+        #~ ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $lDescr 0]]) }  {
+    #~ return  "";  # error already printed
+  #~ }
+  if { 0 == [ok_twapi::_send_tabs_to_reach_subwindow_in_open_dialog   \
+                                                        "Restore(File)" 1] }  {
+    puts "-E- Faled to $lDescr";  return  ""
   }
   # type 'cfgPath' then hit  OK by pressing Alt-o (used to be ENTER in old SPM)
   set pDescr "Specify settings-file path"

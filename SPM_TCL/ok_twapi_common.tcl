@@ -280,7 +280,10 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
           set keySeq $errResponseSeq; # error alreay printed
         }
         set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
-        if { $keySeq == "" }  { continue } ;  # it was a dummy for error checking
+        ok_utils::pause "@@@ Paused in respond_to_popup_windows_based_on_text - 01 @@@";  # OK_TMP
+        if { $keySeq == "" }  { ;   # either it was a dummy for error checking,
+          continue ;  # or real message caught by too-generic dummy pattern;
+        } ;    # Continuing gives it a chance to match an expected popup pattern
         if { ("" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd]) && \
              ($errResponseSeq == "") }  {
           dict incr winTextPatternToCntResponded $pattern 1  ; # count successes
@@ -449,6 +452,28 @@ proc ::ok_twapi::is_window_visible {hwnd} {
   if { $hwnd == "" }  { return  0 }
   set styles [twapi::get_window_style $hwnd]
   return  [expr {0 <= [lsearch -exact $styles "visible"]}]
+}
+
+
+proc ::ok_twapi::_send_tabs_to_reach_subwindow_in_open_dialog {wndText \
+                                                               {goBack 0}}  {
+  set keySeqStr [expr { ($goBack==0)? {{TAB}} : {+{TAB}} }]
+  set initWnd [twapi::get_foreground_window]
+  set maxAttempts 200
+  for {set i 0}  {$i < $maxAttempts}  {incr i 1}   {
+    set currWnd [twapi::get_foreground_window]
+    set currText [twapi::get_window_text $currWnd]
+    if { $currText == $wndText }  {
+      puts "-D- Window '$wndText' found at tabstop $i";   return  1
+    }
+    if { ($i > 0) && ($currWnd == $initWnd) }   {
+      puts "-E- Window '$wndText' not found after $i tabstops";   return  0
+    }
+    twapi::send_keys $keySeqStr
+    after 200
+  }
+  puts "-E- Window '$wndText' not found after $maxAttempts tabstop(s)"
+  return  0
 }
 
 

@@ -13,6 +13,7 @@ source [file join $UTIL_DIR "debug_utils.tcl"]
 namespace eval ::ok_utils:: {
 
     namespace export \
+  pause  \
 	ok_list_to_set \
   ok_list_to_dict_set \
   ok_unordered_lists_are_equal \
@@ -59,6 +60,14 @@ namespace eval ::ok_utils:: {
   ok_exec_under_catch \
   ok_run_silent_os_cmd \
   ok_run_loud_os_cmd
+}
+
+
+proc ::ok_utils::pause {{message "Hit <Enter> to continue, Q<Enter> to quit ==> "}} {
+  puts -nonewline $message
+  flush stdout
+  if { "Q" == [gets stdin] }  { return -code error }
+  return
 }
 
 
