@@ -234,6 +234,14 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
 }
 
 
+proc ::spm::cmd__format_all__SBS_3840x2160 {inpType} {
+  return  [cmd__format_all  $inpType "convert_sbs_to_sbs_3840x2160.mcv"     \
+                            "::spm::_out_format_4KSBS__SettingsModifierCB"  \
+                            "4KSBS" "convert into 4K SBS, 3840x2160"        \
+                            [lindex [info level 0] 0]]
+}
+
+
 proc ::spm::cmd__format_all__HAB_1920x1080 {inpType} {
   return  [cmd__format_all  $inpType "convert_sbs_to_hab_1920x1080.mcv"   \
                             "::spm::_out_format_HAB__SettingsModifierCB"  \
@@ -435,6 +443,12 @@ proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName coordList_LTRB}  {
   return  1
 }
 
+
+proc ::spm::_out_format_4KSBS__SettingsModifierCB {inpType iniArrName}  {
+  # TODO: take 'inpType' into consideration
+  upvar $iniArrName iniArr
+  return  [_set_outdir_in_settings_modifier iniArr "4KSBS"]
+}
 
 proc ::spm::_out_format_HAB__SettingsModifierCB {inpType iniArrName}  {
   # TODO: take 'inpType' into consideration
