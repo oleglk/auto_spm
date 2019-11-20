@@ -236,7 +236,8 @@ after 5000
     return  "";  # error already printed
   }
 #return  "";  # OK_TMP
-  if { $hMC2 != $hMC }   {
+  set expTitle [twapi::get_window_text $hMC]
+  if { "" == [ok_twapi::wait_for_window_title_to_raise $expTitle "exact"] }  {
     puts "-E- Unexpected window '[twapi::get_window_text $hMC2]' after loading multi-conversion settings from '$cfgPath'"
     return  ""
   }

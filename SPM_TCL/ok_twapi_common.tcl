@@ -268,29 +268,36 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
             (0 == [set cbFired  \
               [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]]) )} {
     #ok_twapi::abort_if_key_pressed "q"
-    dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
-      while { 0 != [llength [set hList [twapi::find_windows \
-                              -child false -match regexp -text $pattern]]] }  {
-        set hwnd [lindex $hList 0]
-        set st [twapi::get_window_style $hwnd]
-        puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {$pattern})"
-        #ok_twapi::abort_if_key_pressed "q"
-        # first(!) check for error message in any child window
-        if { "" != [set errResponseSeq [_is_error_popup \
-                                                    $hwnd $errPatternList]] }  {
-          set keySeq $errResponseSeq; # error alreay printed
-        }
-        set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
-        #ok_utils::pause "@@@ Paused in respond_to_popup_windows_based_on_text - 01 @@@";  # OK_TMP
-        if { $keySeq == "" }  { ;   # either it was a dummy for error checking,
-          continue ;  # or real message caught by too-generic dummy pattern;
-        } ;    # Continuing gives it a chance to match an expected popup pattern
-        if { ("" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd]) && \
-             ($errResponseSeq == "") }  {
-          dict incr winTextPatternToCntResponded $pattern 1  ; # count successes
-          set lastActionTime [clock seconds]
-        } else {
-          dict incr winTextPatternToCntErrors $pattern 1     ; # count errors
+    # make 2 passes over 'winTextPatternToResponseKeySeq':
+    # - 1st with non-empty response key sequences - known popups
+    # - 2nd with empty response key sequences     - unexpected popups
+    for {set pass 1} {$pass <= 2} {incr pass 1}   {
+      dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
+        if { ($pass == 1) && ($keySeq == "") }  { continue }
+        if { ($pass == 2) && ($keySeq != "") }  { continue }
+        while { 0 != [llength [set hList [twapi::find_windows \
+                                -child false -match regexp -text $pattern]]] }  {
+          set hwnd [lindex $hList 0]
+          set st [twapi::get_window_style $hwnd]
+          puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {$pattern})"
+          #ok_twapi::abort_if_key_pressed "q"
+          # first(!) check for error message in any child window
+          if { "" != [set errResponseSeq [_is_error_popup \
+                                                      $hwnd $errPatternList]] }  {
+            set keySeq $errResponseSeq; # error alreay printed
+          }
+          set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
+          #ok_utils::pause "@@@ Paused in respond_to_popup_windows_based_on_text - 01 @@@";  # OK_TMP
+          if { $keySeq == "" }  { ;   # either it was a dummy for error checking,
+            continue ;  # or real message caught by too-generic dummy pattern;
+          } ;    # Continuing gives it a chance to match an expected popup pattern
+          if { ("" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd]) && \
+               ($errResponseSeq == "") }  {
+            dict incr winTextPatternToCntResponded $pattern 1  ; # count successes
+            set lastActionTime [clock seconds]
+          } else {
+            dict incr winTextPatternToCntErrors $pattern 1     ; # count errors
+          }
         }
       }
     }
