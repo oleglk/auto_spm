@@ -58,7 +58,7 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
   set nPhases [expr {$nPhases_after - $nPhases_before}]
   puts "\n\n          ----------------------\n\n"
   if { $reportErrors }  {
-    set nPhasesWithErrors [_count_and_report_flow_phases_with_errors $phasesToBadImgs]
+    set nPhasesWithErrors [count_and_report_flow_phases_with_errors $phasesToBadImgs]
     set errReportStr "  Errors occured in $nPhasesWithErrors phase(s)"
   } else {
     set errReportStr ""
@@ -69,7 +69,7 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
 }
 
 
-proc ::spm::_count_and_report_flow_phases_with_errors {phaseNameToBadImgList}  {
+proc ::spm::count_and_report_flow_phases_with_errors {phaseNameToBadImgList}  {
   set nPhasesWithErrors 0
   dict for {phase badList} $phaseNameToBadImgList {
     incr nErrors [llength $badList]
