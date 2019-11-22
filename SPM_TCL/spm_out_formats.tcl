@@ -69,6 +69,23 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
 }
 
 
+# Deletes from all output directories images absent from 'subdirToFollow'.
+# Image filenames matched from beginning till 'nameSuffixStartStr'.
+proc ::spm::clean_stereopairs_and_outputs_in_current_dir {  \
+                  subdirToFollowRelPath nameSuffixStartStr {simulateOnly 0}}   {
+  variable SUBDIR_SBS;    # subdirectory for final images
+  variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
+  set descr "clean output images"
+  
+  set spmWaRoot [file normalize "."]
+  set subDirRelPaths ...;  # TODO: SBS/, all FORMATTED/*
+  # TODO: verify that subdirToFollowRelPath included in subDirRelPaths
+  # TODO: build list of basenames being present
+  # TODO: browse all subdirs and detect unneeded images
+}
+
+
+# TODO: move intp spm_basics.tcl
 proc ::spm::count_and_report_flow_phases_with_errors {phaseNameToBadImgList}  {
   set nPhasesWithErrors 0
   dict for {phase badList} $phaseNameToBadImgList {
