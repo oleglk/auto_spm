@@ -194,6 +194,7 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
 }
 
 
+# Formats ready stereopairs for one output type (viewer).
 # Prepares CFG, opens multi-convert GUI, loads settings from the CFG,
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
@@ -206,6 +207,7 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   }
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_SBS;  # subdirectory with inputs - finished stereopairs
+  variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
   variable WA_ROOT
   if { $phaseId == "" }   {
     set phaseId [format "%s--%s--%s"  [lindex [info level 0] 0] \
@@ -218,16 +220,17 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   # name of settings' file is the same as action templates' name
   set cfgName $settingsTemplateName
 
-  # Output directory name is hardcoded inside 'settingsModifierCB'
-  #   AND should match 'outSubdirName'
+  set outSubdirRelPath [file join $SUBDIR_OUTFORMAT_ROOT $outSubdirName]
+  # Output directory relative-path is hardcoded inside 'settingsModifierCB'
+  #   AND should match 'outSubdirRelPath'
   if { "" == [set cfgPath [spm::_make_settings_file_from_template \
                       $inpType $cfgName $settingsModifierCB $descr]] } {
     return  0;  # need to abort; error already printed
   }
  
-  set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_SBS $outSubdirName]
+  set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_SBS $outSubdirRelPath]
   
-  set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
+  set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirRelPath]]
   register_phase_results $phaseId \
     [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".JPG"]
   return  $res
@@ -447,19 +450,25 @@ proc ::spm::_crop_all__SettingsModifierCB {inpType iniArrName coordList_LTRB}  {
 proc ::spm::_out_format_4KSBS__SettingsModifierCB {inpType iniArrName}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
-  return  [_set_outdir_in_settings_modifier iniArr "4KSBS"]
+  variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
+  return  [_set_outdir_in_settings_modifier iniArr \
+                                    [file join $SUBDIR_OUTFORMAT_ROOT "4KSBS"]]
 }
 
 proc ::spm::_out_format_HAB__SettingsModifierCB {inpType iniArrName}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
-  return  [_set_outdir_in_settings_modifier iniArr "HAB"]
+  variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
+  return  [_set_outdir_in_settings_modifier iniArr  \
+                                    [file join $SUBDIR_OUTFORMAT_ROOT "HAB"]]
 }
 
 proc ::spm::_out_format_HSBS__SettingsModifierCB {inpType iniArrName}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
-  return  [_set_outdir_in_settings_modifier iniArr "HSBS"]
+  variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
+  return  [_set_outdir_in_settings_modifier iniArr  \
+                                    [file join $SUBDIR_OUTFORMAT_ROOT "HSBS"]]
 }
   
 

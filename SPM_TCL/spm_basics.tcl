@@ -26,6 +26,7 @@ namespace eval ::spm:: {
   variable SUBDIR_INP "FIXED";  # subdirectory for to-be-aligned images
   variable SUBDIR_PRE "Pre";    # subdirectory for pre-aligned images
   variable SUBDIR_SBS "SBS";    # subdirectory for final images
+  variable SUBDIR_OUTFORMAT_ROOT "FORMATTED";    # subdirectory for formated-for-outputs images
   variable SUBDIR_CFG "CONFIG";  # subdirectory for session-specific config files
   variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
