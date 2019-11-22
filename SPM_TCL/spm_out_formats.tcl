@@ -70,18 +70,28 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
 
 
 # Deletes from all output directories images absent from 'subdirToFollow'.
-# Image filenames matched from beginning till 'nameSuffixStartStr'.
+# Image filenames matched from beginning till 'nameSuffixStartRegexp'.
 proc ::spm::clean_stereopairs_and_outputs_in_current_dir {  \
-                  subdirToFollowRelPath nameSuffixStartStr {simulateOnly 0}}   {
+              subdirToFollowRelPath nameSuffixStartRegexp {simulateOnly 0}}   {
   variable SUBDIR_SBS;    # subdirectory for final images
   variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
-  set descr "clean output images"
+  set descr "clean output images not in '$subdirToFollowRelPath'"
   
   set spmWaRoot [file normalize "."]
-  set subDirRelPaths ...;  # TODO: SBS/, all FORMATTED/*
+  set formatsRoot $SUBDIR_OUTFORMAT_ROOT;   # relative path
+  
+  set subDirRelPaths [list "SBS"];  # TODO: SBS/, all FORMATTED/*
+  set dirNames [glob -nocomplain -directory $formatsRoot -types d -- {*}]
+  foreach d $dirNames {
+    lappend subDirRelPaths [file join $formatsRoot $d]
+  }
+  # TODO: verify 'subdirToFollowRelPath' appears in 'subDirRelPaths'
+  set actDescr "$descr from directories {$subDirRelPaths}"
+  puts "Going to $actDescr;                  DUMMY"
   # TODO: verify that subdirToFollowRelPath included in subDirRelPaths
   # TODO: build list of basenames being present
   # TODO: browse all subdirs and detect unneeded images
+  return  1
 }
 
 
