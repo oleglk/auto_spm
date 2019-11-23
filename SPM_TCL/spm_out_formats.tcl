@@ -71,25 +71,46 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
 
 # Deletes from all output directories images absent from 'subdirToFollow'.
 # Image filenames matched from beginning till 'nameSuffixStartRegexp'.
-proc ::spm::clean_stereopairs_and_outputs_in_current_dir {  \
+proc ::spm::clean_stereopairs_and_outputs_in_current_dir {rootSubdirOrEmpty  \
               subdirToFollowRelPath nameSuffixStartRegexp {simulateOnly 0}}   {
   variable SUBDIR_SBS;    # subdirectory for final images
   variable SUBDIR_OUTFORMAT_ROOT; # subdirectory for formated-for-outputs images
   set descr "clean output images not in '$subdirToFollowRelPath'"
   
-  set spmWaRoot [file normalize "."]
-  set formatsRoot $SUBDIR_OUTFORMAT_ROOT;   # relative path
-  
+  set waRoot [file normalize "."]
+  set spmWaRoot [file join $waRoot $rootSubdirOrEmpty]
+  set formatsRoot [file join $rootSubdirOrEmpty $SUBDIR_OUTFORMAT_ROOT]; # relative
   set subDirRelPaths [list "SBS"];  # TODO: SBS/, all FORMATTED/*
-  set dirNames [glob -nocomplain -directory $formatsRoot -types d -- {*}]
-  foreach d $dirNames {
-    lappend subDirRelPaths [file join $formatsRoot $d]
-  }
-  # TODO: verify 'subdirToFollowRelPath' appears in 'subDirRelPaths'
+  set dirRelPaths [glob -nocomplain -directory $formatsRoot -types d -- {*}]
+  set subDirRelPaths [concat $subDirRelPaths $dirRelPaths]
   set actDescr "$descr from directories {$subDirRelPaths}"
-  puts "Going to $actDescr;                  DUMMY"
-  # TODO: verify that subdirToFollowRelPath included in subDirRelPaths
+  # TODO?: verify 'subdirToFollowRelPath' appears in 'subDirRelPaths'
+  puts "Going to $actDescr"
+  set subdirToFollowUnderRoot [expr {($subdirToFollowRelPath == $SUBDIR_SBS)?  \
+    [file join $rootSubdirOrEmpty $subdirToFollowRelPath] : \
+    [file join $rootSubdirOrEmpty $SUBDIR_OUTFORMAT_ROOT $subdirToFollowRelPath]}]
+  if { ![file exists $subdirToFollowUnderRoot] || \
+       ![file isdirectory $subdirToFollowUnderRoot] }  {
+    puts "-E- Invalid or inexistent directory with desired images '$subdirToFollowUnderRoot' under '$spmWaRoot'"
+    return  0
+  }
   # TODO: build list of basenames being present
+  set namesToKeep [list]
+  foreach typePattern {"*.JPG" "*.TIF"}   {
+    set namesToKeep [concat $namesToKeep [glob -nocomplain -tails \
+                              -directory $subdirToFollowUnderRoot $typePattern]]
+  }
+  set baseNamesToKeep [list]
+  foreach fName $namesToKeep  {
+    set baseName [file rootname $fName]
+    if { ($nameSuffixStartRegexp != "") &&  \
+         [regexp "(.*)$nameSuffixStartRegexp" $baseName all nameNoSuffix] }  {
+      set baseName $nameNoSuffix
+    }
+    lappend baseNamesToKeep $baseName
+  }
+  set baseNamesToKeep [lsort -unique $baseNamesToKeep]
+  puts "-I- Image names to be preserved - taken in '$subdirToFollowUnderRoot': {$baseNamesToKeep}"
   # TODO: browse all subdirs and detect unneeded images
   return  1
 }
