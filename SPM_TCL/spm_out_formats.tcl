@@ -71,6 +71,7 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
 
 # Deletes from all output directories images absent from 'subdirToFollow'.
 # Image filenames matched from beginning till 'nameSuffixStartRegexp'.
+## Example: spm::clean_stereopairs_and_outputs_in_current_dir "FIXED" "SBS" {__il} 1
 proc ::spm::clean_stereopairs_and_outputs_in_current_dir {rootSubdirOrEmpty  \
               subdirToFollowRelPath nameSuffixStartRegexp {simulateOnly 0}}   {
   variable SUBDIR_SBS;    # subdirectory for final images
@@ -80,7 +81,7 @@ proc ::spm::clean_stereopairs_and_outputs_in_current_dir {rootSubdirOrEmpty  \
   set waRoot [file normalize "."]
   set spmWaRoot [file join $waRoot $rootSubdirOrEmpty]
   set formatsRoot [file join $rootSubdirOrEmpty $SUBDIR_OUTFORMAT_ROOT]; # relative
-  set subDirRelPaths [list "SBS"];  # TODO: SBS/, all FORMATTED/*
+  set subDirRelPaths [list [file join $rootSubdirOrEmpty "SBS"]]; # SBS/, FORMATTED/*
   set dirRelPaths [glob -nocomplain -directory $formatsRoot -types d -- {*}]
   set subDirRelPaths [concat $subDirRelPaths $dirRelPaths]
   set actDescr "$descr from directories {$subDirRelPaths}"
@@ -94,7 +95,7 @@ proc ::spm::clean_stereopairs_and_outputs_in_current_dir {rootSubdirOrEmpty  \
     puts "-E- Invalid or inexistent directory with desired images '$subdirToFollowUnderRoot' under '$spmWaRoot'"
     return  0
   }
-  # TODO: build list of basenames being present
+  # build list of basenames being present
   set namesToKeep [list]
   foreach typePattern {"*.JPG" "*.TIF"}   {
     set namesToKeep [concat $namesToKeep [glob -nocomplain -tails \
@@ -102,21 +103,45 @@ proc ::spm::clean_stereopairs_and_outputs_in_current_dir {rootSubdirOrEmpty  \
   }
   set baseNamesToKeep [list]
   foreach fName $namesToKeep  {
-    set baseName [file rootname $fName]
-    if { ($nameSuffixStartRegexp != "") &&  \
-         [regexp "(.*)$nameSuffixStartRegexp" $baseName all nameNoSuffix] }  {
-      set baseName $nameNoSuffix
-    }
-    lappend baseNamesToKeep $baseName
+    lappend baseNamesToKeep [make_image_basename $fName $nameSuffixStartRegexp]
   }
   set baseNamesToKeep [lsort -unique $baseNamesToKeep]
+  if { 0 == [llength $baseNamesToKeep] }  {
+    puts "-E- No images at all in directory '$subdirToFollowUnderRoot' - aborting"
+    return  0
+  }
   puts "-I- Image names to be preserved - taken in '$subdirToFollowUnderRoot': {$baseNamesToKeep}"
+  
   # TODO: browse all subdirs and detect unneeded images
+  set cntAll 0
+  foreach subDirPath $subDirRelPaths  {
+    set imgs [list]
+    foreach typePattern {"*.JPG" "*.TIF"}   {
+      set imgs [concat $imgs [glob -nocomplain -directory $subDirPath $typePattern]]
+    }
+    puts "-I- Begin cleaning '$subDirPath' - initially has [llength $imgs] image(s)"
+    set cntDel 0
+    foreach f $imgs {
+      set baseName [make_image_basename $f $nameSuffixStartRegexp]
+      if { -1 == [lsearch -sorted $baseNamesToKeep $baseName] }   {
+        if { $simulateOnly }  {
+          puts "-I- would delete '$f' (base-name: '$baseName')"
+        } else {
+          file delete -force -- $f
+          puts "-I- deleted '$f' (base-name: '$baseName')"
+        }
+        incr cntDel 1
+      }
+    }
+    incr cntAll $cntDel
+    puts "-I- End  cleaning '$subDirPath' - deleted $cntDel image(s) out of [llength $imgs]"
+  }
+  puts "-I- Success to $descr - in [llength $subDirRelPaths] directories; $cntAll image(s) deleted"
   return  1
 }
 
 
-# TODO: move intp spm_basics.tcl
+# TODO: move into spm_basics.tcl
 proc ::spm::count_and_report_flow_phases_with_errors {phaseNameToBadImgList}  {
   set nPhasesWithErrors 0
   dict for {phase badList} $phaseNameToBadImgList {
@@ -127,3 +152,16 @@ proc ::spm::count_and_report_flow_phases_with_errors {phaseNameToBadImgList}  {
   }
   return  $nPhasesWithErrors
 }
+
+
+## Example:  spm::make_image_basename "DSC00048__99_06_F1807__il60lpi.jpg" {__il}
+############## ==> "DSC00048__99_06_F18077"
+proc ::spm::make_image_basename {imgNameOrPath nameSuffixStartRegexp}  {
+  set baseName [file rootname [file tail $imgNameOrPath]]
+  if { ($nameSuffixStartRegexp != "") &&  \
+       [regexp "(.*)$nameSuffixStartRegexp" $baseName all nameNoSuffix] }  {
+    set baseName $nameNoSuffix
+  }
+  return  $baseName
+}
+
