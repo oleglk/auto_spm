@@ -503,6 +503,25 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
 }
 
 
+# Splits SBS image 'inpPath' into 'nameNoExt_L', nameNoExt_R' TIFFs
+# Saves in 'outDirPath' or in the same dir as the input.
+proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
+                                                            {outDirPath ""}}  {
+  if { ![file exists $inpPath] }  {
+    puts "-E- Missing SBS image for splitting '$inpPath'";  return  0
+  }
+  if { $outDirPath == "" }  { set outDirPath [file dirname $inpPath] }
+  if { ![ok_utils::ok_filepath_is_existent_dir $outDirPath] }  {
+    puts "-E- Invalid or inexistent ourput directory for left/right images - '$outDirPath'"
+    return  0
+  }
+  #TODO:implement
+  # Example:
+  # exec "$::IM_DIR/convert.exe" FIXED/SBS/2019_0929_133733_001.TIF  -crop 50%x100% +repage  -compress LZW fixed/SBS/LR/TMP_FRAME%02d.TIF
+}
+
+
+
 # 
 proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
   if { ![string equal -nocase $inpType "SBS"] }  {

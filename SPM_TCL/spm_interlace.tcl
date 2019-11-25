@@ -20,7 +20,16 @@ namespace eval ::spm:: {
 
 
 # The procedure:
-# - Open next stereopair
-# - Save as left-and right images - "TMP_FRAME_l.TIF", "TMP_FRAME_r.TIF"
+### assumptions:
+### - "Image direction (from left to right)" checkbox is checked 
+### - "Create slit animation image" checkbox is not checked 
+# (delete "TMP_FRAME_l.TIF", "TMP_FRAME_r.TIF" to avoid popup)
+# - Open the stereopair
+# (delete "TMP_FRAME_l.TIF", "TMP_FRAME_r.TIF" to avoid popup)
+# - Save as left- and right images - "TMP_FRAME_l.TIF", "TMP_FRAME_r.TIF" - by Ctrl-S
 # Open "Create lenticular image" - by Edit -> 5 * {UP}
+# Focus filename field by Alt-N and type: "TMP_FRAME_l.TIF" "TMP_FRAME_r.TIF"
+# Fill fields "Lenticular Lens Pitch", "Printer Resolution", "Print Width" from call parameters using tabstop traversal
+# Press TAB until "Create With Selected Files" reached and press SPACE
+
 # TODO
