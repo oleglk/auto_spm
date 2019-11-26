@@ -174,12 +174,13 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirName]]
 
   # there may appear confirmation dialogs; tell to press "y" for each one
-  set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
+  set outDirForRegexpFP [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
+  set outDirForRegexpRP [ok_utils::ok_format_filepath_for_regexp $outSubdirName]
   set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirForRegexp]      "y" \
-    "Confirm Conversion Start"            "y" \
-    [format {%s.*\.jpg$} $outSubdirName]  "y" \
-    [format {%s.*\.tif$} $outSubdirName]  "y" \
+    [format {^%s$} $outDirForRegexpFP]        "y" \
+    "Confirm Conversion Start"                "y" \
+    [format {%s.*\.jpg$} $outDirForRegexpRP]  "y" \
+    [format {%s.*\.tif$} $outDirForRegexpRP]  "y" \
     {^Attention}                        "{SPACE}" \
   ]
   # (patterns with input paths included to force checking for input errors)
