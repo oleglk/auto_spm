@@ -121,13 +121,15 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-# Example: (for DC101)  ::spm::cmd__window_crop_all  SBS  527  208 356  1372 1908
-proc ::spm::cmd__window_crop_all {inpType horizPos left top right bottom} {
+# Example: (for DC101)  ::spm::cmd__window_crop_all  SBS  527  -10.0  208 356  1372 1908
+# !!! Note, rotation-angle here should be x10 of that of SPM easy-adjustment !!!
+proc ::spm::cmd__window_crop_all {inpType horizPos rotAngle \
+                                  left top right bottom} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
-  set descr "window and crop"
+  set descr "window, rotate and crop"
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images     - input
   variable SUBDIR_SBS;  # subdirectory with finished stereopairs  - output
@@ -139,7 +141,7 @@ proc ::spm::cmd__window_crop_all {inpType horizPos left top right bottom} {
   # Output directory name is hardcoded inside 'settingsModifierCB'
   #   AND should be 'SUBDIR_SBS'
   if { "" == [set cfgPath [_prepare_settings__window_crop_all $inpType \
-                                   $horizPos $left $top $right $bottom]] }  {
+                            $horizPos $rotAngle $left $top $right $bottom]] }  {
     return  0;  # need to abort; error already printed
   }
  
@@ -392,26 +394,31 @@ proc ::spm::_align_all__SettingsModifierCB {inpType iniArrName}  {
 # Builds INI file with settings for window-and-crop-all action
 # Returns new CFG file path on success, "" on error.
 proc ::spm::_prepare_settings__window_crop_all {inpType \
-                                          horizPoz left top right bottom}  {
+                                    horizPoz rotAngle left top right bottom}  {
   # name of settings' file is the same as action templates' name
   set cfgName [format "window_crop_%s.mcv" [string tolower $inpType]]
   set paramDict [dict create                                                  \
         "Position_H"        $horizPoz                                         \
-        "cropCoords_LTRB"   [list $left $top $right $bottom] ]
+        "Rotation_Angle"    $rotAngle                                         \
+        "CropCoords_LTRB"   [list $left $top $right $bottom] ]
   
-  return  [spm::_make_settings_file_from_template $inpType $cfgName \
-                      "::spm::_window_crop_all__SettingsModifierCB"  \
-                      "window-and-crop-all" $paramDict]
+  return  [spm::_make_settings_file_from_template $inpType $cfgName         \
+                      "::spm::_window_rotate_crop_all__SettingsModifierCB"  \
+                      "window-rotate-and-crop-all" $paramDict]
 }
 
 
-proc ::spm::_window_crop_all__SettingsModifierCB {inpType iniArrName \
-                                                  posAndCoordDict}  {
+proc ::spm::_window_rotate_crop_all__SettingsModifierCB {inpType iniArrName \
+                                                         posAndCoordDict}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
   set horizPoz  [dict get $posAndCoordDict "Position_H"]
-  set coordList [dict get $posAndCoordDict "cropCoords_LTRB"]
+  set rotAngle  [dict get $posAndCoordDict "Rotation_Angle"]
+  set coordList [dict get $posAndCoordDict "CropCoords_LTRB"]
   set iniArr(-\[Data\]__ValueAlignOn)       1
+  set iniArr(-\[Data\]__ValueAlignOn)       1
+  set iniArr(-\[Data\]__Rotation_L)         $rotAngle
+  set iniArr(-\[Data\]__Rotation_R)         $rotAngle
   set iniArr(-\[Data\]__Position_H)         $horizPoz
   # run the callback for pure crop - it will set both crop coords and output dir
   return  [_crop_all__SettingsModifierCB $inpType iniArr $coordList]
