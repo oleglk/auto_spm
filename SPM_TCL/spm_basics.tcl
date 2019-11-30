@@ -787,7 +787,8 @@ proc ::spm::_find_first_multiconversion_button {btnTitle {origMCWnd ""}}  {
 proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
                                                       {origMCWnd ""}}  {
   set firstIter 1
-  for  {set attempts 15}  {$attempts > 0}  {incr attempts -1}  {
+  set maxVerifyAttempts 3;  # TODO:? ? safe is 15 ?
+  for  {set attempts $maxVerifyAttempts}  {$attempts > 0}  {incr attempts -1}  {
     if { ! $firstIter }   { after 2000;   set firstIter 0 }
     # some of the known titles may pop up before start of multi-conversion
     foreach title $knownPopupTitles  {
@@ -801,7 +802,12 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
       puts "-D- Multi-conversion not finished - MC window with visible 'Stop' detected; re-verification attempts not used: $attempts"
       return  0;  # MC window with visible "Stop" button; not finished for sure
     }
-    puts "-D- Multi-conversion appears finished; re-verification attempts left: $attempts"
+    if { ("" != [_find_first_multiconversion_button "Back" $origMCWnd]) && \
+         ("" != [_find_first_multiconversion_button "Exit" $origMCWnd])  }   {
+      puts "-D- Multi-conversion appears finished - 'Back' and 'Exit' buttons detected; re-verification attempts left: $attempts"
+    } else {
+      puts "-E- Unexpected case of multi-conversion: 'Stop', 'Back' and 'Exit' buttons missing; no popups - multi-conversion may not have started; re-verification attempts left: $attempts"
+    }
   }
   return  1
 }
