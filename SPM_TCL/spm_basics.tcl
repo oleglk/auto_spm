@@ -278,9 +278,10 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # - press Alt-F4 when ----- (the below is unachievable good wish) :( ---------
   #   (a) no more confirmation dialogs (with "Yes" button) left
   #   (b) dialog with "Exit" button appeared
+  # ?TODO:? save val for 'maxIdleTimeSec' is 30 (sec)
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
                         $winTextPatternToResponseKeySeq $SPM_ERR_MSGS         \
-                        3 30 $descr           \
+                        3 10 $descr                                           \
                         "::spm::_is_multiconversion_most_likely_finished"] }  {
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
