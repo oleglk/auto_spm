@@ -812,3 +812,22 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
   }
   return  1
 }
+
+
+# Returns expected number of threads in multiconversion - depends on num of inputs
+# The result is 1 or 2, or 0 on error. TODO: read config.
+proc ::spm::_predict_multiconversion_num_of_threads {inpSubDir}  {
+  variable WA_ROOT
+  set inpDirPath [file join $WA_ROOT $inpSubDir]
+  if { ($inpSubDir != "") && \
+       (! [ok_utils::ok_filepath_is_existent_dir $inpDirPath]) }  {
+    puts "-E- Invalid or inexistent multi-convert input directory '$inpDirPath'"
+    return  0
+  }
+  set cnt 0
+  foreach inpPattern { "*.jpg"  "*.tif" }  {
+    set lst [glob -nocomplain -directory $inpDirPath $inpPattern]
+    incr cnt [llength $lst]
+  }
+  return  [expr {($cnt <= 3)? 1 : 2}]
+}
