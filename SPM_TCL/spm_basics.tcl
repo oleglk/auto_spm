@@ -790,7 +790,7 @@ proc ::spm::_find_first_multiconversion_button {btnTitle {origMCWnd ""}}  {
 
 
 proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
-                                                      {origMCWnd ""}}  {
+                                            {origMCWnd ""} {numThreads -1}}  {
   set firstIter 1
   set maxVerifyAttempts 3;  # TODO:? ? safe is 15 ?
   for  {set attempts $maxVerifyAttempts}  {$attempts > 0}  {incr attempts -1}  {
@@ -807,8 +807,13 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
       puts "-D- Multi-conversion not finished - MC window with visible 'Stop' detected; re-verification attempts not used: $attempts"
       return  0;  # MC window with visible "Stop" button; not finished for sure
     }
-    if { ("" != [_find_first_multiconversion_button "Back" $origMCWnd]) && \
-         ("" != [_find_first_multiconversion_button "Exit" $origMCWnd])  }   {
+    set numWndsWihExitAtEnd [expr {($numThreads > 0)? $numThreads : 1}]
+    set backOk [expr {"" != \
+                   [_find_first_multiconversion_button "Back" $origMCWnd]}]
+    set exitOk [expr {$numWndsWihExitAtEnd <= [dict size                      \
+                  [dict filter                                                \
+                   [_find_multiconversion_buttons $origMCWnd] value {*Exit*}]]}]
+    if { $backOk && $exitOk  }   {
       puts "-D- Multi-conversion appears finished - 'Back' and 'Exit' buttons detected; re-verification attempts left: $attempts"
     } else {
       puts "-E- Unexpected case of multi-conversion: 'Stop', 'Back' and 'Exit' buttons missing; no popups - multi-conversion may not have started; re-verification attempts left: $attempts"
@@ -835,5 +840,5 @@ proc ::spm::_predict_multiconversion_num_of_threads {inpSubDir}  {
   }
   set numThreads [expr {($cnt <= 3)? 1 : 2}]
   puts "-I- SPM multiconversion in '$inpDirPath' should use '$numThreads' thread(s)"
-  return  $return
+  return  $numThreads
 }
