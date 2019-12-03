@@ -258,6 +258,10 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
                                 winTextPatternToResponseKeySeq} {
   variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
   set actDescr "$descr; config in '$cfgPath'"
+  
+  if { ![set numThreads [_predict_multiconversion_num_of_threads $inpSubDir]]} {
+    return  0;  # need to abort; error already printed
+  }
  
   if { "" == [set hMC1 [cmd__open_multi_conversion $inpSubDir $cfgPath]] }  {
     return  0;  # need to abort; error already printed
@@ -280,12 +284,12 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   #   (b) dialog with "Exit" button appeared
   # ?TODO:? save val for 'maxIdleTimeSec' is 30 (sec)
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
-                        $winTextPatternToResponseKeySeq $SPM_ERR_MSGS         \
-                        3 10 $descr                                           \
-                        "::spm::_is_multiconversion_most_likely_finished"] }  {
+              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS                   \
+              3 10 $descr                                                     \
+              "::spm::_is_multiconversion_most_likely_finished" $numThreads] } {
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
-                          [dict keys $winTextPatternToResponseKeySeq]] }   {
+                    [dict keys $winTextPatternToResponseKeySeq] $numThreads] } {
       return  0;  # error already printed
     }
     puts "-I- Though popup processing had errors, multiconversion appears to be finished; allowed to proceed"
@@ -296,8 +300,8 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # Timeout is very high to allow for long processing - 1 hour
   set timeWaitSec [expr {10 * 60}]; # TODO: [expr {60 * 60}]
   set pollPeriodSec 10
-  if { 0 == [_wait_for_end_of_multiconversion   $timeWaitSec $pollPeriodSec \
-                                                $hMC1] }  {
+  if { 0 == [_wait_for_end_of_multiconversion   $numThreads \
+                                        $timeWaitSec $pollPeriodSec $hMC1] }  {
     return  0;  # abort; error already printed
   }
   #### End-of multi-conversion indicator did appear
@@ -658,8 +662,8 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
 
 # Waits for _NEW_ window(s), both "Back" and "Exit", to appear.
 # Note, timeout should be very high to allow for long processing >= 1 hour
-proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
-                                              {origMCWnd ""}}  {
+proc ::spm::_wait_for_end_of_multiconversion {numThreads \
+                                    timeWaitSec pollPeriodSec {origMCWnd ""}}  {
   set timeToEndSec [expr {[clock seconds] + $timeWaitSec}]
 
   set waitForStartDescr "waiting $timeWaitSec (sec) for ANY multi-conversion-progress window to appear"
@@ -700,13 +704,13 @@ proc ::spm::_wait_for_end_of_multiconversion {timeWaitSec pollPeriodSec \
   }
   puts "-I- End   $waitForStopDescr. Time=[clock seconds](sec)"
 
-  set waitForExitDescr "waiting for ALL multi-conversion-progress windows to expose 'Exit' buttons"
+  set waitForExitDescr "waiting for $numThreads multi-conversion-progress window(s) to expose 'Exit' button(s)"
   set wndsWithExit [dict create];   # for MC windows with 'Exit' button
   set cntWnds 77;                   # count of all MC windows
   set cntWndsWithExit 0;            # count of MC windows with 'Exit' button
   puts "-I- Begin $waitForExitDescr. Time=[clock seconds](sec)"
   while { [expr { ([clock seconds] < $timeToEndSec) && \
-                  ($cntWndsWithExit < $cntWnds) }] }  {
+                  ($cntWndsWithExit < $numThreads) }] }  {
     set mcWndToButtons [_find_multiconversion_buttons $origMCWnd]
     puts "-D- Wait for 'Exit' PRESENT in {$mcWndToButtons}"
     if { 0 == [dict size $mcWndToButtons] } {
@@ -829,5 +833,7 @@ proc ::spm::_predict_multiconversion_num_of_threads {inpSubDir}  {
     set lst [glob -nocomplain -directory $inpDirPath $inpPattern]
     incr cnt [llength $lst]
   }
-  return  [expr {($cnt <= 3)? 1 : 2}]
+  set numThreads [expr {($cnt <= 3)? 1 : 2}]
+  puts "-I- SPM multiconversion in '$inpDirPath' should use '$numThreads' thread(s)"
+  return  $return
 }

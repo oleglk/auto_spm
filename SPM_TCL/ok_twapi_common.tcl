@@ -255,7 +255,7 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
         winTextPatternToResponseKeySeq errPatternList \
         pollPeriodSec maxIdleTimeSec descr \
-        {cbWhenToStop 0}}  {
+        {cbWhenToStop 0} {last_arg_for__cbWhenToStop ""}}  {
   set winTextPatternToCntResponded  [dict create]
   set winTextPatternToCntErrors     [dict create]
   set startTime [clock seconds]
@@ -265,8 +265,9 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
   #   until none appears during 'maxIdleTimeSec' AND the callback allows to finish
   while { ([expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec)  ||  \
           ( ($cbWhenToStop != 0) && \
-            (0 == [set cbFired  \
-              [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]]]) )} {
+            (0 == [set cbFired  [$cbWhenToStop \
+                                  [dict keys $winTextPatternToResponseKeySeq] \
+                                  $last_arg_for__cbWhenToStop]]) )} {
     #ok_twapi::abort_if_key_pressed "q"
     # make 2 passes over 'winTextPatternToResponseKeySeq':
     # - 1st with non-empty response key sequences - known popups
