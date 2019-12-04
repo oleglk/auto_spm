@@ -105,6 +105,9 @@ proc ::spm::start_spm {{workarea_rootdir ""}}  {
 
 
 proc ::spm::quit_spm {}  {
+  if { ![::ok_twapi::verify_singleton_running "Quit command for SPM"] }  {
+    return  0;  # warning already printed
+  }
   return  [::ok_twapi::quit_singleton ::spm::cmd__return_to_top]
 }
 
@@ -560,8 +563,10 @@ proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
       puts "-E- Output image $outDescr is too small"
       lappend badList $imgPureName;  continue
     }
-    if { [dict get $outStats mtime] < [dict get $inpStats mtime]  }  {
-      puts "-E- Output image $outDescr is older than the original"
+    set inpTime [dict get $inpStats ctime]
+    set outTime [dict get $outStats ctime] 
+    if { $inpTime >= $outTime }  {
+      puts "-E- Output image $outDescr is older than the original ($outTime vs $inpTime)"
       lappend badList $imgPureName;  continue
     } 
   }

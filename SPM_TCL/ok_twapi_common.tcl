@@ -151,6 +151,10 @@ proc ::ok_twapi::forget_latest_app_wnd {}  {
 proc ::ok_twapi::verify_singleton_running {contextDescr}  {
   variable APP_NAME
   variable HWND;      # window handle of StereoPhotoMaker
+  if { ![info exists APP_NAME] || ![info exists HWND] } {
+    puts "-W- App instance never ran in this terminal; context: $contextDescr"
+    return  0
+  }
   if { $HWND == "" }  {
     if { $contextDescr != "" }  {
       set appDescr [expr {([info exists APP_NAME])? $APP_NAME : "application"}]
