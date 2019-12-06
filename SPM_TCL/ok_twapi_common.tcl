@@ -271,24 +271,32 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 # Sends specified confirmation key to each.
 # Error reported when a (listed!) popup has child window
 #      with text (not title) matching any pattern in 'errPatternList'.
-# Finishes when 'cbWhenToStop' callback returns 1
-#    or after 'maxIdleTimeSec' seconds of no new pop-ups.
-proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
-        winTextPatternToResponseKeySeq errPatternList \
-        pollPeriodSec maxIdleTimeSec descr \
-        {cbWhenToStop 0} {last_arg_for__cbWhenToStop ""}}  {
+# Finishes after 'maxIdleTimeCbFiredSec' if 'cbWhenToStop' callback returns 1
+#    or after 'maxIdleTimeCbNotFiredSec' seconds of no new pop-ups.
+proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
+        winTextPatternToResponseKeySeq errPatternList                         \
+        pollPeriodSec maxIdleTimeCbNotFiredSec maxIdleTimeCbFiredSec descr    \
+        {cbWhenToStop 0} {last_arg_for__cbWhenToStop ""}}                     {
   set winTextPatternToCntResponded  [dict create]
   set winTextPatternToCntErrors     [dict create]
   set startTime [clock seconds]
   set lastActionTime $startTime
   set cbFired 0
+  set maxIdleTimeSec [expr {                                                   \
+                        ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
+                         $maxIdleTimeCbNotFiredSec : $maxIdleTimeCbFiredSec}]
   # routinely search for windows of each listed "type"-
   #   until none appears during 'maxIdleTimeSec' AND the callback allows to finish
-  while { ([expr {[clock seconds] - $lastActionTime}] < $maxIdleTimeSec)  ||  \
-          ( ($cbWhenToStop != 0) && \
-            (0 == [set cbFired  [$cbWhenToStop \
-                                  [dict keys $winTextPatternToResponseKeySeq] \
-                                  $last_arg_for__cbWhenToStop]]) )} {
+  while { [set elapsedSec [expr {[clock seconds] - $lastActionTime}]] < \
+                                                            $maxIdleTimeSec}  {
+    set cbFired [expr {($cbWhenToStop != 0)?                                  \
+                  [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]  \
+                                  $last_arg_for__cbWhenToStop]            : 0}]
+    if { ($cbFired  && ($elapsedSec >= $maxIdleTimeCbFiredSec)) ||   \
+         (!$cbFired && ($elapsedSec >= $maxIdleTimeCbNotFiredSec)) }  {
+      break;  # early stop; intended for cases when CB did fire
+    }
+    # TODO
     #ok_twapi::abort_if_key_pressed "q"
     # make 2 passes over 'winTextPatternToResponseKeySeq':
     # - 1st with non-empty response key sequences - known popups

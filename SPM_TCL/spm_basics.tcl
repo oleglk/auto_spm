@@ -288,7 +288,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # ?TODO:? save val for 'maxIdleTimeSec' is 30 (sec)
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
               $winTextPatternToResponseKeySeq $SPM_ERR_MSGS                   \
-              3 10 $descr                                                     \
+              3 10 10 $descr                                                     \
               "::spm::_is_multiconversion_most_likely_finished" $numThreads] } {
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
@@ -420,7 +420,7 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
           [format {%s$} [file tail $imgPath]]   ""  \
   ]
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
-          $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 $lDescr  \
+          $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 3 $lDescr  \
           "::ok_twapi::is_current_visible_window_by_title" $targetWndTitle] } {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
@@ -499,7 +499,7 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   # confirm save if requested
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-                      $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 $sDescr
+                      $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 10 $sDescr
   # do not check for errors since the proc is finished
   # verify we returned to the image window (title = $imgWndTitle - case can change)
   set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"]
