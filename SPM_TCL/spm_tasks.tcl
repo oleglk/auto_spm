@@ -31,8 +31,10 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   variable WA_ROOT
-  set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
+  set origStats [ok_utils::ok_read_all_files_stat_in_dir \
                                         $spm::WA_ROOT $spm::ORIG_PATTERN 1]
+  set inpStats [ok_utils::ok_override_files_stat_time $origStats mtime \
+                            [clock seconds]];   # assume originals just created
   set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
   if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
     return  0;  # need to abort; error already printed

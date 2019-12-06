@@ -128,6 +128,10 @@ proc ::ok_utils::ok_read_all_files_stat_in_dir {dirPath namePattern {priErr 1}} 
     return [dict create]
   }
   set fileList [glob -nocomplain -directory $dirPath -- $namePattern]
+  if { $priErr && (0 == [llength $fileList]) }  {
+    ok_err_msg "No files matching '$namePattern' found in directory '$dirPath'"
+    return  [dict create]
+  }
   set filenameToStat [dict create]
   foreach fPath $fileList {
     array unset stArr;    file stat $fPath stArr;
@@ -135,6 +139,24 @@ proc ::ok_utils::ok_read_all_files_stat_in_dir {dirPath namePattern {priErr 1}} 
     dict set filenameToStat [file rootname [file tail $fPath]] $stList
   }
   return  $filenameToStat
+}
+
+# Takes dict {pureName :: list-of-file-stat-params} - by value(!)
+# and changes specified time parameter (ctime, atime or mtime) to 'newTimeSec'
+# Returns the new dict or 0 on error.
+## Example:  set inpStats [ok_utils::ok_read_all_files_stat_in_dir "." "*.JPG" 1];   set newStats [ok_utils::ok_override_files_stat_time $inpStats mtime 121]
+proc ::ok_utils::ok_override_files_stat_time {filenameToStat timeParamKey \
+                                                                  newTimeSec}  {
+  if { 0 > [lsearch -exact {ctime atime mtime} $timeParamKey] }   {
+    puts "-E- Invalid timestamp-key '$timeParamKey'; should be ctime, atime or mtime"
+    return  0
+  }
+  set newStatDict [dict create]
+  dict for {fName fStat} $filenameToStat {
+    dict set fStat $timeParamKey $newTimeSec
+    dict set newStatDict $fName $fStat
+  }
+  return  $newStatDict
 }
 
 

@@ -530,7 +530,7 @@ proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
 #   and returns as a list of purenames (no extension).
 # In case of fatal error returns "ERROR".
 ### Example:
-###   set inpStats [ok_utils::ok_read_all_files_stat_in_dir $spm::WA_ROOT ".TIF" 1];
+###   set inpStats [ok_utils::ok_read_all_files_stat_in_dir $spm::WA_ROOT "*.TIF" 1];
 ###   set badListOrErr [spm::verify_output_images_vs_inputs SBS $inpStats "$spm::WA_ROOT/Pre" ".TIF"]
 proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
                                              outDirPath outExt}   {
@@ -563,8 +563,8 @@ proc ::spm::verify_output_images_vs_inputs {inpType inpFileStatsDict \
       puts "-E- Output image $outDescr is too small"
       lappend badList $imgPureName;  continue
     }
-    set inpTime [dict get $inpStats ctime]
-    set outTime [dict get $outStats ctime] 
+    set inpTime [dict get $inpStats mtime]
+    set outTime [dict get $outStats mtime] 
     if { $inpTime >= $outTime }  {
       puts "-E- Output image $outDescr is older than the original ($outTime vs $inpTime)"
       lappend badList $imgPureName;  continue
