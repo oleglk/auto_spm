@@ -415,15 +415,16 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
   
   # react to errors if requested
+  set targetWndTitle [build_image_window_title_regexp_pattern sbs $imgPath]
   set winTextPatternToResponseKeySeq [dict create   \
           [format {%s$} [file tail $imgPath]]   ""  \
   ]
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
-              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 $lDescr] }   {
+          $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 $lDescr  \
+          "::ok_twapi::is_current_visible_window_by_title" $targetWndTitle] } {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   
-  set targetWndTitle [build_image_window_title_regexp_pattern sbs $imgPath]
   set hSPM2 [ok_twapi::wait_for_window_title_to_raise $targetWndTitle "regexp"]
   if { $hSPM2 == "" } {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed

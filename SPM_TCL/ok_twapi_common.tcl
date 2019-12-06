@@ -186,6 +186,23 @@ proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 
 }
 
 
+proc ::ok_twapi::verify_current_visible_window_by_title {titleOrPattern \
+                                                         matchType {loud 1}}  {
+  if { 1 == [verify_current_window_by_title $titleOrPattern \
+                                            $matchType $loud] }  {
+    set h [twapi::get_foreground_window]
+    if { ($h != "") && (1 == [twapi::window_visible $h]) }  {
+      if { $loud }  {
+        set titleStr [twapi::get_window_text $h]
+        puts "-I- Window '$titleStr' is the current visible foreground window"
+      }
+      return  1
+    }
+  }
+  return  0
+}
+
+
 # Returns 1 if the current foreground window is the controlled app top or its descendant
 proc ::ok_twapi::is_current_window_related {} {
   variable APP_NAME
@@ -333,6 +350,12 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text { \
     puts "-E- Failed responding to $cntLeft pop-up(s) for $descr"
   }
   return  [expr {$cntLeft == 0}]
+}
+
+
+# Adapts verify_current_visible_window_by_title for callback-when-to-stop
+proc ::ok_twapi::is_current_visible_window_by_title {dummyArg titleRegexp} {
+  return  [verify_current_visible_window_by_title $titleRegexp "regexp" 1]
 }
 
 
