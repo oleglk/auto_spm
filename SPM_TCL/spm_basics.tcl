@@ -298,6 +298,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     puts "-I- Though popup processing had errors, multiconversion appears to be finished; allowed to proceed"
   }
   # at this point the job should be done
+  ####return  0;  #OK_TMP
   
   # Wait for _NEW_ window(s), both "Back" and "Exit", to appear.
   # Timeout is very high to allow for long processing - 1 hour

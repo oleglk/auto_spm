@@ -282,18 +282,19 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   set startTime [clock seconds]
   set lastActionTime $startTime
   set cbFired 0
-  set maxIdleTimeSec [expr {                                                   \
-                        ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
-                         $maxIdleTimeCbNotFiredSec : $maxIdleTimeCbFiredSec}]
+  #~ set maxIdleTimeSec [expr {                                                   \
+                        #~ ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
+                         #~ $maxIdleTimeCbNotFiredSec : $maxIdleTimeCbFiredSec}]
   # routinely search for windows of each listed "type"-
-  #   until none appears during 'maxIdleTimeSec' AND the callback allows to finish
-  while { [set elapsedSec [expr {[clock seconds] - $lastActionTime}]] < \
-                                                            $maxIdleTimeSec}  {
+  #   until none appears during 'maxIdleTimeCbNotFiredSec' OR the callback allows to finish
+  while { ([set elapsedSec [expr {[clock seconds] - $lastActionTime}]]  \
+                            < $maxIdleTimeCbNotFiredSec)  \
+                            ||    ($cbWhenToStop != 0) }   {
     set cbFired [expr {($cbWhenToStop != 0)?                                  \
                   [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]  \
                                   $last_arg_for__cbWhenToStop]            : 0}]
     if { ($cbFired  && ($elapsedSec >= $maxIdleTimeCbFiredSec)) ||   \
-         (!$cbFired && ($elapsedSec >= $maxIdleTimeCbNotFiredSec)) }  {
+         (($cbWhenToStop == 0) && ($elapsedSec >= $maxIdleTimeCbNotFiredSec))} {
       break;  # early stop; intended for cases when CB did fire
     }
     # TODO
