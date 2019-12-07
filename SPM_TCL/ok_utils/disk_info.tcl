@@ -151,13 +151,16 @@ proc ::ok_utils::ok_override_files_stat_time {filenameToStat timeParamKey \
     puts "-E- Invalid timestamp-key '$timeParamKey'; should be ctime, atime or mtime"
     return  0
   }
-  set newStatDict [dict create]
+  set newStatDict [dict create];  set cnt 0
   dict for {fName fStat} $filenameToStat {
     dict set fStat $timeParamKey $newTimeSec
     dict set newStatDict $fName $fStat
+    incr cnt
   }
+  puts "-D- Timestamp '$timeParamKey' overriden to $newTimeSec on $cnt image(s)"
   return  $newStatDict
 }
+
 
 
 # (Based on: http://www.fundza.com/tcl/examples/file/dirsize.html)
