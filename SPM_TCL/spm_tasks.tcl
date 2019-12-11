@@ -15,6 +15,7 @@ source [file join $SCRIPT_DIR "ok_utils" "disk_info.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
 source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 source [file join $SCRIPT_DIR "spm_basics.tcl"]
+source [file join $SCRIPT_DIR "spm_interlace.tcl"]
 
 
 

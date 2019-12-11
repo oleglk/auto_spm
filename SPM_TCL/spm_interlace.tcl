@@ -4,6 +4,10 @@
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # MIIX-320
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
+
+# set ::IM_DIR "C:/Program Files (x86)/ImageMagick-7.0.8-20";   set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];    # YogaBook
+
+
 package require twapi;  #  TODO: check errors
 #package require twapi_clipboard
 
@@ -36,6 +40,7 @@ namespace eval ::spm:: {
 # TODO
 
 
+## Example: spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] 60 "TMP"
 proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi \
                                                           outDirPath}  {
   variable TABSTOPS_DFL
@@ -48,23 +53,24 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi
   
   # load the 1st image before dialog-open command - to make Edit menu predictable
   set imgPath [lindex $inpPathList 0]
+  # TODO: need full path !
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  0;   # error already printed
   }
   set imgWnd      [twapi::get_foreground_window]
-  
-  # open "Create Lenticular Image" dialog
-  if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
-    return  "";  # error already printed
-  }
-  if { "" == [::ok_twapi::travel_meny_hierarchy {{{UP} 5}{ENTER}} \
-                                                    $INTERLACE $INTERLACE] }  {
-    #twapi::unblock_input
-    return  0;  # error already printed
-  }
-  
+
   puts "Begin: $INTERLACE for $nPairs stereopair(s)"
   foreach imgPath $inpPathList {
+    # open "Create Lenticular Image" dialog for each image
+    if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
+      return  "";  # error already printed
+    }
+    if { "" == [::ok_twapi::travel_meny_hierarchy {{{UP} 5}{ENTER}} \
+                                                      $INTERLACE $INTERLACE] }  {
+      #twapi::unblock_input
+      return  0;  # error already printed
+    }
+    return  1;  #OK_TMP
     # TODO
   }
   return  1;  # TODO: $cntDone

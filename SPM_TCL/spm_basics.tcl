@@ -36,6 +36,7 @@ namespace eval ::spm:: {
   variable SPM_ERR_MSGS   {                                                   \
       {Cannot Open Image}                                                     \
       {This file type is different. This file is skipped.}                    \
+      {Open Stereo Image}                                                     \
   }
 
   
