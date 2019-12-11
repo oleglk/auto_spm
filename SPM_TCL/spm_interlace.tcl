@@ -27,9 +27,45 @@ namespace eval ::spm:: {
 # - Open the stereopair
 # (delete "TMP_FRAME_l.TIF", "TMP_FRAME_r.TIF" to avoid popup)
 # - Save as left- and right images - "TMP_FRAME_l.TIF", "TMP_FRAME_r.TIF" - by Ctrl-S
+### Alternatively first ensure any image is open - to make Edit menu predictable.
 # Open "Create lenticular image" - by Edit -> 5 * {UP}
 # Focus filename field by Alt-N and type: "TMP_FRAME_l.TIF" "TMP_FRAME_r.TIF"
 # Fill fields "Lenticular Lens Pitch", "Printer Resolution", "Print Width" from call parameters using tabstop traversal
 # Press TAB until "Create With Selected Files" reached and press SPACE
 
 # TODO
+
+
+proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi \
+                                                          outDirPath}  {
+  variable TABSTOPS_DFL
+  set INTERLACE "Create Lenticular Image";  # dialog name / key / description
+  
+  if { 0 == [set nPairs [llength $inpPathList]] }  {
+    puts "-W- No images specified for $INTERLACE";  return  0
+  }
+  if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  0 }
+  
+  # load the 1st image before dialog-open command - to make Edit menu predictable
+  set imgPath [lindex $inpPathList 0]
+  if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
+    return  0;   # error already printed
+  }
+  set imgWnd      [twapi::get_foreground_window]
+  
+  # open "Create Lenticular Image" dialog
+  if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
+    return  "";  # error already printed
+  }
+  if { "" == [::ok_twapi::travel_meny_hierarchy {{{UP} 5}{ENTER}} \
+                                                    $INTERLACE $INTERLACE] }  {
+    #twapi::unblock_input
+    return  0;  # error already printed
+  }
+  
+  puts "Begin: $INTERLACE for $nPairs stereopair(s)"
+  foreach imgPath $inpPathList {
+    # TODO
+  }
+  return  1;  # TODO: $cntDone
+}
