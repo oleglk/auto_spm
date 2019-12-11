@@ -513,6 +513,47 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
 }
 
 
+# Splits SBS image 'inpPath' into 'nameNoExt_L', nameNoExt_R' TIFFs
+# Saves in 'outDirPath' or in the same dir as the input.
+# Example:  spm::split_sbs_image_into_lr_tiffs FIXED/SBS/2019_0929_133733_001.TIF  2019_0929_133733_001_L  2019_0929_133733_001_R  TMP/
+proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
+                                                            {outDirPath ""}}  {
+ set descr "splitting SBS image '$inpPath' into L/R"
+  if { ![file exists $inpPath] }  {
+    puts "-E- Missing SBS image for splitting '$inpPath'";  return  0
+  }
+  if { $outDirPath == "" }  { set outDirPath [file dirname $inpPath] }
+  if { ![ok_utils::ok_filepath_is_existent_dir $outDirPath] }  {
+    puts "-E- Invalid or inexistent output directory for left/right images - '$outDirPath'"
+    return  0
+  }
+  # Example:
+  # exec "$::IM_DIR/convert.exe" FIXED/SBS/2019_0929_133733_001.TIF  -crop 50%x100% +repage  -compress LZW fixed/SBS/LR/TMP_FRAME%02d.TIF
+  set IMCONVERT [file join $::IM_DIR "convert.exe"]
+  set nameBase [file rootname [file tail $inpPath]]
+  set outPath  [file join $outDirPath "$nameBase%02d.TIF"]
+  set cmdList [list "$IMCONVERT" [file nativename $inpPath]  -crop 50%x100% \
+                      +repage  -compress LZW   [file nativename $outPath]]
+  if { 0 == [ok_utils::ok_run_silent_os_cmd $cmdList] }  {
+    puts "-E- Failed $descr; command: {$cmdList}";    return  0
+  }
+  set tmpNameNoExt_L [format "%s00" $nameBase]
+  set tmpNameNoExt_R [format "%s01" $nameBase]
+  if { $tmpNameNoExt_L != $nameNoExt_L }  {
+    set tmp [file join $outDirPath "$tmpNameNoExt_L.TIF"]
+    set ult [file join $outDirPath "$nameNoExt_L.TIF"]
+    file rename -force -- $tmp $ult;  puts "-I- Renamed '$tmp' into '$ult'"
+  }
+  if { $tmpNameNoExt_R != $nameNoExt_R }  {
+    set tmp [file join $outDirPath "$tmpNameNoExt_R.TIF"]
+    set ult [file join $outDirPath "$nameNoExt_R.TIF"]
+    file rename -force -- $tmp $ult;  puts "-I- Renamed '$tmp' into '$ult'"
+  }
+  puts "-I- Success $descr; output in ('$nameNoExt_L.TIF', '$nameNoExt_R.TIF'), directory '$outDirPath'"
+  return  1
+}
+
+
 # 
 proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
   if { ![string equal -nocase $inpType "SBS"] }  {
