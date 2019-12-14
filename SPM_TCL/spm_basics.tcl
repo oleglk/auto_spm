@@ -36,7 +36,6 @@ namespace eval ::spm:: {
   variable SPM_ERR_MSGS   {                                                   \
       {Cannot Open Image}                                                     \
       {This file type is different. This file is skipped.}                    \
-      {Open Stereo Image}                                                     \
   }
 
   
@@ -418,8 +417,9 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   
   # react to errors if requested
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $imgPath]
-  set winTextPatternToResponseKeySeq [dict create   \
-          [format {%s$} [file tail $imgPath]]   ""  \
+  set winTextPatternToResponseKeySeq [dict create                              \
+          [format {%s$} [file tail $imgPath]]  ""                              \
+          {Open Stereo Image}                  "OK_TWAPI__ABORT_ON_THIS_POPUP" \
   ]
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
           $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 3 $lDescr  \

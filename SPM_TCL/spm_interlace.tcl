@@ -65,8 +65,8 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi
     if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
       return  "";  # error already printed
     }
-    if { "" == [::ok_twapi::travel_meny_hierarchy {{{UP} 5}{ENTER}} \
-                                                      $INTERLACE $INTERLACE] }  {
+    if { "" == [::ok_twapi::travel_meny_hierarchy \
+                {{{UP} {UP} {UP} {UP} {UP}}{ENTER}}  $INTERLACE $INTERLACE] }  {
       #twapi::unblock_input
       return  0;  # error already printed
     }

@@ -13,6 +13,8 @@ namespace eval ::ok_twapi:: {
   
   variable APP_NAME
   variable APP_TOPWND_TITLE
+  
+  variable OK_TWAPI__ABORT_ON_THIS_POPUP  "OK_TWAPI__ABORT_ON_THIS_POPUP"
 
   
   namespace export  \
@@ -179,6 +181,10 @@ proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 
   if { $isMatch == 0 } {
     if { $loud }  {
       puts "-I- Unexpected foreground window '$txt' - doesn't match '$titleOrPattern'"
+      #ok_twapi::abort_if_key_pressed "q"
+      if { 0 == [::ok_twapi::is_current_window_related] } { ; # TODO: 'loud'==0?
+        puts "[_ok_callstack]"; ::ok_utils::pause; # OK_TMP
+      }
     }
     return  0
   }
@@ -272,7 +278,8 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 # Error reported when a (listed!) popup has child window
 #      with text (not title) matching any pattern in 'errPatternList'.
 # Finishes after 'maxIdleTimeCbFiredSec' if 'cbWhenToStop' callback returns 1
-#    or after 'maxIdleTimeCbNotFiredSec' seconds of no new pop-ups.
+#    or after 'maxIdleTimeCbNotFiredSec' seconds of no new pop-ups
+#         if 'cbWhenToStop' not given.
 proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
         winTextPatternToResponseKeySeq errPatternList                         \
         pollPeriodSec maxIdleTimeCbNotFiredSec maxIdleTimeCbFiredSec descr    \
@@ -282,6 +289,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   set startTime [clock seconds]
   set lastActionTime $startTime
   set cbFired 0
+  set abortRequested 0
   #~ set maxIdleTimeSec [expr {                                                   \
                         #~ ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
                          #~ $maxIdleTimeCbNotFiredSec : $maxIdleTimeCbFiredSec}]
@@ -297,6 +305,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
          (($cbWhenToStop == 0) && ($elapsedSec >= $maxIdleTimeCbNotFiredSec))} {
       break;  # early stop; intended for cases when CB did fire
     }
+    puts "-D- Continue processing popups for $descr; time passed: $elapsedSec second(s)"
     # TODO
     #ok_twapi::abort_if_key_pressed "q"
     # make 2 passes over 'winTextPatternToResponseKeySeq':
@@ -305,7 +314,8 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     for {set pass 1} {$pass <= 2} {incr pass 1}   {
       dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
         if { ($pass == 1) && ($keySeq == "") }  { continue }
-        if { ($pass == 2) && ($keySeq != "") }  { continue }
+        if { ($pass == 2) && ($keySeq != "") && \
+             ($keySeq != $ok_twapi::OK_TWAPI__ABORT_ON_THIS_POPUP) }  { continue }
         while { 0 != [llength [set hList [twapi::find_windows \
                                 -child false -match regexp -text $pattern]]] }  {
           set hwnd [lindex $hList 0]
@@ -313,6 +323,10 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
           puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {$pattern})"
           #ok_twapi::abort_if_key_pressed "q"
           # first(!) check for error message in any child window
+          if { $keySeq == $ok_twapi::OK_TWAPI__ABORT_ON_THIS_POPUP }  {
+            puts "-E- Window '[twapi::get_window_text $hwnd]' at pass #$pass triggers abort of processing popups for $descr"
+            set abortRequested 1;   break
+          }
           if { "" != [set errResponseSeq [_is_error_popup \
                                                       $hwnd $errPatternList]] }  {
             set keySeq $errResponseSeq; # error alreay printed
@@ -330,11 +344,16 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
             dict incr winTextPatternToCntErrors $pattern 1     ; # count errors
           }
         }
+        if { $abortRequested }  { break; }
       }
+      if { $abortRequested }  { break; }
     }
+    if { $abortRequested }  { break; }
     after [expr {1000 * $pollPeriodSec}]
   }
-  set abortReason [expr {$cbFired? "callback has fired" : "timeout"}]
+  set abortReason [expr {$cbFired?  "callback has fired" : \
+                          [expr {$abortRequested? \
+                                    "explicit abort request" : "timeout"}]}]
   puts "-I- Stopped detecting popup-s for $descr - $abortReason"
 
   set cntGood 0;  set cntBad 0
@@ -427,6 +446,7 @@ proc ::ok_twapi::wait_for_window_title_to_raise__configurable { \
         return  $h
       }
     }
+    puts "-D- still waiting for window '$titleStr' - attempt $i of $nAttempts"
     after $pollPeriodMsec
   }
   puts "-E- Window '$titleStr' did not appear after [expr {$nAttempts * $pollPeriodMsec}] msec"
@@ -590,7 +610,7 @@ proc ::ok_twapi::_split_key_seq_at_alt {keySeqStr} {
 
 proc ::ok_twapi::abort_if_key_pressed {singleKeyCharNoModofier}  {
   set hkId [twapi::register_hotkey $singleKeyCharNoModofier {
-    # TODO: puts "[_ok_callstack]"
+    puts "[_ok_callstack]"
     error "**ABORT**"
     }]
   after 500
