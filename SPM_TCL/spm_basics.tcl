@@ -771,8 +771,8 @@ proc ::spm::_wait_for_end_of_multiconversion {numThreads \
     set cntWndsWithExit [dict size $wndsWithExit]
     puts "-D- Found $cntWndsWithExit window(s) while $waitForExitDescr"
   }
-  if { $cntWndsWithExit == 0 } {
-    puts "-I- Failed $waitForExitDescr - timeout. Time=[clock seconds](sec)"
+  if { $cntWndsWithExit < $numThreads } {
+    puts "-E- Failed $waitForExitDescr - timeout. Time=[clock seconds](sec)"
     return  0;  # failure
   }
   puts "-I- End   $waitForExitDescr. Time=[clock seconds](sec)"
