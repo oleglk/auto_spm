@@ -399,26 +399,27 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
     if { 0 == [::ok_twapi::focus_singleton "focus to $lDescr" 0] }  {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
-  if { ![file exists $imgPath] }  {
-    puts "-E- Inexistent input image file '$imgPath'";    return  0
+  set fullPath [file normalize $imgPath]
+  if { ![file exists $fullPath] }  {
+    puts "-E- Inexistent input image file '$imgPath' ($fullPath)";    return  0
   }
   set hSPM [ok_twapi::get_top_app_wnd];      # window handle of StereoPhotoMaker
   if { "" == [ok_twapi::_send_cmd_keys "w" $lDescr 0] }  {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
-  # type 'imgPath' then hit OK by pressing Alt-o (used to be ENTER in old SPM)
+  # type 'fullPath' then hit OK by pressing Alt-o (used to be ENTER in old SPM)
   set pDescr "specify stereopair-file path"
-  set nativeImgPath [file nativename $imgPath]
-  if { "" == [ok_twapi::_send_cmd_keys $nativeImgPath $pDescr 0] }   {
+  set nativeFullPath [file nativename $fullPath]
+  if { "" == [ok_twapi::_send_cmd_keys $nativeFullPath $pDescr 0] }   {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
  #return  "";  # OK_TMP
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
   
   # react to errors if requested
-  set targetWndTitle [build_image_window_title_regexp_pattern sbs $imgPath]
+  set targetWndTitle [build_image_window_title_regexp_pattern sbs $fullPath]
   set winTextPatternToResponseKeySeq [dict create                              \
-          [format {%s$} [file tail $imgPath]]  ""                              \
+          [format {%s$} [file tail $fullPath]]  ""                              \
           {Open Stereo Image}                  "OK_TWAPI__ABORT_ON_THIS_POPUP" \
   ]
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
@@ -434,7 +435,7 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
 
 #return  "";  # OK_TMP
   if { $hSPM2 != $hSPM }   {
-    puts "-E- Unexpected window '[twapi::get_window_text $hSPM2]' after loading stereopair from '$imgPath'"
+    puts "-E- Unexpected window '[twapi::get_window_text $hSPM2]' after loading stereopair from '$fullPath'"
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
   puts "-I- Success to $lDescr"

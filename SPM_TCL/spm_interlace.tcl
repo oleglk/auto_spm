@@ -53,7 +53,6 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi
   
   # load the 1st image before dialog-open command - to make Edit menu predictable
   set imgPath [lindex $inpPathList 0]
-  # TODO: need full path !
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  0;   # error already printed
   }
@@ -66,7 +65,7 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi
       return  "";  # error already printed
     }
     if { "" == [::ok_twapi::travel_meny_hierarchy \
-                {{{UP} {UP} {UP} {UP} {UP}}{ENTER}}  $INTERLACE $INTERLACE] }  {
+                {{UP} {UP} {UP} {UP} {UP} {ENTER}}  $INTERLACE $INTERLACE] }  {
       #twapi::unblock_input
       return  0;  # error already printed
     }
