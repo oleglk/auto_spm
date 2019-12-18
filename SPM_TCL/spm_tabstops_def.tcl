@@ -87,6 +87,24 @@ proc ::spm::_build_tabstops_dict {}   {
   dict set TABSTOPS_DFL   "Add Fuzzy Border"    "Round corners"      5
   ############################################################################## 
   
+
+  ##############################################################################
+  # tabstops for Create-Lenticular-Image dialog; start point - "File name" 
+  # assume 'TABSTOPS_DFL' is already created
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "File name"             0
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Files of type"         1
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Cancel"                2
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Create with Selected Files"   3
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Create with All Files" 4
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Show Preview"          5
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Lenticular Lens Pitch" 6
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Printer Resolution"    7
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Print Width"           8
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Image Direction"       9
+  dict set TABSTOPS_DFL   "Create Lenticular Image"    "Create slit animation image"  10
+  ############################################################################## 
+  
+  
   ##############################################################################
   variable TABSTOPS;  # should point at the current TABSTOPS_XXX; 0 == unknown
   set TABSTOPS $TABSTOPS_DFL;   # TODO: "reset
