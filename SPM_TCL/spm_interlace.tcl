@@ -20,6 +20,9 @@ source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 
 
 namespace eval ::spm:: {
+  variable FRAMES_SUBDIR_NAME "FRAMES_TMP"
+  variable FRAME_L_NOEXT      "FRAME_L"
+  variable FRAME_R_NOEXT      "FRAME_R"
 }
 
 
@@ -40,9 +43,10 @@ namespace eval ::spm:: {
 # TODO
 
 
-## Example: spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] 60 "TMP"
-proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi \
-                                                          outDirPath}  {
+## Example: spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] "TMP" 60 600 347
+##  ('printWidth' units: 1/100 inch)
+proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
+                                      outDirPath lensLPI printDPI printWidth}  {
   variable TABSTOPS_DFL
   set INTERLACE "Create Lenticular Image";  # dialog name / key / description
   
@@ -62,7 +66,8 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList lpi
   puts "Begin: $INTERLACE for $nPairs stereopair(s)"
   foreach imgPath $inpPathList {
     # open and drive "Create Lenticular Image" dialog for each image
-    if { 0 == [cmd__interlace_one $inpType $imgPath $lpi $outDirPath] } {
+    if { 0 == [cmd__interlace_one $inpType $imgPath \
+                                $outDirPath $lensLPI $printDPI $printWidth] }  {
       incr errCnt 1;  # error already printed
     }
     return  1;  #OK_TMP
@@ -93,14 +98,17 @@ proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
   if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
     puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
   }
+  set outImgName [spm::build_name_for_interlace $imgPath]] \
+                                                $lensLPI $printDPI $printWidth]
   # split into LR
-  if { 0 == [split_sbs_image_into_lr_tiffs $imgPath "FRAME_L" "FRAME_R"] } {
+  if { "" == [set framesDirPath [::spm::_make_lr_frames_in_their_subdir \
+                                                  $imgPath $outDirPath]] }   {
     puts "-E- Aborted $INTERLACE for '$imgPath'";   return  ""
   }
   set lentWndTitleGlob "Image(Lenticular Image *"; # expected interlaced-image window title
   set dDescr "command to open '$INTERLACE' dialog"
   if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
-    return  0;  # error already printed
+    return  "";  # error already printed
   }
   if { "" == [::ok_twapi::travel_meny_hierarchy \
               {{UP} {UP} {UP} {UP} {UP} {ENTER}}  $dDescr $INTERLACE] }  {
@@ -110,21 +118,25 @@ proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
   if { $hB == "" } {
     puts "-E- Failed to $dDescr";    return  "";  # error details already printed
   }
+  if { 0 == [spm::change_input_dir_in_open_dialog $framesDirPath] }   {
+    puts "-E- Failed to $dDescr";    return  "";  # error details already printed
+  }
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
-  # TODO: paste L/R frame file names
+  #return  "";  # OK_TMP
 
   # Go over all fields in ascending tabstops order and process each one
   set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key $INTERLACE] 1]
-  set nameToVal [dict create        \
-        "Lenticular Lens Pitch"   $lensLPI    \
-        "Printer Resolution"      $printDPI \
+  set nameToVal [dict create                    \
+        "Lenticular Lens Pitch"   $lensLPI      \
+        "Printer Resolution"      $printDPI     \
         "Print Width"             $printWidth  ]
   ok_twapi::_fill_fields_in_open_dialog  $nameToStopNum  $nameToVal  "'$INTERLACE' dialog"
 
   set dDescr "command to close '$INTERLACE' dialog and start interlacing"
-  if { "" == [ok_twapi::_send_cmd_keys {{ENTER}} $dDescr 0] }  {
-    puts "-E- Failed performing '$INTERLACE'"
-    return  0;  # error already printed
+  if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog   \
+                                      "Create with All Files" 1]) ||  \
+       ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $dDescr 0]])    }  {
+    puts "-E- Failed to $dDescr";    return  ""
   }
   # verify we returned to the image window (NEW title = $lentWndTitleGlob)
   set hI [ok_twapi::wait_for_window_title_to_raise $lentWndTitleGlob "glob"]
@@ -134,11 +146,59 @@ proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
   puts "-I- Success performing '$INTERLACE'"
   
   # save
-  set outDirPath [file dirname $imgPath]
-  set saveWithBorderDescr "save image after '$INTERLACE' in directory '$outDirPath'"
+  # TODO: make spm::save_current_image_as_one_tiff accept optional filename
+  set saveInterlaceDescr "save result of '$INTERLACE' in directory '$outDirPath'"
   if { 0 == [spm::save_current_image_as_one_tiff $outDirPath] } {
-    puts "-E- Failed to $saveWithBorderDescr";  return  0
+    puts "-E- Failed to $saveInterlaceDescr";  return  0
   }
-  puts "-I- Success to $saveWithBorderDescr";   return  1
+  puts "-I- Success to $saveInterlaceDescr";   return  1
 }
 
+
+# Makes TIFF files with L/R frames of 'inpSbsPath'
+#   in subdir FRAMES_TMP/ of 'outRootDirPath'
+# Ensures their are no other images in the output subdirectory
+# Returns path of the output subdirectory or "" on error
+proc ::spm::_make_lr_frames_in_their_subdir {inpSbsPath outRootDirPath} {
+  variable FRAMES_SUBDIR_NAME
+  variable FRAME_L_NOEXT
+  variable FRAME_R_NOEXT
+  set descr "split SBS stereopair '$inpSbsPath' into L/R frames"
+  # provide empty output directory
+  set outDirPath [file join $outRootDirPath $FRAMES_SUBDIR_NAME]
+  set dDescr "frames subdirectory '$outDirPath'"
+  # TODO: check for non-directory file with the same name 'outDirPath'
+  if { [file exists $outDirPath] }  {
+    puts "-I- Cleaning pre-existent $dDescr"
+    file delete -force --  {*}[glob -nocomplain -directory $outDirPath *.*]
+  } else {
+    puts "-I- Creating new $dDescr"
+    file mkdir $outDirPath
+  }
+  
+  if { 0 == [spm::split_sbs_image_into_lr_tiffs $inpSbsPath $FRAME_L $FRAME_R \
+                                                $outDirPath] }  {
+    puts "-E- Failed to $descr";    return  ""
+  }
+  puts "-I- Success to $descr; frames are under '$outDirPath'"
+  return  $outDirPath
+}
+
+
+proc ::spm::build_name_for_interlace {imgPath lensLPI printDPI printWidth}  {
+  # TODO: implement
+  set outImgName [format "%s__il_lpi%s_dpi%s_wd%s" \
+                          [file rootname [file tail $imgPath]] \
+                          $lensLPIStr $printDPIStr $printWidthStr]
+}
+
+
+
+#~ proc ::spm::UNUSED__build_native_frame_paths_sequence {inpNamesNoDir inpDirPath} {
+  #~ set inpFramesSeq ""
+  #~ foreach inpName $inpNamesNoDir {
+    #~ set framePath [file nativename [file join $inpDirPath $inpName]]
+    #~ append inpFramesSeq " " $framePath
+  #~ }
+  #~ return [string trim $inpFramesSeq]
+#~ }

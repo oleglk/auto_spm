@@ -515,6 +515,27 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
 }
 
 
+proc ::spm::change_input_dir_in_open_dialog {inpDirPath}  {
+  set h [twapi::get_foreground_window]
+  set wTitle [expr {($h!="")? [twapi::get_window_text $h] : "NO-WINDOW-HANDLE"}]
+  set descr "change input directory to '$inpDirPath' for '$wTitle'"
+  # do it twice to force expected tabstop order ---woodoo----
+  for {set di 1}  {$di <= 2}  {incr di 1}  {
+    puts "-I- $descr  - commamd #$di of 2"
+    twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
+    set inpPathSeq "[file nativename $inpDirPath]"
+    twapi::send_input_text $inpPathSeq
+  #return  "";  # OK_TMP
+    twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
+    if { 0 == [ok_twapi::verify_current_window_by_title $wTitle "exact" 1] }  {
+      return  0;  # error already printed
+    }
+    after 500
+  }
+  puts "-I- Success to $descr";    return  1
+}
+
+
 # Splits SBS image 'inpPath' into 'nameNoExt_L', nameNoExt_R' TIFFs
 # Saves in 'outDirPath' or in the same dir as the input.
 # Example:  spm::split_sbs_image_into_lr_tiffs FIXED/SBS/2019_0929_133733_001.TIF  2019_0929_133733_001_L  2019_0929_133733_001_R  TMP/

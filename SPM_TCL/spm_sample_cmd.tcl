@@ -10,6 +10,11 @@ source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 source [file join $SCRIPT_DIR "spm_basics.tcl"]
 source [file join $SCRIPT_DIR "spm_interlace.tcl"]
 
+namespace eval ::spm:: {
+  variable EX_LENS_LPI    60
+  variable EX_PRINT_DPI   300
+  variable EX_PRINT_WD    400
+}
 
 proc ::spm::ex__YOGABOOK_full_pp_dc101 {{centerBias -144}}  {
   source c:/Oleg/Work/mini3d/Mini3D_TCL/auto_postproc.tcl
@@ -26,25 +31,27 @@ proc ::spm::ex__WIN7DT_full_pp_dc101 {{centerBias -144}}  {
   ::mini3d::run_full_pp_in_current_dir "*.jpg"  -144  nomask
 }
 
+########### Begin: Interlacing #################################################
 
-
-proc ::spm::ex__YOGABOOK_interlace {lpi {outDir "IL"}}  {
+proc ::spm::ex__YOGABOOK_interlace {{outDir "IL"}}  {
   source c:/Oleg/Work/mini3d/Mini3D_TCL/auto_postproc.tcl
   set ::IM_DIR "C:/Program Files (x86)/ImageMagick-7.0.8-20";   set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];    # YogaBook
-  if { ![ok_twapi::verify_singleton_running "interlace at $lpi lpi"] }  {
+  if { ![ok_twapi::verify_singleton_running "interlace at $spm::EX_LENS_LPI lpi"] }  {
     ::spm::start_spm .
   }
-  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] $lpi $outDir
+  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] $outDir \
+            $spm::EX_LENS_LPI $spm::EX_PRINT_DPI $spm::EX_PRINT_WD
 }
 
 
-proc ::spm::ex__WIN7DT_interlace {lpi {outDir "IL"}}  {
+proc ::spm::ex__WIN7DT_interlace {{outDir "IL"}}  {
   source d:/Work/DualCam/mini3d/Mini3D_TCL/auto_postproc.tcl
   set ::IM_DIR "C:/program Files/ImageMagick-6.7.1-Q16";  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}]
-  if { ![ok_twapi::verify_singleton_running "interlace at $lpi lpi"] }  {
+  if { ![ok_twapi::verify_singleton_running "interlace at $spm::EX_LENS_LPI lpi"] }  {
     ::spm::start_spm .
   }
-  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] $lpi $outDir
+  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] $outDir \
+                        $spm::EX_LENS_LPI $spm::EX_PRINT_DPI $spm::EX_PRINT_WD
 }
 
 
