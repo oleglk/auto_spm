@@ -54,13 +54,6 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
     puts "-W- No images specified for $INTERLACE";  return  0
   }
   if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  0 }
-  
-  # load the 1st image before dialog-open command - to make Edit menu predictable
-  set imgPath [lindex $inpPathList 0]
-  if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
-    return  0;   # error already printed
-  }
-  set imgWnd      [twapi::get_foreground_window]
 
   set errCnt 0
   puts "-I- Begin: $INTERLACE for $nPairs stereopair(s)"
@@ -89,11 +82,12 @@ proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
   variable TABSTOPS_DFL
   set INTERLACE "Create Lenticular Image";  # dialog name / key / description
   if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  0 }
-  #~ if { TODO:![spm::any_image_is_open] }  {; # Edit menu depends on whether anything open
-    #~ if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
-      #~ return  "";   # error already printed
-    #~ }
-  #~ }
+  # load the SBS image before dialog-open command - to make Edit menu predictable
+  if { 1 }  { ; # ??? TODO:![spm::any_image_is_open] ???
+    if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
+      return  "";   # error already printed
+    }
+  }
   set imgWnd      [twapi::get_foreground_window]
   set imgWndTitle [twapi::get_window_text $imgWnd]
   if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
@@ -115,6 +109,8 @@ proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
     puts "-E- Aborted $INTERLACE for '$imgPath'";   return  ""
   }
 #ok_utils::pause;  #OK_TMP
+
+  # open and drive "Create Lenticular Image" dialog
   set lentWndTitleGlob "Image(Lenticular Image *"; # expected interlaced-image window title
   set dDescr "command to open '$INTERLACE' dialog"
   if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
