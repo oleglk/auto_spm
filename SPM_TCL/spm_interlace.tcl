@@ -63,16 +63,17 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
   set imgWnd      [twapi::get_foreground_window]
 
   set errCnt 0
-  puts "Begin: $INTERLACE for $nPairs stereopair(s)"
+  puts "-I- Begin: $INTERLACE for $nPairs stereopair(s)"
   foreach imgPath $inpPathList {
     # open and drive "Create Lenticular Image" dialog for each image
-    if { 0 == [cmd__interlace_one $inpType $imgPath \
+    if { 0 == [cmd__interlace_one_at_integer_lpi $inpType $imgPath \
                                 $outDirPath $lensLPI $printDPI $printWidth] }  {
       incr errCnt 1;  # error already printed
     }
-    return  1;  #OK_TMP
-    # TODO
+    #return  1;  #OK_TMP
+    # TODO?
   }
+  puts "-I- End: $INTERLACE for $nPairs stereopair(s);  $errCnt error(s) occured"
   return  1;  # TODO: $cntDone
 }
 
@@ -82,8 +83,8 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
 #  creates interlace off these 2 frames, saves under the same name as .tif .
 # Returns path of the resulting image or "" on error.
 # Assumes "Image Direction (from left to right) is checked" 
-# Example: spm::cmd__interlace_one SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 60 600 347
-proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
+# Example: spm::cmd__interlace_one_at_integer_lpi SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 60 600 347
+proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
                                 lensLPI printDPI printWidth}  {
   variable TABSTOPS_DFL
   set INTERLACE "Create Lenticular Image";  # dialog name / key / description
@@ -98,13 +99,22 @@ proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
   if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
     puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
   }
-  set outImgName [spm::build_name_for_interlace $imgPath]] \
-                                                $lensLPI $printDPI $printWidth]
+  # save with the same name as input image - to facilitate phase error checking
+  #~ set outImgName [spm::build_name_for_interlace $imgPath                      \
+                                                #~ $lensLPI $printDPI $printWidth]
+  set outImgNameNoExt [file rootname [file tail $imgPath]]
+  set outImgName      [format "%s.TIF" $outImgNameNoExt]
+  if { [file normalize [file dirname $imgPath]] == \
+                                          [file normalize $outDirPath] }  {
+    puts "-E- Interlaced image with same name as the original needs different directory"
+    return  ""
+  }
   # split into LR
   if { "" == [set framesDirPath [::spm::_make_lr_frames_in_their_subdir \
                                                   $imgPath $outDirPath]] }   {
     puts "-E- Aborted $INTERLACE for '$imgPath'";   return  ""
   }
+#ok_utils::pause;  #OK_TMP
   set lentWndTitleGlob "Image(Lenticular Image *"; # expected interlaced-image window title
   set dDescr "command to open '$INTERLACE' dialog"
   if { 0 == [::ok_twapi::open_menu_top_level "e" $INTERLACE] }  {
@@ -118,7 +128,7 @@ proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
   if { $hB == "" } {
     puts "-E- Failed to $dDescr";    return  "";  # error details already printed
   }
-  if { 0 == [spm::change_input_dir_in_open_dialog $framesDirPath] }   {
+  if { 0 == [spm::change_input_dir_in_open_dialog $framesDirPath {%o}] }   {
     puts "-E- Failed to $dDescr";    return  "";  # error details already printed
   }
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
@@ -143,15 +153,17 @@ proc ::spm::cmd__interlace_one {inpType imgPath outDirPath \
   if { $hI == "" } {
     puts "-E- Failed returning to image window";  return  0; # error details printed
   }
-  puts "-I- Success performing '$INTERLACE'"
+  puts "-I- Success performing '$INTERLACE' ... now need to save the result"
   
   # save
-  # TODO: make spm::save_current_image_as_one_tiff accept optional filename
+#ok_utils::pause;  #OK_TMP
   set saveInterlaceDescr "save result of '$INTERLACE' in directory '$outDirPath'"
-  if { 0 == [spm::save_current_image_as_one_tiff $outDirPath] } {
-    puts "-E- Failed to $saveInterlaceDescr";  return  0
+  if { 0 == [spm::save_current_image_as_one_tiff "Save Image" $outDirPath \
+                                                          $outImgNameNoExt] } {
+    puts "-E- Failed to $saveInterlaceDescr";  return  ""
   }
-  puts "-I- Success to $saveInterlaceDescr";   return  1
+  puts "-I- Success to $saveInterlaceDescr"
+  return  [file join $outDirPath $outImgName]
 }
 
 
@@ -176,21 +188,21 @@ proc ::spm::_make_lr_frames_in_their_subdir {inpSbsPath outRootDirPath} {
     file mkdir $outDirPath
   }
   
-  if { 0 == [spm::split_sbs_image_into_lr_tiffs $inpSbsPath $FRAME_L $FRAME_R \
-                                                $outDirPath] }  {
+  if { 0 == [spm::split_sbs_image_into_lr_tiffs $inpSbsPath \
+                                $FRAME_L_NOEXT $FRAME_R_NOEXT $outDirPath] }  {
     puts "-E- Failed to $descr";    return  ""
   }
-  puts "-I- Success to $descr; frames are under '$outDirPath'"
+  puts "-I- Success to $descr; frame images are under '$outDirPath'"
   return  $outDirPath
 }
 
 
-proc ::spm::build_name_for_interlace {imgPath lensLPI printDPI printWidth}  {
-  # TODO: implement
-  set outImgName [format "%s__il_lpi%s_dpi%s_wd%s" \
-                          [file rootname [file tail $imgPath]] \
-                          $lensLPIStr $printDPIStr $printWidthStr]
-}
+#~ proc ::spm::build_name_for_interlace {imgPath lensLPI printDPI printWidth}  {
+  #~ # TODO: implement
+  #~ set outImgName [format "%s__il_lpi%s_dpi%s_wd%s" \
+                          #~ [file rootname [file tail $imgPath]] \
+                          #~ $lensLPIStr $printDPIStr $printWidthStr]
+#~ }
 
 
 

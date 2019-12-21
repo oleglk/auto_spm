@@ -39,7 +39,9 @@ proc ::spm::ex__YOGABOOK_interlace {{outDir "IL"}}  {
   if { ![ok_twapi::verify_singleton_running "interlace at $spm::EX_LENS_LPI lpi"] }  {
     ::spm::start_spm .
   }
-  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] $outDir \
+  set listAll [glob -nocomplain -directory "FIXED/SBS" "*.TIF"]
+  set listOne [lindex $listAll 0]
+  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS $listAll $outDir \
             $spm::EX_LENS_LPI $spm::EX_PRINT_DPI $spm::EX_PRINT_WD
 }
 
@@ -50,8 +52,10 @@ proc ::spm::ex__WIN7DT_interlace {{outDir "IL"}}  {
   if { ![ok_twapi::verify_singleton_running "interlace at $spm::EX_LENS_LPI lpi"] }  {
     ::spm::start_spm .
   }
-  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] $outDir \
-                        $spm::EX_LENS_LPI $spm::EX_PRINT_DPI $spm::EX_PRINT_WD
+  set listAll [glob -nocomplain -directory "FIXED/SBS" "*.TIF"]
+  set listOne [lindex $listAll 0]
+  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS $listAll $outDir \
+            $spm::EX_LENS_LPI $spm::EX_PRINT_DPI $spm::EX_PRINT_WD
 }
 
 

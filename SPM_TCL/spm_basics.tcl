@@ -444,13 +444,16 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
 
 
 # Commands to save current image in 'outDirPath' as SBS TIFF
-proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
+# If 'outNameNoExt' given, it overrides the filename
+proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
+                                            {outNameNoExt ""}}   {
   variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
   if { ! [ok_utils::ok_filepath_is_existent_dir $outDirPath] }  {
     puts "-E- Invalid or inexistent save-to directory '$outDirPath'"
     return  ""
   }
   set sDescr "save current image"
+  if { $outNameNoExt != "" }  { append sDescr " as '$outNameNoExt'" }
 
   if { ![::ok_twapi::verify_singleton_running $sDescr] }  { return  0}; # FIRST!
     if { 0 == [::ok_twapi::focus_singleton "focus to $sDescr" 0] }  {
@@ -463,13 +466,17 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
     puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
   }
   
+  if { $outNameNoExt != "" }  { ;   # window title will change with output name
+    set ovrdImgWndTitleGlob [format "Image(%s.TIF - *" $outNameNoExt]
+  }
+  
   # open "Save Stereo Image" dialog
   if { "" == [ok_twapi::_send_cmd_keys "s" $sDescr 0] }  {
     puts "-E- Failed commanding to $sDescr";    return  0;  # error details already printed
   }
-  set hS [ok_twapi::wait_for_window_title_to_raise "Save Stereo Image" "exact"]
+  set hS [ok_twapi::wait_for_window_title_to_raise $dialogTitle "exact"]
   if { $hS == "" } {
-    puts "-E- Failed opening 'Save Stereo Image' dialog";  return  0
+    puts "-E- Failed opening '$dialogTitle' dialog";  return  0
   }
   
   ### To avoid saving as <dir-name>.TIF, first set output format, then directory
@@ -480,15 +487,24 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   twapi::send_keys {t};  # select TIFF format - the only option starting from T
   after 300
   
-  puts "-I- Prepending output filename with output directory path '$outDirPath'"
+  if { $outNameNoExt == "" }  {
+    puts "-I- Prepending output filename with output directory path '$outDirPath'"
+  } else {
+    set outPath [file join $outDirPath [format "%s.TIF" $outNameNoExt]]
+    puts "-I- Setting output file path to '$outPath'"
+  }
   twapi::send_keys {%n};  # focus filename entry; filename should become selected
   after 300
-  twapi::send_keys {{HOME}};  # stay at the beginning of filename string
-  after 300
-  set outDirSeq "[file nativename $outDirPath][file separator]"
-  twapi::send_input_text $outDirSeq
+  if { $outNameNoExt == "" }  {
+    twapi::send_keys {{HOME}};  # stay at the beginning of filename string
+    after 300
+    set outPathSeq "[file nativename $outDirPath][file separator]"; # only dir
+  } else {
+    set outPathSeq "[file nativename [file normalize $outPath]]"  ; # dir & file
+  }
+  twapi::send_input_text $outPathSeq
   puts "-I- Commanding to apply output-path change AND perform the save"
-  twapi::send_keys {{ENTER}};  # perform directory change and save the image
+  twapi::send_keys {{ENTER}}; # perform directory/name change and save the image
   after 300
   ## no need for Alt-S (command to save the image) - saving already done by {ENTER}
 
@@ -504,8 +520,11 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
   ok_twapi::respond_to_popup_windows_based_on_text  \
                       $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 10 $sDescr
   # do not check for errors since the proc is finished
-  # verify we returned to the image window (title = $imgWndTitle - case can change)
-  set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"]
+  # verify we returned to the image window
+  # (title = $imgWndTitle - case can change)
+  set hI [expr {($outNameNoExt == "")?  \
+      [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"] :      \
+      [ok_twapi::wait_for_window_title_to_raise $ovrdImgWndTitleGlob "glob"] }]
   if { $hI == "" } {
     puts "-E- Failed returning to image window";  return  0; # error details printed
   }
@@ -515,18 +534,24 @@ proc ::spm::save_current_image_as_one_tiff {outDirPath}   {
 }
 
 
-proc ::spm::change_input_dir_in_open_dialog {inpDirPath}  {
+proc ::spm::change_input_dir_in_open_dialog {inpDirPath keySeqToConfirm}  {
   set h [twapi::get_foreground_window]
   set wTitle [expr {($h!="")? [twapi::get_window_text $h] : "NO-WINDOW-HANDLE"}]
   set descr "change input directory to '$inpDirPath' for '$wTitle'"
+  set inpDirPathNorm [file normalize $inpDirPath]
+  if { ![ok_utils::ok_filepath_is_existent_dir $inpDirPathNorm] } {
+    puts "-E- Invalid or inexistent input directory for $wTitle - '$inpDirPath'"
+    return  0
+  }
   # do it twice to force expected tabstop order ---woodoo----
   for {set di 1}  {$di <= 2}  {incr di 1}  {
     puts "-I- $descr  - commamd #$di of 2"
     twapi::send_keys {%n};  # in a raw twapi way - since Alt should be held down
-    set inpPathSeq "[file nativename $inpDirPath]"
+    set inpPathSeq "[file nativename $inpDirPathNorm]"
     twapi::send_input_text $inpPathSeq
-  #return  "";  # OK_TMP
-    twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
+  #return  0;  # OK_TMP
+    twapi::send_keys $keySeqToConfirm ;  # command to change input dir; {%o} or {ENTER}
+    # TODO: invalid path is not detected, though we checked for it
     if { 0 == [ok_twapi::verify_current_window_by_title $wTitle "exact" 1] }  {
       return  0;  # error already printed
     }
@@ -546,7 +571,7 @@ proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
     puts "-E- Missing SBS image for splitting '$inpPath'";  return  0
   }
   if { $outDirPath == "" }  { set outDirPath [file dirname $inpPath] }
-  if { ![ok_utils::ok_filepath_is_existent_dir $outDirPath] }  {
+  if { ![ok_utils::ok_filepath_is_existent_dir [file normalize $outDirPath]] }  {
     puts "-E- Invalid or inexistent output directory for left/right images - '$outDirPath'"
     return  0
   }
