@@ -31,6 +31,14 @@ proc ::spm::ex__WIN7DT_full_pp_dc101 {{centerBias -144}}  {
   ::mini3d::run_full_pp_in_current_dir "*.jpg"  -144  nomask
 }
 
+# cd e:/TMP_DC/TRY_AUTO/DC101/290919__Glen_Mini3D/
+proc ::spm::ex__MIIX320_full_pp_dc101 {{centerBias -144}}  {
+  source c:/Work/Code/Mini3D/Mini3D_TCL/auto_postproc.tcl
+  set ::IM_DIR "c:/program files/ImageMagick-7.0.8-10";    set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # MIIX-320
+  ::mini3d::set_scene_params  527  -10.0  208 356  1372 1908;  ::mini3d::set_border_params 10 70 300
+  ::mini3d::run_full_pp_in_current_dir "*.jpg"  -144  nomask
+}
+
 ########### Begin: Interlacing #################################################
 
 proc ::spm::ex__YOGABOOK_interlace {{outDir "IL"}}  {
@@ -49,6 +57,19 @@ proc ::spm::ex__YOGABOOK_interlace {{outDir "IL"}}  {
 proc ::spm::ex__WIN7DT_interlace {{outDir "IL"}}  {
   source d:/Work/DualCam/mini3d/Mini3D_TCL/auto_postproc.tcl
   set ::IM_DIR "C:/program Files/ImageMagick-6.7.1-Q16";  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}]
+  if { ![ok_twapi::verify_singleton_running "interlace at $spm::EX_LENS_LPI lpi"] }  {
+    ::spm::start_spm .
+  }
+  set listAll [glob -nocomplain -directory "FIXED/SBS" "*.TIF"]
+  set listOne [lindex $listAll 0]
+  ::spm::interlace_listed_stereopairs_at_integer_lpi SBS $listAll $outDir \
+            $spm::EX_LENS_LPI $spm::EX_PRINT_DPI $spm::EX_PRINT_WD
+}
+
+
+proc ::spm::ex__MIIX320_interlace {{outDir "IL"}}  {
+  source c:/Work/Code/Auto/auto_spm/SPM_TCL/spm_sample_cmd.tcl
+  set ::IM_DIR "c:/program files/ImageMagick-7.0.8-10";    set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # MIIX-320
   if { ![ok_twapi::verify_singleton_running "interlace at $spm::EX_LENS_LPI lpi"] }  {
     ::spm::start_spm .
   }
