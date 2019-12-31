@@ -81,7 +81,7 @@ proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
                                 lensLPI printDPI printWidth}  {
   variable TABSTOPS_DFL
   set INTERLACE "Create Lenticular Image";  # dialog name / key / description
-  if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  0 }
+  if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  "" }
   # load the SBS image before dialog-open command - to make Edit menu predictable
   if { 1 }  { ; # ??? TODO:![spm::any_image_is_open] ???
     if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
@@ -147,7 +147,7 @@ proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
   # verify we returned to the image window (NEW title = $lentWndTitleGlob)
   set hI [ok_twapi::wait_for_window_title_to_raise $lentWndTitleGlob "glob"]
   if { $hI == "" } {
-    puts "-E- Failed returning to image window";  return  0; # error details printed
+    puts "-E- Failed returning to image window"; return ""; # error details printed
   }
   puts "-I- Success performing '$INTERLACE' ... now need to save the result"
   
