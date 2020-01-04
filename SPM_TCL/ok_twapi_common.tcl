@@ -341,6 +341,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
               if { [regexp -- $pt $wText] } {
                 set keySeq $ks
                 puts "-D- 2nd-chance response {$ks} found for window '$wText'"
+                ::ok_utils::pause; # OK_TMP
               }
             }
             if { $keySeq == "" }  { ;   # no pattern with response found
