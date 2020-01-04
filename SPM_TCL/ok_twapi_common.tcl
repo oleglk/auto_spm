@@ -320,7 +320,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
                                 -child false -match regexp -text $pattern]]] }  {
           set hwnd [lindex $hList 0]
           set st [twapi::get_window_style $hwnd]
-          puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {$pattern})"
+          puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {$pattern}, response-key-seq={$keySeq})"
           #ok_twapi::abort_if_key_pressed "q"
           # first(!) check for error message in any child window
           if { $keySeq == $ok_twapi::OK_TWAPI__ABORT_ON_THIS_POPUP }  {
@@ -331,10 +331,21 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
                                                       $hwnd $errPatternList]] }  {
             set keySeq $errResponseSeq; # error alreay printed
           }
-          set wDescr "respond to {[twapi::get_window_text $hwnd]} for $descr"
+          set wText [twapi::get_window_text $hwnd]
+          set wDescr "respond to {$wText} for $descr"
           #ok_utils::pause "@@@ Paused in respond_to_popup_windows_based_on_text - 01 @@@";  # OK_TMP
           if { $keySeq == "" }  { ;   # either it was a dummy for error checking,
-            continue ;  # or real message caught by too-generic dummy pattern;
+            # TODO: if the title of the window matches a pattern with defined response, do respond
+            dict for {pt ks} $winTextPatternToResponseKeySeq {
+              if { $ks == "" }  { continue  }
+              if { [regexp -- $pt $wText] } {
+                set keySeq $ks
+                puts "-D- 2nd-chance response {$ks} found for window '$wText'"
+              }
+            }
+            if { $keySeq == "" }  { ;   # no pattern with response found
+              continue ;  # or real message caught by too-generic dummy pattern
+            }
           } ;    # Continuing gives it a chance to match an expected popup pattern
           if { ("" != [ok_twapi::focus_then_send_keys $keySeq $wDescr $hwnd]) && \
                ($errResponseSeq == "") }  {
