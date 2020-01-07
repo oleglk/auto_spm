@@ -308,10 +308,12 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     puts "-D- Continue processing popups for $descr; time passed: $elapsedSec second(s)"
     
     ## TODO:MAJOR-CHANGE:
-    ##  - prepare dict {pattern::list_of_responses}
-    ##  - run cycle of searching for windows with title matching current pattern
-    ##  - every time prefer non-empty response if available; discard 2nd pass
-    
+    ##  - run cycle of searching for windows with titles matching ANY specified pattern
+    ##  - among the found windows pick the 1st one for which
+    ##       (a pattern with) non-empty response exists and reply to it
+    ##  - whether such a window found or not, rerun the search
+    ##  (discard the 2nd pass)
+
     #ok_twapi::abort_if_key_pressed "q"
     # make 2 passes over 'winTextPatternToResponseKeySeq':
     # - 1st with non-empty response key sequences - known popups
