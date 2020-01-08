@@ -313,6 +313,11 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     ##       (a pattern with) non-empty response exists and reply to it
     ##  - whether such a window found or not, rerun the search
     ##  (discard the 2nd pass)
+    #~ set winToListOfResponses [_find_windows_for_patterns \
+                                              #~ $winTextPatternToResponseKeySeq]
+    #~ while { 0 != [set hwnd [_choose_popup_window_to_respond \
+                                              #~ $winToListOfResponses]] }   {
+    #~ }
 
     #ok_twapi::abort_if_key_pressed "q"
     # make 2 passes over 'winTextPatternToResponseKeySeq':
@@ -407,6 +412,26 @@ proc ::ok_twapi::is_current_visible_window_by_title {dummyArg titleRegexp} {
 
 
 ###################### Begin: subtask utilities ################################
+
+# Returns dictionary of win-handle :: list-of-response-key-sequences
+proc ::ok_twapi::_find_windows_for_patterns {winTextPatternToResponseKeySeq} {
+  set winToListOfResponses [dict create]; # win-handle :: {keySeq1 ... keySeq3}
+  dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
+    while { 0 != [llength [set hList [twapi::find_windows \
+                            -child false -match regexp -text $pattern]]] }  {
+      set hwnd [lindex $hList 0]
+      if { [dict exists $winToListOfResponses $hwnd] }  { ; # append to record
+        set oldList [dict get $winToListOfResponses $hwnd]
+        if { -1 == [lsearch -exact $oldList $keySeq] }  {
+          dict lappend winToListOfResponses $hwnd $keySeq
+        }
+      } else { ;                                            # add new record
+        dict set winToListOfResponses $hwnd $keySeq
+      }
+    }
+  }
+  return  $winToListOfResponses
+}
 
 # Checks for error message in any child window - by patterns in 'errPatternList'.
 # If error found, returns key-sequence to respond to it; otherwise returns "".
