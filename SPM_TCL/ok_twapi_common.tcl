@@ -414,12 +414,15 @@ proc ::ok_twapi::is_current_visible_window_by_title {dummyArg titleRegexp} {
 ###################### Begin: subtask utilities ################################
 
 # Returns dictionary of win-handle :: list-of-response-key-sequences
-proc ::ok_twapi::_find_windows_for_patterns {winTextPatternToResponseKeySeq} {
+# If 'stopAtFirst' != 0, stops when 1st window with non-empty response is found.
+## Example: 
+##   set titleToResp [dict create {^Mult} "1"  {^tkcon} "2"  {^tkcon } ""  {qq$} "4"];     set qqD [::ok_twapi::_find_windows_for_patterns $titleToResp]
+proc ::ok_twapi::_find_windows_for_patterns {winTextPatternToResponseKeySeq \
+                                             {stopAtFirst 0}} {
   set winToListOfResponses [dict create]; # win-handle :: {keySeq1 ... keySeq3}
   dict for {pattern keySeq} $winTextPatternToResponseKeySeq {
-    while { 0 != [llength [set hList [twapi::find_windows \
-                            -child false -match regexp -text $pattern]]] }  {
-      set hwnd [lindex $hList 0]
+    set hList [twapi::find_windows -child false -match regexp -text $pattern]
+    foreach hwnd $hList {
       if { [dict exists $winToListOfResponses $hwnd] }  { ; # append to record
         set oldList [dict get $winToListOfResponses $hwnd]
         if { -1 == [lsearch -exact $oldList $keySeq] }  {
@@ -427,6 +430,9 @@ proc ::ok_twapi::_find_windows_for_patterns {winTextPatternToResponseKeySeq} {
         }
       } else { ;                                            # add new record
         dict set winToListOfResponses $hwnd $keySeq
+      }
+      if { ($stopAtFirst != 0) && ($keySeq != "") }  {
+        return  $winToListOfResponses
       }
     }
   }
