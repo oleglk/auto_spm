@@ -181,6 +181,7 @@ proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 
   if { $isMatch == 0 } {
     if { $loud }  {
       puts "-I- Unexpected foreground window '$txt' - doesn't match '$titleOrPattern'"
+      puts "[_ok_callstack]"; ::ok_utils::pause; # OK_TMP
       #ok_twapi::abort_if_key_pressed "q"
       if { 0 == [::ok_twapi::is_current_window_related] } { ; # TODO: 'loud'==0?
         puts "[_ok_callstack]"; ::ok_utils::pause; # OK_TMP
