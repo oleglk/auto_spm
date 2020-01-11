@@ -182,10 +182,10 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
     #twapi::unblock_input
     return  "";  # error already printed
   }
-  if { 0 == [::ok_twapi::cmd__maximize_current_window] }  {
-    #twapi::unblock_input
-    return  "";  # error already printed
-  }
+  #~ if { 0 == [::ok_twapi::cmd__maximize_current_window] }  {
+    #~ #twapi::unblock_input
+    #~ return  "";  # error already printed
+  #~ }
   #twapi::unblock_input
   set hMC [::ok_twapi::set_latest_app_wnd_to_current]
   # change input directory
@@ -269,8 +269,8 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   if { "" == [set hMC1 [cmd__open_multi_conversion $inpSubDir $cfgPath]] }  {
     return  0;  # need to abort; error already printed
   }
-  # de-maximize to help popups be visible
-  twapi::restore_window $hMC1 -sync
+  #~ # de-maximize to help popups be visible
+  #~ twapi::restore_window $hMC1 -sync
   
   # arrange for commanding to start multi-conversion
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
