@@ -229,10 +229,15 @@ proc ::spm::cmd__format_all {inpType settingsTemplateName settingsModifierCB \
   #   AND should match 'outSubdirRelPath'
   if { "" == [set cfgPath [spm::_make_settings_file_from_template \
                       $inpType $cfgName $settingsModifierCB $descr]] } {
+    register_phase_results $phaseId [dict keys $inpStats]; # all preexistent dirty
     return  0;  # need to abort; error already printed
   }
  
   set res [cmd__adjust_all $inpType $cfgPath $SUBDIR_SBS $outSubdirRelPath]
+  if { $res == 0 }  {
+    register_phase_results $phaseId [dict keys $inpStats]; # all preexistent dirty
+    return  0;  # failed; error already printed
+  }
   
   set outDirFullPath [file normalize [file join $WA_ROOT $outSubdirRelPath]]
   register_phase_results $phaseId \

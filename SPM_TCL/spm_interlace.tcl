@@ -45,6 +45,8 @@ namespace eval ::spm:: {
 
 ## Example: spm::interlace_listed_stereopairs_at_integer_lpi SBS [lindex [glob -nocomplain -directory "FIXED/SBS" "*.TIF"] 0] "TMP" 60 600 347
 ##  ('printWidth' units: 1/100 inch)
+# Returns path of the last good result's ORIGINAL or 0 on error
+# !!! Note, after interlacing SPM's "File" menu is in non-standard state !!!
 proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
                                       outDirPath lensLPI printDPI printWidth}  {
   variable TABSTOPS_DFL
@@ -55,28 +57,50 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
   }
   if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  0 }
 
-  set errCnt 0
+  set errCnt 0; set lastGoodOutPathOrZero 0
   puts "-I- Begin: $INTERLACE for $nPairs stereopair(s)"
   foreach imgPath $inpPathList {
     # open and drive "Create Lenticular Image" dialog for each image
-    if { 0 == [cmd__interlace_one_at_integer_lpi $inpType $imgPath \
-                                $outDirPath $lensLPI $printDPI $printWidth] }  {
+    set lastResOutPath [cmd__interlace_one_at_integer_lpi $inpType $imgPath \
+                                $outDirPath $lensLPI $printDPI $printWidth]
+    if { $lastResOutPath != "" }  {
+      set lastGoodInpPathOrZero  $imgPath
+    } else {
       incr errCnt 1;  # error already printed
     }
     #return  1;  #OK_TMP
     # TODO?
   }
   puts "-I- End: $INTERLACE for $nPairs stereopair(s);  $errCnt error(s) occured"
-  return  1;  # TODO: $cntDone
+  return  $lastGoodInpPathOrZero
 }
 
+
+# Wraps interlace_listed_stereopairs_at_integer_lpi;
+#     when done, opens last result's ORIGINAL
+#         to ensure known state of SPM's "File" menu
+# Returns 1 on success or 0 on error
+proc ::spm::interlace_listed_stereopairs_at_integer_lpi_then_open_last_original {
+                                    inpType inpPathList                       \
+                                    outDirPath lensLPI printDPI printWidth} {
+  set lastGoodInpPathOrZero [interlace_listed_stereopairs_at_integer_lpi      \
+                                    $inpType $inpPathList                     \
+                                    $outDirPath $lensLPI $printDPI $printWidth]
+  if { $lastGoodInpPathOrZero != 0 }  {
+    if { ![spm::cmd__open_stereopair_image $inpType $lastGoodInpPathOrZero] }  {
+      return  0;   # error already printed
+    }
+  }
+  return  [expr {($lastGoodInpPathOrZero != 0)? 1 : 0}]
+}
 
 
 # Splits stereopair from 'imgPath' into LR,
 #  creates interlace off these 2 frames, saves under the same name as .tif .
 # Returns path of the resulting image or "" on error.
 # Assumes "Image Direction (from left to right) is checked" 
-# Example: spm::cmd__interlace_one_at_integer_lpi SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" 60 600 347
+# Example: spm::cmd__interlace_one_at_integer_lpi SBS "E:/TMP/SPM/290919__Glen_Mini3D/FIXED/SBS/2019_0929_133733_001.tif" "IL"  60 600 347
+# !!! Note, after interlacing SPM's "File" menu is in non-standard state !!!
 proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
                                 lensLPI printDPI printWidth}  {
   variable TABSTOPS_DFL
