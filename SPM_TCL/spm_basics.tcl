@@ -288,7 +288,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # ?TODO:? save val for 'maxIdleTimeSec' is 30 (sec)
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
               $winTextPatternToResponseKeySeq $SPM_ERR_MSGS                   \
-              3 10 10 $descr                                                     \
+              3 10 10 $descr                                                  \
               "::spm::_is_multiconversion_most_likely_finished" $numThreads] } {
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
@@ -916,7 +916,9 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
       puts "-E- Unexpected case of multi-conversion: 'Stop', 'Back' and 'Exit' buttons missing; no popups - multi-conversion may not have started; re-verification attempts left: $attempts"
     }
   }
-  return  1
+  set done [expr {($backOk && $exitOk)? 1 : 0}]
+  puts "-D- Multi-conversion finish IS [expr {$done? {   } : {NOT}}] detected"
+  return  $done
 }
 
 
