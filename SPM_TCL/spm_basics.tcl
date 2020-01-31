@@ -98,6 +98,10 @@ proc ::spm::start_spm {{workarea_rootdir ""}}  {
     set WA_ROOT [file normalize $workarea_rootdir]
     puts "-I- Workarea root directory set to '$WA_ROOT'"
   }
+  
+  # workaround...
+  ::ok_twapi::add_known_related_window_title_pattern {^Open Stereo Image}
+  
   return  [::ok_twapi::start_singleton $::SPM \
                 "StereoPhotoMaker" $SPM_TITLE $workarea_rootdir]
   # TODO: maximize SPM window
@@ -417,9 +421,11 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
   
   # react to errors if requested
+  # for "Open Stereo Image" try waiting util it disappears 
+  # TODO: "Open Stereo Image" is the current open dialog; wait for close before seeking popups! 
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $fullPath]
   set winTextPatternToResponseKeySeq [dict create                              \
-          [format {%s$} [file tail $fullPath]]  ""                              \
+          [format {%s$} [file tail $fullPath]]  ""                             \
           {Open Stereo Image}                  "OK_TWAPI__ABORT_ON_THIS_POPUP" \
   ]
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \

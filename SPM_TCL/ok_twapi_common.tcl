@@ -16,6 +16,7 @@ namespace eval ::ok_twapi:: {
   
   variable OK_TWAPI__ABORT_ON_THIS_POPUP  "OK_TWAPI__ABORT_ON_THIS_POPUP"
 
+  variable OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES [list]
   
   namespace export  \
     # (DO NOT EXPORT:)  start_singleton  \
@@ -210,6 +211,31 @@ proc ::ok_twapi::verify_current_visible_window_by_title {titleOrPattern \
 }
 
 
+proc ::ok_twapi::is_known_related_window_title_pattern {wndTitlePattern} {
+  variable OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES
+  set pos [lsearch -regexp $OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES  \
+                              $wndTitlePattern]
+  return  [expr { ($pos >= 0)? 1 : 0 }]
+}
+
+
+proc ::ok_twapi::add_known_related_window_title_pattern {wndTitlePattern} {
+  variable OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES
+  if { ![is_known_related_window_title_pattern $wndTitlePattern] }   {
+    lappend  OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES  $wndTitlePattern
+  }
+}
+
+proc ::ok_twapi::del_known_related_window_title_pattern {wndTitlePattern} {
+  variable OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES
+  set pos [lsearch -regexp $OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES  \
+                              $wndTitlePattern]
+  if { $pos >= 0  }   {
+    lreplace  $OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES $pos $pos
+  }
+}
+
+
 # Returns 1 if the current foreground window is the controlled app top or its descendant
 proc ::ok_twapi::is_current_window_related {} {
   variable APP_NAME
@@ -220,7 +246,17 @@ proc ::ok_twapi::is_current_window_related {} {
     return  0;  # warning already printed
   }
   set h [twapi::get_foreground_window];  set txt [twapi::get_window_text $h]
-  set isIt [expr {($h == $HWND) || ($h == $LATEST_APP_WND)}]  
+  set appOfWnd  [twapi::get_window_application $h]
+  set appOfMain [twapi::get_window_application $HWND]
+  set appOfLast [twapi::get_window_application $LATEST_APP_WND]
+  set isIt [expr {                                            \
+    ($h == $HWND) || ($h == $LATEST_APP_WND) ||               \
+    ($appOfWnd == $appOfMain) || ($appOfWnd == $appOfLast)    }]
+  # TODO: think abput checking 'get_owner_window' and/or 'get_parent_window'
+  if { !$isIt && [is_known_related_window_title_pattern $txt] }   {
+    puts "-D- Window '$txt' ($h) considered  belonging to $APP_NAME application based on known title pattern"
+    set isIt 1
+  }
   set doesOrNot [expr {$isIt ?  "does" : "does not"}]
   # puts "-D- Window '$txt' $doesOrNot belong to SPM application"
   puts "-D- Window '$txt' ($h) $doesOrNot belong to $APP_NAME application"
@@ -384,12 +420,20 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd respKeySeqInOut descr \
                                              errPatternList isAbortRequested}  {
   upvar $respKeySeqInOut    respKeySeq
   upvar $isAbortRequested abortRequested
-  set st [twapi::get_window_style $hwnd]
-  puts "-D- Checking window '[twapi::get_window_text $hwnd]' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response-key-seq={$respKeySeq})"
+  set winTxt  [twapi::get_window_text $hwnd]
+  set st      [twapi::get_window_style $hwnd]
+  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response-key-seq={$respKeySeq})"
   #ok_twapi::abort_if_key_pressed "q"
   if { $respKeySeq == $ok_twapi::OK_TWAPI__ABORT_ON_THIS_POPUP }  {
-    puts "-E- Window '[twapi::get_window_text $hwnd]' at pass #$pass triggers abort of processing popups for $descr"
-    set abortRequested 1;   return  1
+    puts "-E- Window '$winTxt' requests abort of processing popups for $descr; will wait 10 sec to let it disappear"
+    # wait some time for the window to disappear...
+    after 10000
+    if { "" !=  [::twapi::find_windows -single -match string -text $winTxt] } {
+      puts "-E- Window '$winTxt' triggers abort of processing popups for $descr"
+      set abortRequested 1;   return  1
+    }
+    puts "-I- Window '$winTxt' disappeared by itself during processing popups for $descr"
+    return  1  ; # count as a success
   }
   # first(!) check for error message in any child window
   if { "" != [set errResponseSeq [_is_error_popup $hwnd $errPatternList]] }  {

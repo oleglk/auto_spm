@@ -57,7 +57,7 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
   }
   if { ![ok_twapi::verify_singleton_running $INTERLACE] } { return  0 }
 
-  set errCnt 0; set lastGoodOutPathOrZero 0
+  set errCnt 0; set lastGoodInpPathOrZero 0
   puts "-I- Begin: $INTERLACE for $nPairs stereopair(s)"
   foreach imgPath $inpPathList {
     # open and drive "Create Lenticular Image" dialog for each image
@@ -67,6 +67,7 @@ proc ::spm::interlace_listed_stereopairs_at_integer_lpi {inpType inpPathList   \
       set lastGoodInpPathOrZero  $imgPath
     } else {
       incr errCnt 1;  # error already printed
+      set lastGoodInpPathOrZero  0
     }
     #return  1;  #OK_TMP
     # TODO?
