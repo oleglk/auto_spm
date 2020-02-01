@@ -697,6 +697,17 @@ proc ::spm::register_phase_results {phaseId badPurenamesList} {
 }
 
 
+proc ::spm::register_phase_as_invalid {phaseId} {
+  variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
+  if { $PER_PHASE_FAILED_IMG_PURENAMES == 0 }   {
+    puts "-E- spm::PER_PHASE_FAILED_IMG_PURENAMES uninitialized upon set-call for phase '$phaseId'"
+    return  0
+  }
+  dict set PER_PHASE_FAILED_IMG_PURENAMES $phaseId [list "***WHOLE-PHASE-INVALID***"]
+  return  1
+}
+
+
 proc ::spm::get_phase_errors {phaseId} {
   variable PER_PHASE_FAILED_IMG_PURENAMES;  # dict of phase-id :: list-of-failed-images
   if { $PER_PHASE_FAILED_IMG_PURENAMES == 0 }   {
@@ -707,7 +718,12 @@ proc ::spm::get_phase_errors {phaseId} {
     puts "-E- Missing error data for phase '$phaseId'; this phase may not have been run"
     return  "ERROR"
   }
-  return  [dict get $PER_PHASE_FAILED_IMG_PURENAMES $phaseId]
+  set badPurenamesList [dict get $PER_PHASE_FAILED_IMG_PURENAMES $phaseId]
+  if { $badPurenamesList == [list "***WHOLE-PHASE-INVALID***"] }  {
+    puts "-E- Total failure of phase '$phaseId'; this phase may have lacked inputs"
+    return  "ERROR"
+  }
+  return  $badPurenamesList
 }
 
 
