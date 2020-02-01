@@ -14,7 +14,8 @@ namespace eval ::ok_twapi:: {
   variable APP_NAME
   variable APP_TOPWND_TITLE
   
-  variable OK_TWAPI__ABORT_ON_THIS_POPUP  "OK_TWAPI__ABORT_ON_THIS_POPUP"
+  # pseudo response telling to wait for disappearance, then abort
+  variable OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP "OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP"
 
   variable OK_TWAPI__APPLICATION_RELATED_WINDOW_TITLES [list]
   
@@ -424,8 +425,8 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd respKeySeqInOut descr \
   set st      [twapi::get_window_style $hwnd]
   puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response-key-seq={$respKeySeq})"
   #ok_twapi::abort_if_key_pressed "q"
-  if { $respKeySeq == $ok_twapi::OK_TWAPI__ABORT_ON_THIS_POPUP }  {
-    puts "-E- Window '$winTxt' requests abort of processing popups for $descr; will wait 10 sec to let it disappear"
+  if { $respKeySeq == $ok_twapi::OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP }  {
+    puts "-I- Window '$winTxt' requests wait-then-abort of processing popups for $descr; will wait 10 sec to let it disappear"
     # wait some time for the window to disappear...
     after 10000
     if { "" !=  [::twapi::find_windows -single -match string -text $winTxt] } {
