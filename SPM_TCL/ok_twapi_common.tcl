@@ -331,6 +331,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   set cbFired 0
   set abortRequested 0
   set cntGood 0;  set cntBad 0
+  puts "-D- \n\n ==== respond_to_popup_windows_based_on_text ===========\n{$winTextPatternToResponseKeySeq}\n==========================="
   #~ set maxIdleTimeSec [expr {                                                   \
                         #~ ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
                          #~ $maxIdleTimeCbNotFiredSec : $maxIdleTimeCbFiredSec}]
@@ -365,6 +366,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     ## Pick the 1st (or the only) window, respond and continue unless aborted
     set hwnd [lindex [dict keys $winToListOfResponses] 0]
     set respList [dict get $winToListOfResponses $hwnd]; # should have element(s)
+    puts "-D- Responses to window '[twapi::get_window_text $hwnd]': {$respList}"
     set keySeq [lsearch -inline -regexp  $respList  {.+}]; # 1st non-empty or ""
     # respond to the picked window and continue
     set respOK [_respond_to_given_popup_window $hwnd keySeq $descr \

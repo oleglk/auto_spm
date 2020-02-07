@@ -1,7 +1,7 @@
 # spm_basics.tcl  - basic procedures for automating StereoPhotoMaker
 
 # Assumes option 'Startup with its window maximised'
-# Assumes option 'Do not save report files'
+# ??NO-MORE??  Assumes option 'Do not save report files'
 
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # YogaBook
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # MIIX-320
@@ -762,6 +762,10 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
   # name of settings' file is the same as action templates' name
   # load settings' template - everything but directory paths
   set templatePath [file join $::SPM_SETTINGS_TEMPLATES_DIR $cfgName]
+  if { ![file exists $templatePath] } {
+    puts "-E- Missing settings template file '$templatePath'"
+    return  "";  # need to abort
+  }
   if { 0 == [ok_utils::ini_file_to_ini_arr $templatePath iniArr] }  {
     return  "";  # need to abort; error already printed
   }
@@ -916,7 +920,7 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
   set firstIter 1
   set maxVerifyAttempts 3;  # TODO:? ? safe is 15 ?
   for  {set attempts $maxVerifyAttempts}  {$attempts > 0}  {incr attempts -1}  {
-    if { ! $firstIter }   { after 2000;   set firstIter 0 }
+    if { $firstIter }   { after 2000;   set firstIter 0 }
     # some of the known titles may pop up before start of multi-conversion
     foreach title $knownPopupTitles  {
       if { 0 != [llength [set stList [::twapi::find_windows \

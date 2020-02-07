@@ -54,6 +54,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirForRegexp]    "y" \
     "Confirm Conversion Start"          "y" \
+    "Do you want to use the previous report files"  "n" \
     {.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
@@ -122,10 +123,10 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-# Example: (for DC101)  ::spm::cmd__window_crop_all  SBS  527  -10.0  208 356  1372 1908
+# Example: (for DC101)  ::spm::cmd__window_crop_gamma_all  SBS  527  -10.0  208 356  1372 1908   80 80
 # !!! Note, rotation-angle here should be x10 of that of SPM easy-adjustment !!!
-proc ::spm::cmd__window_crop_all {inpType horizPos rotAngle \
-                                  left top right bottom} {
+proc ::spm::cmd__window_crop_gamma_all {inpType horizPos rotAngle \
+                                  left top right bottom gammaL gammaR} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is currently supported"
     return  0
@@ -141,8 +142,8 @@ proc ::spm::cmd__window_crop_all {inpType horizPos rotAngle \
 
   # Output directory name is hardcoded inside 'settingsModifierCB'
   #   AND should be 'SUBDIR_SBS'
-  if { "" == [set cfgPath [_prepare_settings__window_crop_all $inpType \
-                            $horizPos $rotAngle $left $top $right $bottom]] }  {
+  if { "" == [set cfgPath [_prepare_settings__window_crop_gamma_all $inpType \
+            $horizPos $rotAngle $left $top $right $bottom $gammaL $gammaR]] }  {
     return  0;  # need to abort; error already printed
   }
  
@@ -159,7 +160,7 @@ proc ::spm::cmd__window_crop_all {inpType horizPos rotAngle \
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-# Example:  spm::cmd__adjust_all SBS [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop__sbs.mcv}] "Pre" "SBS"
+# Example:  spm::cmd__adjust_all SBS [file normalize {D:\DC_TMP\TRY_AUTO\DC101\290919__Glen_Mini3D\CONFIG\window_crop_gamma__sbs.mcv}] "Pre" "SBS"
 proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is currently supported"
@@ -399,33 +400,44 @@ proc ::spm::_align_all__SettingsModifierCB {inpType iniArrName}  {
 
 # Builds INI file with settings for window-and-crop-all action
 # Returns new CFG file path on success, "" on error.
-proc ::spm::_prepare_settings__window_crop_all {inpType \
-                                    horizPoz rotAngle left top right bottom}  {
+proc ::spm::_prepare_settings__window_crop_gamma_all {inpType \
+                      horizPoz rotAngle left top right bottom gammaL gammaR}  {
   # name of settings' file is the same as action templates' name
-  set cfgName [format "window_crop_%s.mcv" [string tolower $inpType]]
+  set cfgName [format "window_crop_gamma_%s.mcv" [string tolower $inpType]]
   set paramDict [dict create                                                  \
         "Position_H"        $horizPoz                                         \
         "Rotation_Angle"    $rotAngle                                         \
-        "CropCoords_LTRB"   [list $left $top $right $bottom] ]
+        "CropCoords_LTRB"   [list $left $top $right $bottom]                  \
+        "Gammma_L"          $gammaL                                           \
+        "Gammma_R"          $gammaR                                           ]
   
-  return  [spm::_make_settings_file_from_template $inpType $cfgName         \
-                      "::spm::_window_rotate_crop_all__SettingsModifierCB"  \
-                      "window-rotate-and-crop-all" $paramDict]
+  return  [spm::_make_settings_file_from_template $inpType $cfgName           \
+                  "::spm::_window_rotate_crop_gamma_all__SettingsModifierCB"  \
+                  "window-rotate-and-crop-all" $paramDict]
 }
 
 
-proc ::spm::_window_rotate_crop_all__SettingsModifierCB {inpType iniArrName \
-                                                         posAndCoordDict}  {
+proc ::spm::_window_rotate_crop_gamma_all__SettingsModifierCB {inpType      \
+                                                iniArrName posCoordGammaDict}  {
   # TODO: take 'inpType' into consideration
   upvar $iniArrName iniArr
-  set horizPoz  [dict get $posAndCoordDict "Position_H"]
-  set rotAngle  [dict get $posAndCoordDict "Rotation_Angle"]
-  set coordList [dict get $posAndCoordDict "CropCoords_LTRB"]
+  set horizPoz  [dict get $posCoordGammaDict "Position_H"]
+  set rotAngle  [dict get $posCoordGammaDict "Rotation_Angle"]
+  set coordList [dict get $posCoordGammaDict "CropCoords_LTRB"]
+  set gammaL  [dict get $posCoordGammaDict   "Gammma_L"]
+  set gammaR  [dict get $posCoordGammaDict   "Gammma_R"]
   set iniArr(-\[Data\]__ValueAlignOn)       1
   set iniArr(-\[Data\]__ValueAlignOn)       1
   set iniArr(-\[Data\]__Rotation_L)         $rotAngle
   set iniArr(-\[Data\]__Rotation_R)         $rotAngle
   set iniArr(-\[Data\]__Position_H)         $horizPoz
+  set iniArr(-\[Data\]__Gamma_L)            $gammaL
+  set iniArr(-\[Data\]__Gamma_R)            $gammaR
+  if { ($gammaL != 100) || ($gammaR != 100) }   {
+    set iniArr(-\[Data\]__GammaOn)          1
+  } else {
+    set iniArr(-\[Data\]__GammaOn)          0
+  }
   # run the callback for pure crop - it will set both crop coords and output dir
   return  [_crop_all__SettingsModifierCB $inpType iniArr $coordList]
 }
