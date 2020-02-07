@@ -297,7 +297,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     # popup processing had errors, but maybe some were confirmed by 2nd attempt
     if { 0 == [spm::_is_multiconversion_most_likely_finished \
                     [dict keys $winTextPatternToResponseKeySeq] $numThreads] } {
-      ::ok_utils::pause
+      puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
       return  0;  # error already printed
     }
     puts "-I- Though popup processing had errors, multiconversion appears to be finished; allowed to proceed"
@@ -311,7 +311,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   set pollPeriodSec 10
   if { 0 == [_wait_for_end_of_multiconversion   $numThreads \
                                         $timeWaitSec $pollPeriodSec $hMC1] }  {
-    ::ok_utils::pause
+    puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
     return  0;  # abort; error already printed
   }
   #### End-of multi-conversion indicator did appear
@@ -328,7 +328,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
                                     value {*Exit*}]]] }  {
     if { $attempts == 0 } {
       puts "-E- No $bDescr found after finishing multi-conversion - FATAL error"
-      ::ok_utils::pause
+      puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
       return  0
     }
     after 2000;   incr attempts -1
@@ -378,7 +378,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   }
   if { $attempts == 0 }   {
     puts "-E- Failed closing 'Multi Conversion' window(s); [llength $mcList] left"
-    ::ok_utils::pause
+    puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
     return  0;  # abort
   }
   puts "-I- Success closing 'Multi Conversion' window(s)"
