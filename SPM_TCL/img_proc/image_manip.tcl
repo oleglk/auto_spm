@@ -18,15 +18,18 @@ namespace eval ::img_proc:: {
 }
 
 # DO NOT for utils:  set SCRIPT_DIR [file dirname [info script]]
-# DO NOT in 'auto_spm': package require ok_utils; namespace import -force ::ok_utils::*
+
 
 set IMGPROC_DIR [file dirname [info script]]
-ok_trace_msg "---- Sourcing '[info script]' in '$IMGPROC_DIR' ----"
-source [file join $UTIL_DIR "image_metadata.tcl"]
-set UTIL_DIR [file join $IMGPROC_DIR ".." "ok_utils"]
+set UTIL_DIR    [file join $IMGPROC_DIR ".." "ok_utils"]
 source [file join $UTIL_DIR "debug_utils.tcl"]
-source [file join $UTIL_DIR "common.tcl"]
 
+ok_utils::ok_trace_msg "---- Sourcing '[info script]' in '$IMGPROC_DIR' ----"
+source [file join $UTIL_DIR "common.tcl"]
+source [file join $IMGPROC_DIR "image_metadata.tcl"]
+
+# DO NOT in 'auto_spm': package require ok_utils; 
+namespace import -force ::ok_utils::*
 
 # Rotates and/or crops image 'imgPath';
 #   if 'buDir' given, the original image placed into it (unless already there).
@@ -113,8 +116,12 @@ proc ::img_proc::compute_max_crop_for_width_height {wd ht cropRatio \
 # EXIF orientation tag is ignored!
 # 'bgColor' tells background color - in IM covention
 # 'imSaveParams' tells output compression and quality; should match input type.
+## Example:   ::img_proc::fine_rotate_crop_one_img "DSC02355.JPG" 5.5 darkgray "-quality 98"  "BU"
 proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
                                       bgColor imSaveParams {buDir ""}} {
+  if { ![info exists ::_IMMOGRIFY] }  {
+    set ::_IMMOGRIFY [file join $::IM_DIR "mogrify.exe"]
+  }
   set imgName [file tail $imgPath]
   if { $buDir != "" } {
     if { 0 == [ok_create_absdirs_in_list [list $buDir]] }  {
@@ -135,15 +142,15 @@ proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
   # -extent replaces -crop; see http://www.imagemagick.org/Usage/crop/ :
   ##    "... the Extent Operator is simply a straight forward Crop
   ##         with background padded fill, regardless of position. ... "
-  set cropSwitches [format "-gravity center -extent %dx%d+0+0" $rcpWd $rcpHt]
-  ok_info_msg "Start rotating and/or cropping '$imgPath' (rotation=$rotAngle, new-width=$rcpWd, new-height=$rcpHt) ..."
-  set cmdListRotCrop [concat $::_IMMOGRIFY  -background $bgColor            \
+  set cropSwitches [format "-gravity center -extent %dx%d+0+0" $width $height]
+  ok_info_msg "Start rotating and cropping '$imgPath' (rotation=$rotAngle, width=$width, height=$height) ..."
+  set cmdListRotCrop [concat [list "$::_IMMOGRIFY"]  -background $bgColor   \
                         $rotateSwitches  +repage  $cropSwitches    +repage  \
                         $imSaveParams  $imgPath]
   if { 0 == [ok_run_silent_os_cmd $cmdListRotCrop] }  {
     return  0; # error already printed
   }
 
-	ok_info_msg "Done rotating and/or cropping '$imgPath'"
+	ok_info_msg "Done rotating and cropping '$imgPath'"
   return  1
 }

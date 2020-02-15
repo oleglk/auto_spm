@@ -6,6 +6,7 @@ set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "inifile.tcl"]
 source [file join $SCRIPT_DIR "ok_utils" "disk_info.tcl"]
 source [file join $SCRIPT_DIR "ok_twapi_common.tcl"]
+source [file join $SCRIPT_DIR "ext_tools.tcl"]
 source [file join $SCRIPT_DIR "spm_tabstops_def.tcl"]
 source [file join $SCRIPT_DIR "spm_basics.tcl"]
 source [file join $SCRIPT_DIR "spm_interlace.tcl"]
@@ -15,6 +16,13 @@ namespace eval ::spm:: {
   variable EX_PRINT_DPI   300
   variable EX_PRINT_WD    400
 }
+
+
+if { 0 == [set_ext_tool_paths_from_csv \
+                      [file join $env(HOME) "dualcam__ext_tool_dirs.csv"]] }   {
+  return;  # error already printed
+}
+
 
 proc ::spm::ex__YOGABOOK_full_pp_dc101 {{centerBias -144}}  {
   source c:/Oleg/Work/mini3d/Mini3D_TCL/auto_postproc.tcl

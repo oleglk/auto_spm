@@ -22,13 +22,18 @@ namespace eval ::img_proc:: {
 }
 
 # DO NOT for utils:  set SCRIPT_DIR [file dirname [info script]]
-# DO NOT in 'auto_spm': package require ok_utils;   namespace import -force ::ok_utils::*
-
 set IMGPROC_DIR [file dirname [info script]]
-ok_trace_msg "---- Sourcing '[info script]' in '$IMGPROC_DIR' ----"
-set UTIL_DIR [file join $IMGPROC_DIR ".." "ok_utils"]
+set UTIL_DIR    [file join $IMGPROC_DIR ".." "ok_utils"]
 source [file join $UTIL_DIR "debug_utils.tcl"]
+
+ok_utils::ok_trace_msg "---- Sourcing '[info script]' in '$IMGPROC_DIR' ----"
 source [file join $UTIL_DIR "common.tcl"]
+
+
+# DO NOT in 'auto_spm': package require ok_utils; 
+namespace import -force ::ok_utils::*
+
+
 
 ################################################################################
 ## (DOES NOT WORK:) To obtain the list of available EXIF attributes, run:
@@ -286,6 +291,9 @@ proc ::img_proc::get_image_attributes_by_imagemagick {fullPath \
   upvar $width wd
   upvar $height ht
   upvar $comment cm
+  if { ![info exists ::_IMIDENTIFY] }  {
+    set ::_IMIDENTIFY [file join $::IM_DIR "identify.exe"]
+  }
   if { ![file exists $fullPath] || ![file isfile $fullPath] } {
     ok_err_msg "Invalid image path '$fullPath'"; # always print unexpected error
 	  return  0
