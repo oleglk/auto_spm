@@ -292,7 +292,7 @@ proc ::img_proc::get_image_attributes_by_imagemagick {fullPath \
   upvar $height ht
   upvar $comment cm
   if { ![info exists ::_IMIDENTIFY] }  {
-    set ::_IMIDENTIFY [file join $::IM_DIR "identify.exe"]
+    set ::_IMIDENTIFY [file join $::_IM_DIR "identify.exe"]
   }
   if { ![file exists $fullPath] || ![file isfile $fullPath] } {
     ok_err_msg "Invalid image path '$fullPath'"; # always print unexpected error

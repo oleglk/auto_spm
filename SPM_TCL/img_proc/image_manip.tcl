@@ -1,8 +1,8 @@
 # image_manip.tcl
 # Copyright (C) 2016-2020 by Oleg Kosyakovsky
 
-# set ::IM_DIR "C:/Program Files (x86)/ImageMagick-7.0.8-20";   set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];    # YogaBook
-# set ::IM_DIR "C:/program Files/ImageMagick-6.7.1-Q16";  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];    # Win7DT
+# set ::_IM_DIR "C:/Program Files (x86)/ImageMagick-7.0.8-20";   set ::_SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];    # YogaBook
+# set ::_IM_DIR "C:/program Files/ImageMagick-6.7.1-Q16";  set ::_SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];    # Win7DT
 
 global OK_TCLSRC_ROOT
 if { [info exists OK_TCLSRC_ROOT] } {;   # assume running as a part of LazyConv
@@ -120,7 +120,7 @@ proc ::img_proc::compute_max_crop_for_width_height {wd ht cropRatio \
 proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
                                       bgColor imSaveParams {buDir ""}} {
   if { ![info exists ::_IMMOGRIFY] }  {
-    set ::_IMMOGRIFY [file join $::IM_DIR "mogrify.exe"]
+    set ::_IMMOGRIFY [file join $::_IM_DIR "mogrify.exe"]
   }
   set imgName [file tail $imgPath]
   if { $buDir != "" } {

@@ -50,17 +50,17 @@ proc set_ext_tool_paths_from_csv {csvPath}  {
 # then assigns ultimate tool paths
 proc _set_ext_tool_paths_from_variables {srcDescr}  {
   unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL
-  if { 0 == [info exists ::IM_DIR] }  {
+  if { 0 == [info exists ::_IM_DIR] }  {
     ok_err_msg "Imagemagick directory path not assigned to variable _IM_DIR; $srcDescr"
     return  0
   }
-  set ::_IMCONVERT  [format "{%s}"  [file join $::IM_DIR "convert.exe"]]
-  set ::_IMIDENTIFY [format "{%s}"  [file join $::IM_DIR "identify.exe"]]
-  set ::_IMMONTAGE  [format "{%s}"  [file join $::IM_DIR "montage.exe"]]
+  set ::_IMCONVERT  [format "{%s}"  [file join $::_IM_DIR "convert.exe"]]
+  set ::_IMIDENTIFY [format "{%s}"  [file join $::_IM_DIR "identify.exe"]]
+  set ::_IMMONTAGE  [format "{%s}"  [file join $::_IM_DIR "montage.exe"]]
   # - DCRAW:
   # unless ::_DCRAW_PATH points to some custom executable, point at the default
   if { (![info exists ::_DCRAW_PATH]) || (""== [string trim $::_DCRAW_PATH]) } {
-    set ::_DCRAW      [format "{%s}"  [file join $::IM_DIR "dcraw.exe"]]
+    set ::_DCRAW      [format "{%s}"  [file join $::_IM_DIR "dcraw.exe"]]
   } else {
     ok_info_msg "Custom dcraw path specified; $srcDescr"
     set ::_DCRAW      [format "{%s}"  $::_DCRAW_PATH]
@@ -92,8 +92,8 @@ proc is_dcraw_result_ok {execResultText} {
 
 proc verify_external_tools {} {
   set errCnt 0
-  if { 0 == [file isdirectory $::IM_DIR] }  {
-    ok_err_msg "Inexistent or invalid Imagemagick directory '$::IM_DIR'"
+  if { 0 == [file isdirectory $::_IM_DIR] }  {
+    ok_err_msg "Inexistent or invalid Imagemagick directory '$::_IM_DIR'"
     incr errCnt 1
   }
   if { 0 == [file exists [string trim $::_IMCONVERT " {}"]] }  {

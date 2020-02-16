@@ -586,7 +586,7 @@ proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
   }
   # Example:
   # exec "$::IM_DIR/convert.exe" FIXED/SBS/2019_0929_133733_001.TIF  -crop 50%x100% +repage  -compress LZW fixed/SBS/LR/TMP_FRAME%02d.TIF
-  set IMCONVERT [file join $::IM_DIR "convert.exe"]
+  set IMCONVERT [file join $::_IM_DIR "convert.exe"]
   set nameBase [file rootname [file tail $inpPath]]
   set outPath  [file join $outDirPath "$nameBase%02d.TIF"]
   set cmdList [list "$IMCONVERT" [file nativename $inpPath]  -crop 50%x100% \
