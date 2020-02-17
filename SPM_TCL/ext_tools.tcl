@@ -37,7 +37,7 @@ ok_trace_msg "---- Sourcing '[info script]' in '$SCRIPT_DIR' ----"
 # Reads the system-dependent paths from 'csvPath',
 # then assigns ultimate tool paths
 proc set_ext_tool_paths_from_csv {csvPath}  {
-  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL
+  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL ::SPM
   if { 0 == [ok_read_variable_values_from_csv \
                                       $csvPath "external tool path(s)"]} {
     return  0;  # error already printed
