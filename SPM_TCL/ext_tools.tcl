@@ -49,12 +49,13 @@ proc set_ext_tool_paths_from_csv {csvPath}  {
 # Reads the system-dependent paths from their global variables,
 # then assigns ultimate tool paths
 proc _set_ext_tool_paths_from_variables {srcDescr}  {
-  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL
+  unset -nocomplain ::_IMCONVERT ::_IMMOGRIFY ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL
   if { 0 == [info exists ::_IM_DIR] }  {
     ok_err_msg "Imagemagick directory path not assigned to variable _IM_DIR; $srcDescr"
     return  0
   }
   set ::_IMCONVERT  [format "{%s}"  [file join $::_IM_DIR "convert.exe"]]
+  set ::_IMMOGRIFY  [format "{%s}"  [file join $::_IM_DIR "mogrify.exe"]]
   set ::_IMIDENTIFY [format "{%s}"  [file join $::_IM_DIR "identify.exe"]]
   set ::_IMMONTAGE  [format "{%s}"  [file join $::_IM_DIR "montage.exe"]]
   # - DCRAW:
@@ -98,6 +99,10 @@ proc verify_external_tools {} {
   }
   if { 0 == [file exists [string trim $::_IMCONVERT " {}"]] }  {
     ok_err_msg "Inexistent ImageMagick 'convert' tool '$::_IMCONVERT'"
+    incr errCnt 1
+  }
+  if { 0 == [file exists [string trim $::_IMMOGRIFY " {}"]] }  {
+    ok_err_msg "Inexistent ImageMagick 'convert' tool '$::_IMMOGRIFY'"
     incr errCnt 1
   }
   if { 0 == [file exists [string trim $::_IMIDENTIFY " {}"]] }  {

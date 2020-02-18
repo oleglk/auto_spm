@@ -55,7 +55,7 @@ proc ::spm::cmd__align_all {inpType reuseAlignData} {
     [format {^%s$} $outDirForRegexp]    "y" \
     "Confirm Conversion Start"          "y" \
     "Do you want to use the previous report files"  "n" \
-    {.alv$}                             "y" \
+    {\.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
     [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
     {^Attention}                        "{SPACE}" \
@@ -103,7 +103,7 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   set winTextPatternToResponseKeySeq [dict create \
     [format {^%s$} $outDirForRegexp]    "y" \
     "Confirm Conversion Start"          "y" \
-    {.alv$}                             "y" \
+    {\.alv$}                             "y" \
     [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
     [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
     [format {%s.*\.jpg$} $SUBDIR_PRE]   "" \

@@ -115,20 +115,22 @@ proc ::img_proc::compute_max_crop_for_width_height {wd ht cropRatio \
 # 'rotAngle' is floatng-point; positive means clockwise.
 # EXIF orientation tag is ignored!
 # 'bgColor' tells background color - in IM covention
+# 'outNameSuffix' (unless empty string) is appended to the input-image purename
 # 'imSaveParams' tells output compression and quality; should match input type.
-## Example:   ::img_proc::fine_rotate_crop_one_img "DSC02355.JPG" 5.5 darkgray "-quality 98"  "BU"
+## Example:   ::img_proc::fine_rotate_crop_one_img "DSC02355.JPG" 5.5 darkgray  "_r"  "-quality 98"  "BU"
 proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
-                                      bgColor imSaveParams {buDir ""}} {
-  if { ![info exists ::_IMMOGRIFY] }  {
-    set ::_IMMOGRIFY [file join $::_IM_DIR "mogrify.exe"]
-  }
+                                bgColor outNameSuffix imSaveParams {buDir ""}} {
+  #~ if { ![info exists ::_IMMOGRIFY] }  {
+    #~ set ::_IMMOGRIFY [file join $::_IM_DIR "mogrify.exe"]
+  #~ }
   set imgName [file tail $imgPath]
   if { $buDir != "" } {
     if { 0 == [ok_create_absdirs_in_list [list $buDir]] }  {
       ok_err msg "Failed creating backup directory '$buDir'"
       return  0
     }
-    if { 0 == [ok_copy_file_if_target_inexistent $imgPath $buDir 0] }  {
+    if { ($outNameSuffix != "") &&                                  \
+          (0 == [ok_copy_file_if_target_inexistent $imgPath $buDir 0]) }  {
       return 0;   # error already printed
     }
   }
@@ -144,9 +146,17 @@ proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
   ##         with background padded fill, regardless of position. ... "
   set cropSwitches [format "-gravity center -extent %dx%d+0+0" $width $height]
   ok_info_msg "Start rotating and cropping '$imgPath' (rotation=$rotAngle, width=$width, height=$height) ..."
-  set cmdListRotCrop [concat [list "$::_IMMOGRIFY"]  -background $bgColor   \
-                        $rotateSwitches  +repage  $cropSwitches    +repage  \
-                        $imSaveParams  $imgPath]
+  if { $outNameSuffix != "" }   {
+    set outPath [ok_insert_suffix_into_filename $imgPath $outNameSuffix]
+    set cmdListRotCrop [concat $::_IMCONVERT  $imgPath  -background $bgColor   \
+                          $rotateSwitches  +repage  $cropSwitches    +repage  \
+                          $imSaveParams  $outPath]
+  } else {
+    set cmdListRotCrop [concat $::_IMMOGRIFY  -background $bgColor   \
+                          $rotateSwitches  +repage  $cropSwitches    +repage  \
+                          $imSaveParams  $imgPath]
+  }
+  
   if { 0 == [ok_run_silent_os_cmd $cmdListRotCrop] }  {
     return  0; # error already printed
   }
