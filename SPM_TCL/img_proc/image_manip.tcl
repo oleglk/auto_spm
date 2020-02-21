@@ -15,6 +15,7 @@ namespace eval ::img_proc:: {
     namespace export                          \
       rotate_crop_one_img                     \
       compute_max_crop_for_width_height       \
+      fine_rotate_crop_one_img                \
 }
 
 # DO NOT for utils:  set SCRIPT_DIR [file dirname [info script]]
