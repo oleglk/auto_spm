@@ -118,18 +118,20 @@ proc ::img_proc::compute_max_crop_for_width_height {wd ht cropRatio \
 # 'bgColor' tells background color - in IM covention
 # 'outNameSuffix' (unless empty string) is appended to the input-image purename
 # 'imSaveParams' tells output compression and quality; should match input type.
-## Example-1:   ::img_proc::fine_rotate_crop_one_img "DSC02355.JPG" 5.5 darkgray  "_r"  "-quality 98"  "BU"
-## Example-2 (many):  for {set angle -2.0} {$angle < 2.0} {set angle [expr $angle + 0.1]}  { set suff [string map {. d} [format {_%05.2f} $angle]];  ::img_proc::fine_rotate_crop_one_img "rotest_2560x1600x300.tif" $angle darkgray  $suff  "-quality 98"  "BU"  }
+## Example-1:   ::img_proc::fine_rotate_crop_one_img "DSC02355.JPG" 5.5 darkgray  "_r"  "-quality 98" "."  "BU"
+## Example-2 (many):  for {set angle -2.0} {$angle < 2.0} {set angle [expr $angle + 0.1]}  { set suff [string map {. d} [format {_%05.2f} $angle]];  ::img_proc::fine_rotate_crop_one_img "rotest_2560x1600x300.tif" $angle darkgray  $suff  "-quality 98"  "." "BU"  }
 proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
-                                bgColor outNameSuffix imSaveParams {buDir ""}} {
+                                bgColor outNameSuffix imSaveParams outDir {buDir ""}} {
   #~ if { ![info exists ::_IMMOGRIFY] }  {
     #~ set ::_IMMOGRIFY [file join $::_IM_DIR "mogrify.exe"]
   #~ }
   set imgName [file tail $imgPath]
+  if { 0 == [ok_create_absdirs_in_list [list $outDir]] }  {
+    ok_err msg "Failed creating output directory '$outDir'";    return  0
+  }
   if { $buDir != "" } {
     if { 0 == [ok_create_absdirs_in_list [list $buDir]] }  {
-      ok_err msg "Failed creating backup directory '$buDir'"
-      return  0
+      ok_err msg "Failed creating backup directory '$buDir'";   return  0
     }
     if { ($outNameSuffix != "") &&                                  \
           (0 == [ok_copy_file_if_target_inexistent $imgPath $buDir 0]) }  {
@@ -147,9 +149,11 @@ proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
   ##    "... the Extent Operator is simply a straight forward Crop
   ##         with background padded fill, regardless of position. ... "
   set cropSwitches [format "-gravity center -extent %dx%d+0+0" $width $height]
+  set inpDir [file dirname $imgPath]
   ok_info_msg "Start rotating and cropping '$imgPath' (rotation=$rotAngle, width=$width, height=$height) ..."
-  if { $outNameSuffix != "" }   {
-    set outPath [ok_insert_suffix_into_filename $imgPath $outNameSuffix]
+  if { ($outNameSuffix != "") || ![ok_dirpath_equal $inpDir $outDir] }   {
+    set outPath [file join $outDir \
+          [file tail [ok_insert_suffix_into_filename $imgPath $outNameSuffix]]]
     set cmdListRotCrop [concat $::_IMCONVERT  $imgPath  -background $bgColor   \
                           $rotateSwitches  +repage  $cropSwitches    +repage  \
                           $imSaveParams  $outPath]
