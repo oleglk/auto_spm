@@ -119,7 +119,8 @@ proc ::img_proc::compute_max_crop_for_width_height {wd ht cropRatio \
 # 'outNameSuffix' (unless empty string) is appended to the input-image purename
 # 'imSaveParams' tells output compression and quality; should match input type.
 ## Example-1:   ::img_proc::fine_rotate_crop_one_img "DSC02355.JPG" 5.5 darkgray  "_r"  "-quality 98" "."  "BU"
-## Example-2 (many):  for {set angle -2.0} {$angle < 2.0} {set angle [expr $angle + 0.1]}  { set suff [string map {. d} [format {_%05.2f} $angle]];  ::img_proc::fine_rotate_crop_one_img "rotest_2560x1600x300.tif" $angle darkgray  $suff  "-quality 98"  "." "BU"  }
+## Example-2 (many angles):  for {set angle -2.0} {$angle < 2.0} {set angle [expr $angle + 0.1]}  { set suff [string map {. d} [format {_%05.2f} $angle]];  ::img_proc::fine_rotate_crop_one_img "rotest_2560x1600x300.tif" $angle darkgray  $suff  "-quality 98"  "." "BU"  }
+## Example-3 (many files):  foreach f [glob -nocomplain "*.jpg"] {::img_proc::fine_rotate_crop_one_img $f  0.19  darkgray "" "-quality 98"  "." ""}
 proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
                                 bgColor outNameSuffix imSaveParams outDir {buDir ""}} {
   #~ if { ![info exists ::_IMMOGRIFY] }  {
