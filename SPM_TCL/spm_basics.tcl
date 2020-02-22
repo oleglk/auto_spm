@@ -589,7 +589,7 @@ proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
   # set _IMCONVERT [file join $::_IM_DIR "convert.exe"]
   set nameBase [file rootname [file tail $inpPath]]
   set outPath  [file join $outDirPath "$nameBase%02d.TIF"]
-  set cmdList [list "$_IMCONVERT" [file nativename $inpPath]  -crop 50%x100% \
+  set cmdList [list "$::_IMCONVERT" [file nativename $inpPath]  -crop 50%x100% \
                       +repage  -compress LZW   [file nativename $outPath]]
   if { 0 == [ok_utils::ok_run_silent_os_cmd $cmdList] }  {
     puts "-E- Failed $descr; command: {$cmdList}";    return  0
