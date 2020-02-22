@@ -155,11 +155,11 @@ proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
   if { ($outNameSuffix != "") || ![ok_dirpath_equal $inpDir $outDir] }   {
     set outPath [file join $outDir \
           [file tail [ok_insert_suffix_into_filename $imgPath $outNameSuffix]]]
-    set cmdListRotCrop [concat $::_IMCONVERT  $imgPath  -background $bgColor   \
+    set cmdListRotCrop [concat "$::_IMCONVERT"  $imgPath  -background $bgColor   \
                           $rotateSwitches  +repage  $cropSwitches    +repage  \
                           $imSaveParams  $outPath]
   } else {
-    set cmdListRotCrop [concat $::_IMMOGRIFY  -background $bgColor   \
+    set cmdListRotCrop [concat "$::_IMMOGRIFY"  -background $bgColor   \
                           $rotateSwitches  +repage  $cropSwitches    +repage  \
                           $imSaveParams  $imgPath]
   }
