@@ -565,6 +565,32 @@ proc ::ok_twapi::wait_for_window_title_to_raise__configurable { \
 }
 
 
+# Waits with active polling - configurable
+# Returns 1 on success, 0 on error.
+proc ::ok_twapi::wait_for_window_to_disappear {winHandle}  {
+  return  [wait_for_window_to_disappear__configurable $winHandle 500 20000]
+}
+
+
+# Waits with active polling - configurable
+# Returns 1 on success, 0 on error.
+proc ::ok_twapi::wait_for_window_to_disappear__configurable { \
+                                        winHandle pollPeriodMsec maxWaitMsec}  {
+  set nAttempts [expr {int( ceil(1.0 * $maxWaitMsec / $pollPeriodMsec) )}]
+  if { $nAttempts == 0 }  { set nAttempts 1 }
+  for {set i 1} {$i <= $nAttempts} {incr i 1}  {
+    if { ![twapi::window_exists $winHandle] }   {
+      puts "-D- Window '$winHandle' confirmed inexistent after [expr {$pollPeriodMsec * ($i-1)}] msec"
+      return  1
+    }
+    puts "-D- Waiting for window '$winHandle' to disappear; [expr {$pollPeriodMsec * ($nAttempts-$i+1)}] msec remaning ..."
+    after $pollPeriodMsec
+  }
+  puts "-E- Window '$winHandle' failed to disappear after [expr {$pollPeriodMsec * $nAttempts}] msec"
+  return  0
+}
+
+
 # Sends given keys while taking care of occurences of {MENU}.
 # If 'targetHwnd' given, first focuses this window
 # Returns handle of resulting window or "" on error.

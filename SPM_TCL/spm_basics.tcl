@@ -422,8 +422,11 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
  #return  "";  # OK_TMP
+  set dialogWnd [twapi::get_foreground_window]; # win of open-stereopair dialog
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
-  
+  if { 0 == [ok_twapi::wait_for_window_to_disappear $dialogWnd] }  {
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
+  }
   # react to errors if requested
   # "Open Stereo Image" is the current open dialog; wait to close before seeking popups
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $fullPath]
