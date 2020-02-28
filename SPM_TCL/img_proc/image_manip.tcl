@@ -173,6 +173,11 @@ proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
 }
 
 
+# Rolls an image vertically or horizontally by the amount given.
+# Negative 'rollHorz' == right-to-left. Negative 'rollVert' == bottom-to-top.
+# 'outNameSuffix' (unless empty string) is appended to the input-image purename
+# 'imSaveParams' tells output compression and quality; should match input type.
+## Example-1:   ::img_proc::roll_one_img "DSC02355.JPG" 70 0  "_70r"  "-quality 98" "."  "BU"
 proc ::img_proc::roll_one_img {imgPath rollHorz rollVert \
                                 outNameSuffix imSaveParams outDir {buDir ""}} {
   set imgName [file tail $imgPath]
@@ -190,24 +195,22 @@ proc ::img_proc::roll_one_img {imgPath rollHorz rollVert \
   }
   set rollSwitches [format {-roll %+d%+d} $rollHorz $rollVert]
   set inpDir [file dirname $imgPath]
-  ok_info_msg "Start rolling '$imgPath' (horizontal/vertical offset = $rollHorz/$rollVert ..."
+  set descr "rolling '$imgPath' (horizontal/vertical amount = $rollHorz/$rollVert)"
+  ok_info_msg "Start $descr ..."
   if { ($outNameSuffix != "") || ![ok_dirpath_equal $inpDir $outDir] }   {
     set outPath [file join $outDir \
           [file tail [ok_insert_suffix_into_filename $imgPath $outNameSuffix]]]
-    # TODO: IMPLEMENT
-    set cmdListRotCrop [concat "$::_IMCONVERT"  $imgPath  -background $bgColor   \
-                          $rotateSwitches  +repage  $cropSwitches    +repage  \
-                          $imSaveParams  $outPath]
+    set cmdList [concat "$::_IMCONVERT"  $imgPath   \
+                                $rollSwitches  +repage  $imSaveParams  $outPath]
   } else {
-    set cmdListRotCrop [concat "$::_IMMOGRIFY"  -background $bgColor   \
-                          $rotateSwitches  +repage  $cropSwitches    +repage  \
-                          $imSaveParams  $imgPath]
+    set cmdList [concat "$::_IMMOGRIFY"             \
+                                $rollSwitches  +repage  $imSaveParams  $imgPath]
   }
   
-  if { 0 == [ok_run_silent_os_cmd $cmdListRotCrop] }  {
+  if { 0 == [ok_run_silent_os_cmd $cmdList] }  {
     return  0; # error already printed
   }
 
-	ok_info_msg "Done rotating and cropping '$imgPath'"
+	ok_info_msg "Done $descr"
   return  1
 }
