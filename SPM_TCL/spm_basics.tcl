@@ -292,7 +292,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   # When multiconversion ends, _NEW_ window(s), both "Back" and "Exit" appear
   # (number of such windows defined by 'numThreads')
   set timeWaitSec [expr {10 * 60}]; # TODO: [expr {60 * 60}]
-  set smallWaitSec [expr {$timeWaitSec / 100.0}]
+  set smallWaitSec [expr {round($timeWaitSec / 100.0)}]
   set pollPeriodSec 2
   for {set t 0} {$t < $timeWaitSec} {incr t $smallWaitSec}  {
     puts "-I- (re)running multiconversion popup processing"
@@ -300,8 +300,8 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
             $winTextPatternToResponseKeySeq $SPM_ERR_MSGS                   \
             $pollPeriodSec 10 10 $descr                                     \
             "::spm::_is_multiconversion_most_likely_finished" $numThreads]
-    puts "-I- multiconversion popup processing returnd $pRet"
-    if { 1 == [_wait_for_end_of_multiconversion   $numThreads \
+    puts "-I- multiconversion popup processing returned $pRet"
+    if { 1 == [_wait_for_end_of_multiconversion   numThreads \
                                         $smallWaitSec $pollPeriodSec $hMC1] }  {
       puts "-I- Confirmed multiconversion end after ~$t second(s)"
       break;  # 
@@ -315,48 +315,29 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   #### End-of multi-conversion indicator did appear
   #return  999;  #OK_TMP
   
-  # Verify there exist non-original multi-conversion window(s) with "Exit" button
-  # This stage seems unnecessary; the only benefit - printing button count
-  #TODO: for some reason it sees two windows with "Exit" and sends {SPACE} to filename entry; not a big deal for now
-  set bDescr "multi-conversion windows with 'Exit' buttons"
-  set attempts 5
-  while { 0 == [dict size [set wndsWithExit                                    \
-          [dict filter                                                         \
-              [set mcWndToButtons [_find_multiconversion_buttons $hMC1]]       \
-                                    value {*Exit*}]]] }  {
-    if { $attempts == 0 } {
-      puts "-E- No $bDescr found after finishing multi-conversion - FATAL error"
-      puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
-      return  0
-    }
-    after 2000;   incr attempts -1
-    puts "-I- Found [dict size $wndsWithExit] $bDescr"
-  }
-  #return  888;  #OK_TMP
-   
-  set maxNumOfExitButtons 2;  # 1 or 2; all should be ready at this point
-  set maxAttempts [expr {3 * $maxNumOfExitButtons}]
-  # ------- Press {SPACE} at each _NEW_ "Exit" window ------
-  while { ("" != [set wndOfExit \
-                  [_find_first_multiconversion_button "Exit" $hMC1]])   &&  \
-          ($maxNumOfExitButtons > 0) && ($maxAttempts > 0) }   {
-    puts "-D- Click at 'Exit' button ($wndOfExit); attempts left: $maxAttempts"
-    if { 1 == [ok_twapi::raise_wnd_and_send_keys $wndOfExit {{SPACE}}] }  {
-      incr maxNumOfExitButtons -1
-    }
-    incr maxAttempts -1;  after 2000
-  }
-  # ------- (Breaks OS; DO NOT:) Close each _NEW_ window with "Exit" button ------
-  #~ while { ("" != [set wndWithExit \
-                #~ [_find_first_multiconversion_button_window "Exit" $hMC1]]) && \
-          #~ ($maxNumOfExitButtons > 0) }   {
-    #~ puts "-D- Close window with 'Exit' button ($wndWithExit)"
-    #~ twapi::close_window $wndWithExit
-    #~ after 2000;   incr maxNumOfExitButtons -1
+################################################################################  
+  #~ # Verify there exist non-original multi-conversion window(s) with "Exit" button
+  #~ # This stage seems unnecessary; the only benefit - printing button count
+  #~ #TODO: for some reason it sees two windows with "Exit" and sends {SPACE} to filename entry; not a big deal for now
+  #~ set bDescr "multi-conversion windows with 'Exit' buttons"
+  #~ set attempts 5
+  #~ while { 0 == [dict size [set wndsWithExit                                    \
+          #~ [dict filter                                                         \
+              #~ [set mcWndToButtons [_find_multiconversion_buttons $hMC1]]       \
+                                    #~ value {*Exit*}]]] }  {
+    #~ if { $attempts == 0 } {
+      #~ puts "-E- No $bDescr found after finishing multi-conversion - FATAL error"
+      #~ puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
+      #~ return  0
+    #~ }
+    #~ after 2000;   incr attempts -1
+    #~ puts "-I- Found [dict size $wndsWithExit] $bDescr"
   #~ }
+  #~ #return  888;  #OK_TMP
+   
+  #~ _press_multiconversion_exit_buttons $numThreads $hMC1
+################################################################################  
   
-  #return  777;  #OK_TMP
-    
   #~ # expect returning to top-SPM or original MC window; press {ESCAPE} key in the latter
   #~ while { 0 != [llength [set mcList [::twapi::find_windows \
                   #~ -match string -text "Multi Conversion"]]] }   {
@@ -391,6 +372,33 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   }
   puts "-I- Finished $actDescr"
   return  1;  # success
+}
+
+
+proc ::spm::_press_multiconversion_exit_buttons {maxNumOfExitButtons origMCWnd} {
+  # 'maxNumOfExitButtons' == 1 or 2; all should be ready at this point
+  set cntPressed 0
+  set maxAttempts [expr {3 * $maxNumOfExitButtons}]
+  # ------- Press {SPACE} at each _NEW_ "Exit" window ------
+  while { ("" != [set wndOfExit \
+                  [_find_first_multiconversion_button "Exit" $origMCWnd]])   &&  \
+          ($maxNumOfExitButtons > 0) && ($maxAttempts > 0) }   {
+    puts "-D- Click at 'Exit' button ($wndOfExit); attempts left: $maxAttempts"
+    if { 1 == [ok_twapi::raise_wnd_and_send_keys $wndOfExit {{SPACE}}] }  {
+      incr maxNumOfExitButtons -1;  incr cntPressed 1
+    }
+    incr maxAttempts -1;  after 2000
+  }
+  # ------- (Breaks OS; DO NOT:) Close each _NEW_ window with "Exit" button ------
+  #~ while { ("" != [set wndWithExit \
+                #~ [_find_first_multiconversion_button_window "Exit" $origMCWnd]]) && \
+          #~ ($maxNumOfExitButtons > 0) }   {
+    #~ puts "-D- Close window with 'Exit' button ($wndWithExit)"
+    #~ twapi::close_window $wndWithExit
+    #~ after 2000;   incr maxNumOfExitButtons -1
+  #~ }
+  puts "-D- Did press $cntPressed 'Exit' button(s) related to multiconversion"
+  return  $cntPressed
 }
 
 
@@ -786,10 +794,12 @@ proc ::spm::_make_settings_file_from_template {inpType cfgName \
 }
 
 
-# Waits for _NEW_ window(s), both "Back" and "Exit", to appear.
+# Waits for 'numThreadsVar' _NEW_ window(s), both "Back" and "Exit", to appear.
+# Presses the found "Exit" buttons and decrements 'numThreadsVar' accordingly. 
 # Note, timeout should be very high to allow for long processing >= 1 hour
-proc ::spm::_wait_for_end_of_multiconversion {numThreads \
+proc ::spm::_wait_for_end_of_multiconversion {numThreadsVar \
                                     timeWaitSec pollPeriodSec {origMCWnd ""}}  {
+  upvar $numThreadsVar numThreads
   set timeToEndSec [expr {[clock seconds] + $timeWaitSec}]
 
   set waitForStartDescr "waiting $timeWaitSec (sec) for ANY multi-conversion-progress window to appear"
@@ -847,6 +857,14 @@ proc ::spm::_wait_for_end_of_multiconversion {numThreads \
     set wndsWithExit [dict filter $mcWndToButtons value {*Exit*}]
     set cntWndsWithExit [dict size $wndsWithExit]
     puts "-D- Found $cntWndsWithExit window(s) while $waitForExitDescr"
+    # press the "Exit"(s)
+    set numPressed  [_press_multiconversion_exit_buttons $numThreads $origMCWnd]
+    puts "-I- Found and pressed $numPressed 'Exit' button(s) out of $numThreads"
+    if { $numPressed >= $numThreads } { ; # done; arrange for break and break
+      set numThreads [expr {$numThreads - $numPressed}]; # indication for caller
+      set cntWndsWithExit $numPressed
+      break
+    }
   }
   if { $cntWndsWithExit < $numThreads } {
     puts "-E- Failed $waitForExitDescr - timeout. Time=[clock seconds](sec)"
