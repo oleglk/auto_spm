@@ -332,6 +332,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   set abortRequested 0
   set cntGood 0;  set cntBad 0
   puts "-D- \n\n ==== respond_to_popup_windows_based_on_text ===========\n{$winTextPatternToResponseKeySeq}\n==========================="
+  after 2000;   # OK_TODO: try slowing down a bit - sometimes action doesn't start"
   #~ set maxIdleTimeSec [expr {                                                   \
                         #~ ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
                          #~ $maxIdleTimeCbNotFiredSec : $maxIdleTimeCbFiredSec}]
