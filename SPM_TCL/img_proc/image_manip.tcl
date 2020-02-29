@@ -179,6 +179,8 @@ proc ::img_proc::fine_rotate_crop_one_img {imgPath rotAngle \
 # 'outNameSuffix' (unless empty string) is appended to the input-image purename
 # 'imSaveParams' tells output compression and quality; should match input type.
 ## Example-1:   ::img_proc::roll_one_img "DSC02355.JPG" 70 0  "_70r"  "-quality 98" "."  "BU"
+## Example-2:   file mkdir IL_1200_Rp0d19_Sp02;  foreach f [glob -nocomplain "il_1200/*.jpg"] {::img_proc::roll_one_img $f 2 0  "_r02"  "-quality 98" "IL_1200_Rp0d19_Sp02"  "BU"}
+
 proc ::img_proc::roll_one_img {imgPath rollHorz rollVert \
                                 outNameSuffix imSaveParams outDir {buDir ""}} {
   set imgName [file tail $imgPath]
