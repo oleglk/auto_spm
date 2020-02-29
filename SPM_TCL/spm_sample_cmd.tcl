@@ -90,3 +90,15 @@ proc ::spm::ex__MIIX320_interlace {{outDir "IL"}}  {
 }
 
 
+# cd f:/TMP_DC/TRY_AUTO/DC101/290919__Glen_Mini3D/FIXED/;  ::spm::ex__ANY_fix_interlace_alignment 0.19 "IL_1200"
+proc ::spm::ex__ANY_fix_interlace_alignment {rotAngle {inpDirName IL_1200}}  {
+  set inpDir [file join "FORMATTED" $inpDirName]
+  set outDir [file join "FORMATTED" [format {%s_R} $inpDirName]]
+  file mkdir $outDir
+  foreach f [glob -nocomplain -directory $inpDir {*.jpg}]  {file copy -force $f $outDir}
+  
+  cd $outDir
+  foreach f [glob -nocomplain "*.jpg"] {::img_proc::fine_rotate_crop_one_img $f  $rotAngle  darkgray "" "-quality 98"  "." ""}
+}
+
+

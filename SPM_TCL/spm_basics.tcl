@@ -286,31 +286,29 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   }
   puts "-I- Commanded to start $actDescr"
   # now there may appear multiple confirmation dialogs; press "y" for each one
-  # - press Alt-F4 when ----- (the below is unachievable good wish) :( ---------
-  #   (a) no more confirmation dialogs (with "Yes" button) left
-  #   (b) dialog with "Exit" button appeared
-  # ?TODO:? save val for 'maxIdleTimeSec' is 30 (sec)
-  if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text                 \
-              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS                   \
-              3 10 10 $descr                                                  \
-              "::spm::_is_multiconversion_most_likely_finished" $numThreads] } {
-    # popup processing had errors, but maybe some were confirmed by 2nd attempt
-    if { 0 == [spm::_is_multiconversion_most_likely_finished \
-                    [dict keys $winTextPatternToResponseKeySeq] $numThreads] } {
-      puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
-      return  0;  # error already printed
-    }
-    puts "-I- Though popup processing had errors, multiconversion appears to be finished; allowed to proceed"
-  }
-  # at this point the job should be done
-  ####return  0;  #OK_TMP
-  
-  # Wait for _NEW_ window(s), both "Back" and "Exit", to appear.
+
+  # interleave popup processing with checking for multiconversion end
   # Timeout is very high to allow for long processing - 1 hour
+  # When multiconversion ends, _NEW_ window(s), both "Back" and "Exit" appear
+  # (number of such windows defined by 'numThreads')
   set timeWaitSec [expr {10 * 60}]; # TODO: [expr {60 * 60}]
-  set pollPeriodSec 10
-  if { 0 == [_wait_for_end_of_multiconversion   $numThreads \
-                                        $timeWaitSec $pollPeriodSec $hMC1] }  {
+  set smallWaitSec [expr {$timeWaitSec / 100.0}]
+  set pollPeriodSec 2
+  for {set t 0} {$t < $timeWaitSec} {incr t $smallWaitSec}  {
+    puts "-I- (re)running multiconversion popup processing"
+    set pRet [ok_twapi::respond_to_popup_windows_based_on_text              \
+            $winTextPatternToResponseKeySeq $SPM_ERR_MSGS                   \
+            $pollPeriodSec 10 10 $descr                                     \
+            "::spm::_is_multiconversion_most_likely_finished" $numThreads]
+    puts "-I- multiconversion popup processing returnd $pRet"
+    if { 1 == [_wait_for_end_of_multiconversion   $numThreads \
+                                        $smallWaitSec $pollPeriodSec $hMC1] }  {
+      puts "-I- Confirmed multiconversion end after ~$t second(s)"
+      break;  # 
+    }
+    puts "-I- Multiconversion did not end after ~$t second(s)"
+  }
+  if { $t >= $timeWaitSec } {
     puts "[_ok_callstack]";  ::ok_utils::pause; # OK_TMP
     return  0;  # abort; error already printed
   }
@@ -422,8 +420,11 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
  #return  "";  # OK_TMP
+  set dialogWnd [twapi::get_foreground_window]; # win of open-stereopair dialog
   set hSPM2 [ok_twapi::_send_cmd_keys {%o} $pDescr 0]
-  
+  if { 0 == [ok_twapi::wait_for_window_to_disappear $dialogWnd] }  {
+    puts "-E- Failed to $lDescr";    return  0;  # error details already printed
+  }
   # react to errors if requested
   # "Open Stereo Image" is the current open dialog; wait to close before seeking popups
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $fullPath]
@@ -589,7 +590,7 @@ proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
   # set _IMCONVERT [file join $::_IM_DIR "convert.exe"]
   set nameBase [file rootname [file tail $inpPath]]
   set outPath  [file join $outDirPath "$nameBase%02d.TIF"]
-  set cmdList [list "$_IMCONVERT" [file nativename $inpPath]  -crop 50%x100% \
+  set cmdList [list "$::_IMCONVERT" [file nativename $inpPath]  -crop 50%x100% \
                       +repage  -compress LZW   [file nativename $outPath]]
   if { 0 == [ok_utils::ok_run_silent_os_cmd $cmdList] }  {
     puts "-E- Failed $descr; command: {$cmdList}";    return  0
