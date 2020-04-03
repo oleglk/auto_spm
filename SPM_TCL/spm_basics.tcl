@@ -521,6 +521,7 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
     set outPathSeq "[file nativename [file normalize $outPath]]"  ; # dir & file
   }
   twapi::send_input_text $outPathSeq
+  after 300
   puts "-I- Commanding to apply output-path change AND perform the save"
   twapi::send_keys {{ENTER}}; # perform directory/name change and save the image
   after 300
