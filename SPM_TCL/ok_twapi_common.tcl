@@ -154,8 +154,10 @@ proc ::ok_twapi::forget_latest_app_wnd {}  {
 
 proc ::ok_twapi::verify_singleton_running {contextDescr}  {
   variable APP_NAME
+  variable APP_TOPWND_TITLE
   variable HWND;      # window handle of StereoPhotoMaker
-  if { ![info exists APP_NAME] || ![info exists HWND] } {
+  if { ![info exists APP_NAME] || ![info exists HWND] || \
+       ![info exists APP_TOPWND_TITLE] } {
     puts "-W- App instance never ran in this terminal; context: $contextDescr"
     return  0
   }
@@ -166,20 +168,21 @@ proc ::ok_twapi::verify_singleton_running {contextDescr}  {
     }
     return  0
   }
-  return  1
+  return  [check_window_existence $HWND 1]
 }
 
 
 proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 1}}  {
   set h  [twapi::get_foreground_window]
-  set txt [expr {($h != "")? [twapi::get_window_text $h] : "NO-WINDOW-HANDLE"}]
-  set isMatch [switch $matchType  {
-    {exact}   { expr {$txt == $titleOrPattern} }
-    {nocase}  { string equal -nocase $titleOrPattern $txt }
-    {glob}    { string match $titleOrPattern $txt }
-    {regexp}  { regexp -nocase -- $titleOrPattern $txt }
-    default   { puts "-E- Unsupported matchType '$matchType'";  expr 0  }
-  }]
+  #~ set txt [expr {($h != "")? [twapi::get_window_text $h] : "NO-WINDOW-HANDLE"}]
+  #~ set isMatch [switch $matchType  {
+    #~ {exact}   { expr {$txt == $titleOrPattern} }
+    #~ {nocase}  { string equal -nocase $titleOrPattern $txt }
+    #~ {glob}    { string match $titleOrPattern $txt }
+    #~ {regexp}  { regexp -nocase -- $titleOrPattern $txt }
+    #~ default   { puts "-E- Unsupported matchType '$matchType'";  expr 0  }
+  #~ }]
+  set isMatch [check_window_title $h $titleOrPattern $matchType $loud]
   if { $isMatch == 0 } {
     if { $loud }  {
       puts "-I- Unexpected foreground window '$txt' - doesn't match '$titleOrPattern'"
@@ -189,6 +192,41 @@ proc ::ok_twapi::verify_current_window_by_title {titleOrPattern matchType {loud 
         puts "[_ok_callstack]"; ::ok_utils::pause; # OK_TMP
       }
     }
+    return  0
+  }
+  return  1
+}
+
+
+proc ::ok_twapi::check_window_title {hwnd titleOrPattern matchType {loud 1}}  {
+  set tclExecResult [catch { ;  # catch exceptions to skip invalid handles
+    set txt [expr {($hwnd != "")? [twapi::get_window_text $hwnd] \
+                              : "NO-WINDOW-HANDLE"}]
+  }  evalExecResult]
+  if { $tclExecResult != 0 } {
+    if { $loud }  {  puts "-I- Window '$hwnd' doesn't exist"  }
+    return  0
+  }
+  set isMatch [switch $matchType  {
+    {exact}   { expr {$txt == $titleOrPattern} }
+    {nocase}  { string equal -nocase $titleOrPattern $txt }
+    {glob}    { string match $titleOrPattern $txt }
+    {regexp}  { regexp -nocase -- $titleOrPattern $txt }
+    default   { puts "-E- Unsupported matchType '$matchType'";  expr 0  }
+  }]
+  return  $isMatch
+}
+
+
+proc ::ok_twapi::check_window_existence {hwnd {loud 1}}  {
+  if { $hwnd == "" }  {
+    puts "-E- check_window_existence got no handle";  return  0
+  }
+  set tclExecResult [catch { ;  # exceptions to detect invalid handles
+    set txt [twapi::get_window_text $hwnd]
+  }  evalExecResult]
+  if { $tclExecResult != 0 } {
+    if { $loud }  {  puts "-I- Window '$hwnd' doesn't exist"  }
     return  0
   }
   return  1

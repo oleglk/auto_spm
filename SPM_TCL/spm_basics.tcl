@@ -473,8 +473,10 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   set sDescr "save current image"
   if { $outNameNoExt != "" }  { append sDescr " as '$outNameNoExt'" }
 
-  if { ![::ok_twapi::verify_singleton_running $sDescr] }  { return  0}; # FIRST!
-    if { 0 == [::ok_twapi::focus_singleton "focus to $sDescr" 0] }  {
+  if { ![::ok_twapi::verify_singleton_running $sDescr] }  {
+    puts "-E- SPM app got lost. Failed to $sDescr";    return  0; # FIRST!
+  }
+  if { 0 == [::ok_twapi::focus_singleton "focus to $sDescr" 0] }  {
     puts "-E- Failed to $sDescr";    return  0;  # error details already printed
   }
   # memorize the image window for further return
