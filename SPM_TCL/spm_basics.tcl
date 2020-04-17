@@ -867,7 +867,6 @@ proc ::spm::_wait_for_end_of_multiconversion {numThreadsVar \
     set wndsWithExit [dict filter $mcWndToButtons value {*Exit*}]
     set cntWndsWithExit [dict size $wndsWithExit]
     puts "-D- Found $cntWndsWithExit window(s) while $waitForExitDescr"
-
   }
   if { $cntWndsWithExit < $numThreads } {
     puts "-E- Failed $waitForExitDescr - timeout. Time=[clock seconds](sec)"
@@ -876,9 +875,9 @@ proc ::spm::_wait_for_end_of_multiconversion {numThreadsVar \
   # press the "Exit"(s) only after their expected count reached
   set numPressed  [_press_multiconversion_exit_buttons $numThreads $origMCWnd]
   set allPressed [expr {$numPressed >= $numThreads}]
-  set iORe [expr {($allPressed)? "I" : "E"}]  puts "-$iORe- Found and pressed $numPressed 'Exit' button(s) out of $numThreads"
+  set iORe [expr {($allPressed)? "I" : "E"}]
+  puts "-$iORe- Found and pressed $numPressed 'Exit' button(s) out of $numThreads"
   if { $allPressed } { ; # done
-    set cntWndsWithExit $numPressed
     puts "-I- End   $waitForExitDescr. Time=[clock seconds](sec)"
     puts "-I- Multi-conversion is ended."
   } else {
