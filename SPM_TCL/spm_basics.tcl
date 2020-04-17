@@ -546,7 +546,8 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   # confirm save if requested
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-                      $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 10 $sDescr
+              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 10 $sDescr \
+              "::spm::_adapt__ok_monitor_file_save" $outPath
   # do not check for errors since the proc is finished
   # verify we returned to the image window
   # (title = $imgWndTitle - case can change)
@@ -559,6 +560,12 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   
   puts "-I- Success performing '$sDescr'"
   return  $outPath
+}
+
+
+# Adapts ok_monitor_file_save for 2-argument when-to-stop callback
+proc ::spm::_adapt__ok_monitor_file_save {unusedPopupTitles outPath}  {
+  return  [ok_utils::ok_monitor_file_save $outPath 50 5]
 }
 
 

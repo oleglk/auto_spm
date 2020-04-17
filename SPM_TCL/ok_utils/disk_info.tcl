@@ -11,7 +11,8 @@ namespace eval ::ok_utils:: {
     ok_get_filelist_disk_space_kb \
     ok_dir_list_size              \
     ok_dir_size                   \
-    ok_read_all_files_stat_in_dir
+    ok_read_all_files_stat_in_dir \
+    ok_monitor_file_save
 }
 
 # Copied from "proc df-k" at http://wiki.tcl.tk/526#pagetoc071ae01c
@@ -193,4 +194,31 @@ proc ::ok_utils::_ok_dir_size {dirPath totalsizeBytes noaccessList} {
     }
   };#foreach_item
   return [expr {$bytes / 1000.0}]
+}
+
+
+# Returns 1 if file 'outPath' is fully saved on disk during <= 'maxWaitSec'
+proc ::ok_utils::ok_monitor_file_save {outPath minSizeKb maxWaitSec}  {
+  set descr "Saving file '$outPath'"
+  set maxWaitSec [expr ceil($maxWaitSec)]
+  if { $maxWaitSec < (2+1) }  {
+    puts "-E- minimal value for 'maxWaitSec' is [expr 2+1]";   return  -1
+  }
+  set prevSize -1;  set prevChangeTime 0
+  for {set tm 0}  {$tm <= $maxWaitSec}  {incr tm 1}  {
+    if { ![file exists $outPath] }  {
+      set sz -1 }  else  { set sz [expr {round([file size $outPath] / 1024.0)}]
+    }
+    if { $sz != $prevSize }  {  ;   # size change detected
+      set prevSize $sz;   set prevChangeTime $tm
+    } elseif { ($tm >= ($prevChangeTime + 2)) && ($sz >= $minSizeKb) }  {
+      puts "-I- $descr considered finished after $tm second(s); size $sz kb"
+      return  1
+    }
+    if { $tm < $maxWaitSec }  {
+      puts "-D- $descr NOT finished after $tm second(s); size $sz kb"
+    }
+  }
+  puts "-E- $descr considered failed after $tm second(s); size $sz kb"
+  return  0
 }
