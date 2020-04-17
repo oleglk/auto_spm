@@ -179,7 +179,7 @@ proc ::spm::cmd__interlace_one_at_integer_lpi {inpType imgPath outDirPath \
   # save
 #ok_utils::pause;  #OK_TMP
   set saveInterlaceDescr "save result of '$INTERLACE' in directory '$outDirPath'"
-  if { 0 == [spm::save_current_image_as_one_tiff "Save Image" $outDirPath \
+  if { "" == [spm::save_current_image_as_one_tiff "Save Image" $outDirPath \
                                                           $outImgNameNoExt] } {
     puts "-E- Failed to $saveInterlaceDescr";  return  ""
   }

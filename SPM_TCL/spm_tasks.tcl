@@ -326,7 +326,7 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   # save
   set outDirPath [file dirname $imgPath]
   set saveWithBorderDescr "save image after '$ADD_BORDER' in directory '$outDirPath'"
-  if { 0 == [spm::save_current_image_as_one_tiff "Save Stereo Image" $outDirPath] } {
+  if { "" == [spm::save_current_image_as_one_tiff "Save Stereo Image" $outDirPath] } {
     puts "-E- Failed to $saveWithBorderDescr";  return  0
   }
   puts "-I- Success to $saveWithBorderDescr";   return  1

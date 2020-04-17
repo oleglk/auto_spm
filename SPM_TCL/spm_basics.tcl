@@ -8,7 +8,7 @@
 #  set ::SPM [file normalize {C:\Program Files (x86)\StereoPhotoMaker\stphmkre.exe}];  # Win7 desktop
 
 package require twapi;  #  TODO: check errors
-#package require twapi_clipboard
+package require twapi_clipboard
 
 set SCRIPT_DIR [file dirname [info script]]
 source [file join $SCRIPT_DIR "ok_utils" "common.tcl"]
@@ -463,6 +463,7 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
 
 # Commands to save current image in 'outDirPath' as SBS TIFF
 # If 'outNameNoExt' given, it overrides the filename
+# Returns output path on success, "" on error.
 proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
                                             {outNameNoExt ""}}   {
   variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
@@ -474,10 +475,10 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   if { $outNameNoExt != "" }  { append sDescr " as '$outNameNoExt'" }
 
   if { ![::ok_twapi::verify_singleton_running $sDescr] }  {
-    puts "-E- SPM app got lost. Failed to $sDescr";    return  0; # FIRST!
+    puts "-E- SPM app got lost. Failed to $sDescr";    return  ""; # FIRST!
   }
   if { 0 == [::ok_twapi::focus_singleton "focus to $sDescr" 0] }  {
-    puts "-E- Failed to $sDescr";    return  0;  # error details already printed
+    puts "-E- Failed to $sDescr";    return  "";  # error details already printed
   }
   # memorize the image window for further return
   set imgWnd      [twapi::get_foreground_window]
@@ -492,11 +493,11 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   
   # open "Save Stereo Image" dialog
   if { "" == [ok_twapi::_send_cmd_keys "s" $sDescr 0] }  {
-    puts "-E- Failed commanding to $sDescr";    return  0;  # error details already printed
+    puts "-E- Failed commanding to $sDescr";    return  "";  # error details already printed
   }
   set hS [ok_twapi::wait_for_window_title_to_raise $dialogTitle "exact"]
   if { $hS == "" } {
-    puts "-E- Failed opening '$dialogTitle' dialog";  return  0
+    puts "-E- Failed opening '$dialogTitle' dialog";  return  ""
   }
   
   ### To avoid saving as <dir-name>.TIF, first set output format, then directory
@@ -516,6 +517,12 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   twapi::send_keys {%n};  # focus filename entry; filename should become selected
   after 300
   if { $outNameNoExt == "" }  {
+    twapi::send_keys {^c};  # filename-entry (should be selected) => clipboard
+    after 300
+    set outNameWithExt [::twapi::read_clipboard_text -raw FALSE]
+    set outPath [file join $outDirPath $outNameWithExt]
+    puts "-I- Accepting output file path as '$outPath'"
+    append sDescr " as '[file rootname $outNameWithExt]'"
     twapi::send_keys {{HOME}};  # stay at the beginning of filename string
     after 300
     set outPathSeq "[file nativename $outDirPath][file separator]"; # only dir
@@ -547,11 +554,11 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
       [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "nocase"] :      \
       [ok_twapi::wait_for_window_title_to_raise $ovrdImgWndTitleGlob "glob"] }]
   if { $hI == "" } {
-    puts "-E- Failed returning to image window";  return  0; # error details printed
+    puts "-E- Failed returning to image window";  return  ""; # error details printed
   }
   
   puts "-I- Success performing '$sDescr'"
-  return  1
+  return  $outPath
 }
 
 
@@ -955,10 +962,10 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
       puts "-D- Multi-conversion not finished - MC window with visible 'Stop' detected; re-verification attempts not used: $attempts"
       return  0;  # MC window with visible "Stop" button; not finished for sure
     }
-    set numWndsWihExitAtEnd [expr {($numThreads > 0)? $numThreads : 1}]
+    set numWndsWithExitAtEnd [expr {($numThreads > 0)? $numThreads : 1}]
     set backOk [expr {"" != \
                    [_find_first_multiconversion_button "Back" $origMCWnd]}]
-    set exitOk [expr {$numWndsWihExitAtEnd <= [dict size                      \
+    set exitOk [expr {$numWndsWithExitAtEnd <= [dict size                      \
                   [dict filter                                                \
                    [_find_multiconversion_buttons $origMCWnd] value {*Exit*}]]}]
     if { $backOk && $exitOk  }   {
