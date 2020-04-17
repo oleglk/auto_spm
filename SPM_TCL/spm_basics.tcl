@@ -546,7 +546,7 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   # confirm save if requested
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 10 $sDescr \
+              $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 1 $sDescr \
               "::spm::_adapt__ok_monitor_file_save" $outPath
   # do not check for errors since the proc is finished
   # verify we returned to the image window
@@ -980,6 +980,7 @@ proc ::spm::_is_multiconversion_most_likely_finished {knownPopupTitles \
       puts "-D- Multi-conversion appears finished - 'Back' and 'Exit' buttons detected; re-verification attempts left: $attempts"
     } else {
       puts "-E- Unexpected case of multi-conversion: 'Stop', 'Back' and 'Exit' buttons missing; no popups - multi-conversion may not have started; re-verification attempts left: $attempts"
+      ok_utils::pause;  # OK_TMP
     }
   }
   set done [expr {($backOk && $exitOk)? 1 : 0}]

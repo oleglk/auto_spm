@@ -382,7 +382,11 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     set cbFired [expr {($cbWhenToStop != 0)?                                  \
                   [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]  \
                                   $last_arg_for__cbWhenToStop]            : 0}]
-    if { ($cbFired  && ($elapsedSec >= $maxIdleTimeCbFiredSec)) ||   \
+    set elapsedWithCBSec [expr {[clock seconds] - $lastActionTime}]; # after CB
+    if { $cbFired } {
+      puts "-D- when-to-stop CB did fire;  elapsedWithCBSec=$elapsedWithCBSec, maxIdleTimeCbFiredSec=$maxIdleTimeCbFiredSec"
+    }
+    if { ($cbFired  && ($elapsedWithCBSec >= $maxIdleTimeCbFiredSec)) ||   \
          (($cbWhenToStop == 0) && ($elapsedSec >= $maxIdleTimeCbNotFiredSec))} {
       break;  # early stop; intended for cases when CB did fire
     }
