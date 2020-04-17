@@ -545,9 +545,11 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   
   # confirm save if requested
   set winTextPatternToResponseKeySeq [dict create   "Confirm Save As"  "y"]
+  set arg [list $outPath [expr {
+            [file exists $outPath]? round([file size $outPath] / 1024.0) : -1}]]
   ok_twapi::respond_to_popup_windows_based_on_text  \
               $winTextPatternToResponseKeySeq $SPM_ERR_MSGS 2 10 1 $sDescr \
-              "::spm::_adapt__ok_monitor_file_save" $outPath
+              "::spm::_adapt__ok_monitor_file_save" $arg
   # do not check for errors since the proc is finished
   # verify we returned to the image window
   # (title = $imgWndTitle - case can change)
@@ -564,8 +566,10 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
 
 
 # Adapts ok_monitor_file_save for 2-argument when-to-stop callback
-proc ::spm::_adapt__ok_monitor_file_save {unusedPopupTitles outPath}  {
-  return  [ok_utils::ok_monitor_file_save $outPath 50 5]
+proc ::spm::_adapt__ok_monitor_file_save {unusedPopupTitles outPathAndOldSize} {
+  set outPath     [lindex $outPathAndOldSize 0]
+  set oldFileSize [lindex $outPathAndOldSize 1]
+  return  [ok_utils::ok_monitor_file_save $outPath $oldFileSize 50 5]
 }
 
 
