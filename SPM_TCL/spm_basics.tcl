@@ -569,7 +569,7 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
 proc ::spm::_adapt__ok_monitor_file_save {unusedPopupTitles outPathAndOldSize} {
   set outPath     [lindex $outPathAndOldSize 0]
   set oldFileSize [lindex $outPathAndOldSize 1]
-  return  [ok_utils::ok_monitor_file_save $outPath $oldFileSize 50 5]
+  return  [ok_utils::ok_monitor_file_save $outPath $oldFileSize 50 5 1]
 }
 
 
