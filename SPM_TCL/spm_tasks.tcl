@@ -23,19 +23,21 @@ source [file join $SCRIPT_DIR "spm_interlace.tcl"]
 # starts conversion and waits for it to finish.
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
-proc ::spm::cmd__align_all {inpType reuseAlignData} {
+proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
   if { ![string equal -nocase $inpType "SBS"] }  {
     puts "-E- Only SBS input type is currently supported"
     return  0
   }
-  set descr "alignment multi-conversion"
+  set mountWndStr [expr {($mountWindow!=0)? "mounted" : "unmounted"}]
+  set descr "alignment multi-conversion ($mountWndStr)"
   if { ![ok_twapi::verify_singleton_running $descr] }  { return  0 }
   variable SUBDIR_PRE;  # subdirectory for pre-aligned images
   variable WA_ROOT
   set inpStats [ok_utils::ok_read_all_files_stat_in_dir \
                                         $spm::WA_ROOT $spm::ORIG_PATTERN 1]
   set outDirFullPath [file normalize [file join $WA_ROOT $SUBDIR_PRE]]
-  if { "" == [set cfgPath [_prepare_settings__align_all $inpType]] }  {
+  set cfgPath [_prepare_settings__align_all $inpType $mountWindow]
+  if { $cfgPath == "" }  {
     return  0;  # need to abort; error already printed
   }
   set alignDir [spm::BuildAlignDirPath $inpType]
@@ -379,9 +381,13 @@ proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
 ########### Begin: procedures to prepare SPM settings' files per task ########## 
 # Builds INI file with settings for align-all action
 # Returns new CFG file path on success, "" on error.
-proc ::spm::_prepare_settings__align_all {inpType}  {
+proc ::spm::_prepare_settings__align_all {inpType mountWindow}  {
   # name of settings' file is the same as action templates' name
-  set cfgName [format "align_%s.mcv" [string tolower $inpType]]
+  if { $mountWindow == 0 }  { ;  # align but keep full original dimensions
+    set cfgName [format "align_%s.mcv" [string tolower $inpType]]
+  } else {                    ;  # align, then crop to mount to window
+    set cfgName [format "align_mount_%s.mcv" [string tolower $inpType]]
+  }
   return  [spm::_make_settings_file_from_template $inpType $cfgName \
                       "::spm::_align_all__SettingsModifierCB"  "align-all"]
 }
