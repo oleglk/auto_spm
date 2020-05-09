@@ -285,6 +285,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
     return  0;  # error already printed
   }
   puts "-I- Commanded to start $actDescr"
+  after 1000;  # try to workaround case of only one of two threads started
   # now there may appear multiple confirmation dialogs; press "y" for each one
 
   # interleave popup processing with checking for multiconversion end
