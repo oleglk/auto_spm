@@ -356,6 +356,7 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 # Finishes after 'maxIdleTimeCbFiredSec' if 'cbWhenToStop' callback returns 1
 #    or after 'maxIdleTimeCbNotFiredSec' seconds of no new pop-ups
 #         if 'cbWhenToStop' not given.
+# Aborts immediately if 'cbWhenToStop' returns -1.
 # - (Windows with non-empty response key sequences - known popups)
 # - (Windows with empty response key sequences     - unexpected popups)
 proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
@@ -378,17 +379,20 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   #   until none appears during 'maxIdleTimeCbNotFiredSec' OR the callback allows to finish
   while { ([set elapsedSec [expr {[clock seconds] - $lastActionTime}]]  \
                             < $maxIdleTimeCbNotFiredSec)  \
-                            ||    ($cbWhenToStop != 0) }   {
+                            ||    ($cbWhenToStop != 0) }                       {
     set cbFired [expr {($cbWhenToStop != 0)?                                  \
                   [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]  \
                                   $last_arg_for__cbWhenToStop]            : 0}]
     set elapsedWithCBSec [expr {[clock seconds] - $lastActionTime}]; # after CB
-    if { $cbFired } {
-      puts "-D- when-to-stop CB did fire;  elapsedWithCBSec=$elapsedWithCBSec, maxIdleTimeCbFiredSec=$maxIdleTimeCbFiredSec"
+    if { $cbFired != 0 } {
+      puts "-D- when-to-stop CB did fire - [expr {($cbFired>0)? {stop}:{abort}}];  elapsedWithCBSec=$elapsedWithCBSec, maxIdleTimeCbFiredSec=$maxIdleTimeCbFiredSec"
     }
-    if { ($cbFired  && ($elapsedWithCBSec >= $maxIdleTimeCbFiredSec)) ||   \
+    if { (($cbFired == 1) && ($elapsedWithCBSec >= $maxIdleTimeCbFiredSec)) || \
          (($cbWhenToStop == 0) && ($elapsedSec >= $maxIdleTimeCbNotFiredSec))} {
       break;  # early stop; intended for cases when CB did fire
+    }
+    if { ($cbFired == -1) && ($elapsedSec >= $maxIdleTimeCbNotFiredSec) }   {
+      break; # CB commamded abort, but do give chance to popups, maybe not started
     }
     puts "-D- Continue processing popups for $descr; time passed: $elapsedSec second(s)"
     #ok_twapi::abort_if_key_pressed "q"
@@ -427,8 +431,9 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     }
     after [expr {1000 * $pollPeriodSec}]; # wait before new search for windows
   };  # END-OF- loop until timeout | stop | abort
-  set abortReason [expr {$cbFired?  "callback has fired" : \
-                          [expr {$abortRequested? \
+  set abortReason [expr {$cbFired?  \
+                "callback has fired ([expr {($cbFired>0)? {stop}:{abort}}])" : \
+                [expr {$abortRequested? \
                                     "explicit abort request" : "timeout"}]}]
   puts "-I- Stopped detecting popup-s for $descr - $abortReason"
 

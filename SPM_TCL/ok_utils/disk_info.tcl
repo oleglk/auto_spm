@@ -200,6 +200,7 @@ proc ::ok_utils::_ok_dir_size {dirPath totalsizeBytes noaccessList} {
 # Returns 1 if file 'outPath' is fully saved on disk during <= 'maxWaitSec'
 # 'oldFileSize' is size of pre-existent file or -1 - to track old file override
 # Considers saving process stuck if current size _stays_ equal to 'oldFileSize'
+#    - returns -1 if considered stuck
 proc ::ok_utils::ok_monitor_file_save {outPath oldFileSize \
                                       minSizeKb maxWaitSec maxWaitIfStuckSec}  {
   set descr "Saving file '$outPath'"
@@ -225,7 +226,7 @@ proc ::ok_utils::ok_monitor_file_save {outPath oldFileSize \
     }
     if { !$sizeEverChanged && ($tm >= $maxWaitIfStuckSec) }  {
       puts "-D- $descr considered stuck after $tm second(s); aborted for now"
-      return  0
+      return  -1
     }
     if { $tm < $maxWaitSec }  {
       puts "-D- $descr NOT finished after $tm second(s); size $sz kb"
