@@ -297,9 +297,10 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   set fDescr "switch-from-then-back to $ADD_BORDER dialog in order to make tabstops available"
   # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
   # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
-  twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
-  set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
-  if { $hB == "" } {
+  if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}]] }  { ; #(SPM_6.02)
+  #~ twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
+  #~ set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
+  #~ if { $hB == "" } { ... }
     puts "-E- Failed to $fDescr";    return  0;  # error details already printed
   }
   puts "-I- Success to $fDescr"

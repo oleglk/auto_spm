@@ -31,6 +31,10 @@ namespace eval ::spm:: {
   variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
   variable SPM_TITLE  "StereoPhoto Maker" ;   # title of the main SPM window
+#(SPM_6.02)    variable SPM_TITLE  "(64bit) StereoPhoto Maker Pro" ;   # title of the main SPM window
+  
+  variable STEREOPAIR_WND_TITLE_PATTERN {^Left Image[(]%s - .*Right Image[(]%s - } 
+#(SPM_6.02)  variable STEREOPAIR_WND_TITLE_PATTERN {^[(]64bit[)] Left Image[(]%s - .*Right Image[(]%s - } 
   
   ### SPM_ERR_MSGS is a list of known error patterns in SPM popup-s
   variable SPM_ERR_MSGS   {                                                   \
@@ -649,7 +653,7 @@ proc ::spm::build_image_window_title_regexp_pattern {inpType imgPath}  {
     return  "ERROR: unsupported"
   }
   set imgName [file tail $imgPath]
-  set targetWndTitlePattern [format {^Left Image[(]%s - .*Right Image[(]%s - } \
+  set targetWndTitlePattern [format $spm::STEREOPAIR_WND_TITLE_PATTERN \
                                     $imgName $imgName]
   return  $targetWndTitlePattern
 }
