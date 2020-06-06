@@ -622,24 +622,30 @@ proc ::spm::split_sbs_image_into_lr_tiffs {inpPath nameNoExt_L nameNoExt_R \
   # Example:
   # exec "$::IM_DIR/convert.exe" FIXED/SBS/2019_0929_133733_001.TIF  -crop 50%x100% +repage  -compress LZW fixed/SBS/LR/TMP_FRAME%02d.TIF
   # set _IMCONVERT [file join $::_IM_DIR "convert.exe"]
+  set imConvert [string trim $::_IMCONVERT "{}"]
   set nameBase [file rootname [file tail $inpPath]]
-  set outPath  [file join $outDirPath "$nameBase%02d.TIF"]
-  set cmdList [list [string trim $::_IMCONVERT "{}"] [file nativename $inpPath]  -crop 50%x100% \
-                      +repage  -compress LZW   [file nativename $outPath]]
+  set tmpExt "BMP"
+  set outPath  [file join $outDirPath "$nameBase%02d.$tmpExt"];  # was .TIF
+  set cmdList [list $imConvert [file nativename $inpPath]  -crop 50%x100% \
+                      +repage   [file nativename $outPath]]
   if { 0 == [ok_utils::ok_run_silent_os_cmd $cmdList] }  {
     puts "-E- Failed $descr; command: {$cmdList}";    return  0
   }
   set tmpNameNoExt_L [format "%s00" $nameBase]
   set tmpNameNoExt_R [format "%s01" $nameBase]
   if { $tmpNameNoExt_L != $nameNoExt_L }  {
-    set tmp [file join $outDirPath "$tmpNameNoExt_L.TIF"]
+    set tmp [file join $outDirPath "$tmpNameNoExt_L.$tmpExt"]
     set ult [file join $outDirPath "$nameNoExt_L.TIF"]
-    file rename -force -- $tmp $ult;  puts "-I- Renamed '$tmp' into '$ult'"
+    #file rename -force -- $tmp $ult;  puts "-I- Renamed '$tmp' into '$ult'"
+    set cmdList [list $imConvert [file nativename $tmp] -depth 8 -compress LZW $ult]
+    puts "-I- Format-converted '$tmp' into '$ult'"
   }
   if { $tmpNameNoExt_R != $nameNoExt_R }  {
-    set tmp [file join $outDirPath "$tmpNameNoExt_R.TIF"]
+    set tmp [file join $outDirPath "$tmpNameNoExt_R.$tmpExt"]
     set ult [file join $outDirPath "$nameNoExt_R.TIF"]
-    file rename -force -- $tmp $ult;  puts "-I- Renamed '$tmp' into '$ult'"
+    #file rename -force -- $tmp $ult;  puts "-I- Renamed '$tmp' into '$ult'"
+    set cmdList [list $imConvert [file nativename $tmp] -depth 8 -compress LZW $ult]
+    puts "-I- Format-converted '$tmp' into '$ult'"
   }
   puts "-I- Success $descr; output in ('$nameNoExt_L.TIF', '$nameNoExt_R.TIF'), directory '$outDirPath'"
   return  1
