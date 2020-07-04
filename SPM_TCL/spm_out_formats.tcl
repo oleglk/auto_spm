@@ -71,7 +71,8 @@ proc ::spm::make_output_formats_in_current_dir {formatProcList \
 
 # Deletes from all output directories images absent from 'subdirToFollow'.
 # Image filenames matched from beginning till 'nameSuffixStartRegexp'.
-## Example: spm::clean_stereopairs_and_outputs_in_current_dir "FIXED" "SBS" {__il} 1
+## Example 1: spm::clean_stereopairs_and_outputs_in_current_dir "FIXED" "SBS" {__il} 1
+## Example 2: spm::clean_stereopairs_and_outputs_in_current_dir "FIXED" "HAB" {}     1
 proc ::spm::clean_stereopairs_and_outputs_in_current_dir {rootSubdirOrEmpty  \
               subdirToFollowRelPath nameSuffixStartRegexp {simulateOnly 0}}   {
   variable SUBDIR_SBS;    # subdirectory for final images
