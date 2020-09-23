@@ -58,6 +58,10 @@ proc _set_ext_tool_paths_from_variables {srcDescr}  {
   set ::_IMMOGRIFY  [format "{%s}"  [file join $::_IM_DIR "mogrify.exe"]]
   set ::_IMIDENTIFY [format "{%s}"  [file join $::_IM_DIR "identify.exe"]]
   set ::_IMMONTAGE  [format "{%s}"  [file join $::_IM_DIR "montage.exe"]]
+  set ::IMCONVERT   "$::_IMCONVERT" ;  # sync historical flavors
+  set ::IMMOGRIFY   "$::_IMMOGRIFY" ;  # sync historical flavors
+  set ::IMIDENTIFY  "$::_IMIDENTIFY";  # sync historical flavors
+  set ::IMMONTAGE   "$::_IMMONTAGE" ;  # sync historical flavors
   # - DCRAW:
   # unless ::_DCRAW_PATH points to some custom executable, point at the default
   if { (![info exists ::_DCRAW_PATH]) || (""== [string trim $::_DCRAW_PATH]) } {
