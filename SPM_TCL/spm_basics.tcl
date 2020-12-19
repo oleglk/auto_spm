@@ -280,13 +280,18 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   #~ # de-maximize to help popups be visible
   #~ twapi::restore_window $hMC1 -sync
   
-  # arrange for commanding to start multi-conversion
-  twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
   set sDescr "Press 'Convert All Files' button"
-  set tabsStr [format_tabstop  "Multi Conversion"  "Convert All Files"]; # safe
-  if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $sDescr 0]) || \
-        ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]]) }  {
-    return  0;  # error already printed
+  twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
+  #~ # arrange for commanding to start multi-conversion
+  #~ set tabsStr [format_tabstop  "Multi Conversion"  "Convert All Files"]; # safe
+  #~ if {  ("" == [ok_twapi::_send_cmd_keys $tabsStr $sDescr 0]) || \
+        #~ ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]]) }  {
+    #~ return  0;  # error already printed
+  #~ }
+  if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog   \
+                                                      "Convert All Files" 0]) ||  \
+       ("" == [set h [ok_twapi::_send_cmd_keys {{SPACE}} $sDescr 0]])    }  {
+    puts "-E- Faled to $sDescr";  return  0
   }
   puts "-I- Commanded to start $actDescr"
   after 1000;  # try to workaround case of only one of two threads started
