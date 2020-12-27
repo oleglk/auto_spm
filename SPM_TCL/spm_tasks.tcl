@@ -53,19 +53,19 @@ proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
   # there may appear confirmation dialogs; tell to press "y" for each one
   # (patterns with image extensions included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
-  set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirForRegexp]    "y" \
-    "Confirm Conversion Start"          "y" \
-    "Do you want to use the previous report files"  "n" \
-    {\.alv$}                             "y" \
-    [format {%s.*\.jpg$} $SUBDIR_PRE]   "y" \
-    [format {%s.*\.tif$} $SUBDIR_PRE]   "y" \
-    {^Attention}                        "{SPACE}" \
-    {\.jpg$}                            "" \
-    {\.tif$}                            "" \
+  set winTextPatternToResponseKeySeqOrBtn [dict create \
+    [format {^%s$} $outDirForRegexp]    KEYS  "y" \
+    "Confirm Conversion Start"          KEYS  "y" \
+    "Do you want to use the previous report files"  KEYS  "n" \
+    {\.alv$}                            KEYS  "y" \
+    [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y" \
+    [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y" \
+    {^Attention}                        KEYS  "{SPACE}" \
+    {\.jpg$}                            KEYS  "" \
+    {\.tif$}                            KEYS  "" \
   ]
   set rc [spm::cmd__multiconvert  $descr ""         \
-                                  $cfgPath $winTextPatternToResponseKeySeq]
+                                  $cfgPath $winTextPatternToResponseKeySeqOrBtn]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   register_phase_results [lindex [info level 0] 0] \
     [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
@@ -103,13 +103,13 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   # (patterns with input paths included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirForRegexp]    "y" \
-    "Confirm Conversion Start"          "y" \
-    {\.alv$}                             "y" \
-    [format {%s.*\.jpg$} $SUBDIR_SBS]   "y" \
-    [format {%s.*\.tif$} $SUBDIR_SBS]   "y" \
-    [format {%s.*\.jpg$} $SUBDIR_PRE]   "" \
-    [format {%s.*\.tif$} $SUBDIR_PRE]   "" \
+    [format {^%s$} $outDirForRegexp]    KEYS  "y" \
+    "Confirm Conversion Start"          KEYS  "y" \
+    {\.alv$}                            KEYS  "y" \
+    [format {%s.*\.jpg$} $SUBDIR_SBS]   KEYS  "y" \
+    [format {%s.*\.tif$} $SUBDIR_SBS]   KEYS  "y" \
+    [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "" \
+    [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "" \
   ]
   set rc [spm::cmd__multiconvert  $descr $SUBDIR_PRE \
                                   $cfgPath $winTextPatternToResponseKeySeq]
@@ -182,20 +182,22 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   # there may appear confirmation dialogs; tell to press "y" for each one
   set outDirForRegexpFP [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set outDirForRegexpRP [ok_utils::ok_format_filepath_for_regexp $outSubdirName]
-  set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirForRegexpFP]        "y" \
-    "Confirm Conversion Start"                "y" \
-    [format {%s.*\.jpg$} $outDirForRegexpRP]  "y" \
-    [format {%s.*\.tif$} $outDirForRegexpRP]  "y" \
-    {^Attention}                        "{SPACE}" \
+  set winTextPatternToResponseKeySeqOrBtn [dict create        \
+    [format {^%s$} $outDirForRegexpFP]        KEYS  "y"       \
+    "Confirm Conversion Start"                KEYS  "y"       \
+    [format {%s.*\.jpg$} $outDirForRegexpRP]  KEYS  "y"       \
+    [format {%s.*\.tif$} $outDirForRegexpRP]  KEYS  "y"       \
+    {^Attention}                              KEYS  "{SPACE}" \
   ]
   # (patterns with input paths included to force checking for input errors)
   if { $inpSubdirName != $outSubdirName } {
-    dict set winTextPatternToResponseKeySeq  [format {%s.*\.jpg$} $inpSubdirName]  ""
-    dict set winTextPatternToResponseKeySeq  [format {%s.*\.tif$} $inpSubdirName]  ""
+    dict set winTextPatternToResponseKeySeqOrBtn  \
+                                  KEYS  [format {%s.*\.jpg$} $inpSubdirName]  ""
+    dict set winTextPatternToResponseKeySeqOrBtn  \
+                                  KEYS  [format {%s.*\.tif$} $inpSubdirName]  ""
   }
   set rc [spm::cmd__multiconvert  $descr $inpSubdirName \
-                                  $cfgPath $winTextPatternToResponseKeySeq]
+                                  $cfgPath $winTextPatternToResponseKeySeqOrBtn]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
 }

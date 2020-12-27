@@ -350,8 +350,9 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 }
 
 
-# Detects emerging popup windows by regexp patters in 'winTextPatternToResponseKeySeq'.
-# Sends specified confirmation key to each.
+# Detects emerging popup windows by regexp patters in 'winTextPatternToResponseKeySeqOrBtn'.
+# Sends specified confirmation (key or button-press) to each.
+# 'winTextPatternToResponseKeySeqOrBtn' = {text::(KEYS|BTN)::keySeq-or-btnText}
 # Error reported when a (listed!) popup has child window
 #      with text (not title) matching any pattern in 'errPatternList'.
 # Finishes after 'maxIdleTimeCbFiredSec' if 'cbWhenToStop' callback returns 1
@@ -361,7 +362,7 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 # - (Windows with non-empty response key sequences - known popups)
 # - (Windows with empty response key sequences     - unexpected popups)
 proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
-        winTextPatternToResponseKeySeq errPatternList                         \
+        winTextPatternToResponseKeySeqOrBtn errPatternList                    \
         pollPeriodSec maxIdleTimeCbNotFiredSec maxIdleTimeCbFiredSec descr    \
         {cbWhenToStop 0} {last_arg_for__cbWhenToStop ""}}                     {
   set winTextPatternToCntResponded  [dict create]
@@ -371,7 +372,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   set cbFired 0
   set abortRequested 0
   set cntGood 0;  set cntBad 0
-  puts "-D- \n\n ==== respond_to_popup_windows_based_on_text ===========\n{$winTextPatternToResponseKeySeq}\n==========================="
+  puts "-D- \n\n ==== respond_to_popup_windows_based_on_text ===========\n{$winTextPatternToResponseKeySeqOrBtn}\n==========================="
   after 2000;   # OK_TODO: try slowing down a bit - sometimes action doesn't start"
   #~ set maxIdleTimeSec [expr {                                                   \
                         #~ ($maxIdleTimeCbNotFiredSec > $maxIdleTimeCbFiredSec)?  \
@@ -382,7 +383,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
                             < $maxIdleTimeCbNotFiredSec)  \
                             ||    ($cbWhenToStop != 0) }                       {
     set cbFired [expr {($cbWhenToStop != 0)?                                  \
-                  [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeq]  \
+                  [$cbWhenToStop [dict keys $winTextPatternToResponseKeySeqOrBtn]  \
                                   $last_arg_for__cbWhenToStop]            : 0}]
     set elapsedWithCBSec [expr {[clock seconds] - $lastActionTime}]; # after CB
     if { $cbFired != 0 } {
@@ -404,7 +405,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     ##  - whether such a window found or not, rerun the search
     ######### TODO: include patterns with responses - for statistics
     set winToListOfResponses [_find_windows_for_patterns \
-                                              $winTextPatternToResponseKeySeq 1]
+                                        $winTextPatternToResponseKeySeqOrBtn 1]
     if { 0 == [dict size $winToListOfResponses] }   {
       set hwnd "";  # indicates no popups; just in case
       continue; # let the upper cycle check for exit conditions
@@ -414,7 +415,10 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     ## Pick the 1st (or the only) window, respond and continue unless aborted
     set hwnd [lindex [dict keys $winToListOfResponses] 0]
     set respList [dict get $winToListOfResponses $hwnd]; # should have element(s)
+    # 'respList' = {(KEYS|BTN)::keySeq-or-btnText}
     puts "-D- Responses to window '[twapi::get_window_text $hwnd]': {$respList}"
+    
+    # TODO: search for 1st non-empty or "" IN DICTIONARY
     set keySeq [lsearch -inline -regexp  $respList  {.+}]; # 1st non-empty or ""
     # respond to the picked window and continue
     set respOK [_respond_to_given_popup_window $hwnd keySeq $descr \
@@ -450,7 +454,7 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
   # ultimately if no relevant windows left, it's a success
   #  - some were closed by repeated attempts
   set badList [list]
-  foreach pattern [dict keys $winTextPatternToResponseKeySeq] {
+  foreach pattern [dict keys $winTextPatternToResponseKeySeqOrBtn] {
     set badList [concat $badList \
               [::twapi::find_windows -child false -match regexp -text $pattern]]
   }
@@ -464,19 +468,20 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
 }
 
 
-# Responds to popup window 'hwnd' with 'respKeySeqInOut' unless the latter is empty.
+# Responds to popup window 'hwnd' with 'respKeySeqOrBtnInOut' unless the latter is empty.
 # Returns 0 if told to respond AND failed to; otherwise returns 1.
-# May override response sequence in 'respKeySeqInOut'
+# May override response sequence in 'respKeySeqOrBtnInOut'
 ######### TODO: include patterns with responses - for statistics
-proc ::ok_twapi::_respond_to_given_popup_window {hwnd respKeySeqInOut descr \
-                                             errPatternList isAbortRequested}  {
-  upvar $respKeySeqInOut    respKeySeq
+proc ::ok_twapi::_respond_to_given_popup_window {hwnd \
+                                    responseIsKeys respKeySeqOrBtnInOut descr  \
+                                    errPatternList isAbortRequested}  {
+  upvar $respKeySeqOrBtnInOut    respKeySeqOrBtn
   upvar $isAbortRequested abortRequested
   set winTxt  [twapi::get_window_text $hwnd]
   set st      [twapi::get_window_style $hwnd]
-  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response-key-seq={$respKeySeq})"
+  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response-key-seq={$3tn})"
   #ok_twapi::abort_if_key_pressed "q"
-  if { $respKeySeq == $ok_twapi::OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP }  {
+  if { $respKeySeqOrBtn == $ok_twapi::OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP }  {
     puts "-I- Window '$winTxt' requests wait-then-abort of processing popups for $descr; will wait 10 sec to let it disappear"
     # wait some time for the window to disappear...
     after 10000
@@ -489,12 +494,12 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd respKeySeqInOut descr \
   }
   # first(!) check for error message in any child window
   if { "" != [set errResponseSeq [_is_error_popup $hwnd $errPatternList]] }  {
-    set respKeySeq $errResponseSeq; # error alreay printed
+    set respKeySeqOrBtn $errResponseSeq; # error alreay printed
   }
   set wText [twapi::get_window_text $hwnd]
   set wDescr "respond to {$wText} for $descr"
   #ok_utils::pause "@@@ Paused in _respond_to_given_popup_window - 01 @@@";  # OK_TMP
-  if { $respKeySeq == "" }  {
+  if { $respKeySeqOrBtn == "" }  {
     ## Either it was a dummy for error checking,
     ##     or real message caught by too-generic dummy pattern
     # If the title of ANY window matched ANY pattern with defined response,
@@ -502,8 +507,13 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd respKeySeqInOut descr \
     ############::ok_utils::pause; # OK_TMP
     return  1; # OK; continuing gives it a chance to match an expected popup pattern
   }
-  if { ("" != [ok_twapi::focus_then_send_keys $respKeySeq $wDescr $hwnd]) && \
-       ($errResponseSeq == "") }  {
+  if { $responseIsKeys }  {
+    set ret [ok_twapi::focus_then_send_keys $respKeySeqOrBtn $wDescr $hwnd]
+  } else {
+    set rc [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog $respKeySeqOrBtn]
+    set ret [expr {($rc == 0)? "" : "OK"}]
+  }
+  if { ("" != $ret) && ($errResponseSeq == "") }  {
     return  1  ; # count successes
   } else {
     return  0  ; # count errors
