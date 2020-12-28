@@ -54,12 +54,12 @@ proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
   # (patterns with image extensions included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set winTextPatternToResponseKeySeqOrBtn [dict create]
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {^%s$} $outDirForRegexp]    KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn  "Confirm Conversion Start"          KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn  "Do you want to use the previous report files"  KEYS  "n"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {^%s$} $outDirForRegexp]    BTN   "&Yes"
+  dict set winTextPatternToResponseKeySeqOrBtn  "Confirm Conversion Start"          BTN   "&Yes"
+  dict set winTextPatternToResponseKeySeqOrBtn  "Do you want to use the previous report files"  BTN  "&No"
   dict set winTextPatternToResponseKeySeqOrBtn  {\.alv$}                            KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   BTN  "&Yes"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   BTN  "&Yes"
   dict set winTextPatternToResponseKeySeqOrBtn  {^Attention}                        KEYS  "{SPACE}"
   dict set winTextPatternToResponseKeySeqOrBtn  {\.jpg$}                            KEYS  ""
   dict set winTextPatternToResponseKeySeqOrBtn  {\.tif$}                            KEYS  ""

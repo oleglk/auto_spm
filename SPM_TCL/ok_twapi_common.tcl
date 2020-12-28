@@ -522,11 +522,18 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd \
     ############::ok_utils::pause; # OK_TMP
     return  1; # OK; continuing gives it a chance to match an expected popup pattern
   }
+  # issue the chosen response
   if { $responseIsKeys }  {
     set ret [ok_twapi::focus_then_send_keys $respKeySeqOrBtn $wDescr $hwnd]
   } else {
-    set rc [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog $respKeySeqOrBtn]
-    set ret [expr {($rc == 0)? "" : "OK"}]
+    set pDescr "press SPACE on button '$respKeySeqOrBtn' to $wDescr"
+    if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog        \
+                                                    $respKeySeqOrBtn 0]) ||  \
+     ("" == [set hRF [ok_twapi::_send_cmd_keys {{SPACE}} $pDescr 0]])    }  {
+      puts "-E- Failed to $pDescr";    set ret ""
+    } else {
+      set ret "OK"
+    }
   }
   if { ("" != $ret) && ($errResponseSeq == "") }  {
     return  1  ; # count successes
