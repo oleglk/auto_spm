@@ -414,24 +414,38 @@ proc ::ok_twapi::respond_to_popup_windows_based_on_text {                     \
     # 'winToListOfResponses' holds it and only it; responses could be multiple
     ## Pick the 1st (or the only) window, respond and continue unless aborted
     set hwnd [lindex [dict keys $winToListOfResponses] 0]
-    set respList [dict get $winToListOfResponses $hwnd]; # should have element(s)
-    # 'respList' = {(KEYS|BTN)::keySeq-or-btnText}
-    puts "-D- Responses to window '[twapi::get_window_text $hwnd]': {$respList}"
-    
-    # TODO: search for 1st non-empty or "" IN DICTIONARY
-    set keySeq [lsearch -inline -regexp  $respList  {.+}]; # 1st non-empty or ""
+    set respDict [dict get $winToListOfResponses $hwnd]; # 1 or 2 element(s)
+    # 'respDict' = {(KEYS|BTN)::keySeq-or-btnText}
+    puts "-D- Responses to window '[twapi::get_window_text $hwnd]': {$respDict}"
+
+    # search for 1st non-empty or "" in:
+    #  (1st priority) button-press responces, (2nd priority) key-press responces
+    set keySeqOrBtn "";  # init to as if known error or unexpected
+    foreach respType {"BTN" "KEYS"}   {
+      if { [dict exists $respDict $respType] }  {
+        set respList [dict get $respDict $respType]
+        set idx [lsearch -regexp  $respList  {.+}]
+        if { $idx >= 0 }  {
+          if { "" != [set keySeqOrBtn [lindex $respList $idx]] } {
+            puts "-I- Found valid response to window '[twapi::get_window_text $hwnd]': ($respType) '$keySeqOrBtn'"
+            break
+          }
+        }
+      }
+    }
     # respond to the picked window and continue
-    set respOK [_respond_to_given_popup_window $hwnd keySeq $descr \
-                                               $errPatternList abortRequested] 
+    set respOK [_respond_to_given_popup_window $hwnd                          \
+                                [expr {($respType=="KEYS")? 1:0}] keySeqOrBtn \
+                                $descr $errPatternList abortRequested] 
     if { $abortRequested }  { break } ;   # message already printed
-    if { $respOK && ($keySeq != "") }  {
+    if { $respOK && ($keySeqOrBtn != "") }  {
       set lastActionTime [clock seconds]  ;  # it did press a button
       incr cntGood 1
       #dict incr winTextPatternToCntResponded $pattern 1  ; # count successes
     } else {
       #dict incr winTextPatternToCntErrors $pattern 1     ; # count errors
     }
-    if { !$respOK && ($keySeq != "") }  { ;  # told to press a button but failed
+    if { !$respOK && ($keySeqOrBtn != "") }  {; # told to press a button but failed
       incr cntBad 1
     }
     after [expr {1000 * $pollPeriodSec}]; # wait before new search for windows
@@ -479,7 +493,8 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd \
   upvar $isAbortRequested abortRequested
   set winTxt  [twapi::get_window_text $hwnd]
   set st      [twapi::get_window_style $hwnd]
-  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response-key-seq={$3tn})"
+  set respTypeStr [expr {($responseIsKeys)? "KEYS" : "BTN"}]
+  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response($respTypeStr)={$respKeySeqOrBtnInOut})"
   #ok_twapi::abort_if_key_pressed "q"
   if { $respKeySeqOrBtn == $ok_twapi::OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP }  {
     puts "-I- Window '$winTxt' requests wait-then-abort of processing popups for $descr; will wait 10 sec to let it disappear"

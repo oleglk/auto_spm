@@ -53,17 +53,17 @@ proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
   # there may appear confirmation dialogs; tell to press "y" for each one
   # (patterns with image extensions included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
-  set winTextPatternToResponseKeySeqOrBtn [dict create \
-    [format {^%s$} $outDirForRegexp]    KEYS  "y" \
-    "Confirm Conversion Start"          KEYS  "y" \
-    "Do you want to use the previous report files"  KEYS  "n" \
-    {\.alv$}                            KEYS  "y" \
-    [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y" \
-    [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y" \
-    {^Attention}                        KEYS  "{SPACE}" \
-    {\.jpg$}                            KEYS  "" \
-    {\.tif$}                            KEYS  "" \
-  ]
+  set winTextPatternToResponseKeySeqOrBtn [dict create]
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {^%s$} $outDirForRegexp]    KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  "Confirm Conversion Start"          KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  "Do you want to use the previous report files"  KEYS  "n"
+  dict set winTextPatternToResponseKeySeqOrBtn  {\.alv$}                            KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  {^Attention}                        KEYS  "{SPACE}"
+  dict set winTextPatternToResponseKeySeqOrBtn  {\.jpg$}                            KEYS  ""
+  dict set winTextPatternToResponseKeySeqOrBtn  {\.tif$}                            KEYS  ""
+
   set rc [spm::cmd__multiconvert  $descr ""         \
                                   $cfgPath $winTextPatternToResponseKeySeqOrBtn]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
