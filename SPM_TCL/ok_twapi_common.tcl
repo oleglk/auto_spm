@@ -494,7 +494,7 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd \
   set winTxt  [twapi::get_window_text $hwnd]
   set st      [twapi::get_window_style $hwnd]
   set respTypeStr [expr {($responseIsKeys)? "KEYS" : "BTN"}]
-  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response($respTypeStr)={$respKeySeqOrBtnInOut})"
+  puts "-D- Checking window '$winTxt' (styles={$st}) for being popup (pattern: {TMP-UNKNOWN}, response($respTypeStr)={$respKeySeqOrBtn})"
   #ok_twapi::abort_if_key_pressed "q"
   if { $respKeySeqOrBtn == $ok_twapi::OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP }  {
     puts "-I- Window '$winTxt' requests wait-then-abort of processing popups for $descr; will wait 10 sec to let it disappear"
@@ -741,11 +741,27 @@ proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
   set fgWnd [twapi::get_foreground_window]
   set tid [twapi::get_window_thread $fgWnd]
   set initWnd [twapi::get_focus_window_for_thread $tid]
+  set initOwner [twapi::get_owner_window $initWnd]
+  set initOwnerText [expr {($initOwner!="")? \
+                                      [twapi::get_window_text $initOwner] : ""}]
+  set initParent [twapi::get_parent_window $initWnd]
+  set initParentText [expr {($initParent!="")? \
+                                      [twapi::get_window_text $initParent] : ""}]
   set maxAttempts 200
+  puts "-D- Start search for '$wndText';  fg-window='[twapi::get_window_text $fgWnd]' (parent='[twapi::get_window_text [twapi::get_parent_window $fgWnd]]');  init-window='[twapi::get_window_text $initWnd]' (parent='$initParentText', owner='$initOwnerText')"
   for {set i 0}  {$i < $maxAttempts}  {incr i 1}   {
     set currWnd [twapi::get_focus_window_for_thread $tid]
     set currText [twapi::get_window_text $currWnd]
-    puts "-D- Search for '$wndText' visits window '$currText'"
+    set ownerWnd [twapi::get_owner_window $currWnd]
+    set ownerText [expr {($ownerWnd!="")? \
+                                      [twapi::get_window_text $ownerWnd] : ""}]
+    set parWnd [twapi::get_parent_window $currWnd]
+    set parText [expr {($parWnd!="")? \
+                                      [twapi::get_window_text $parWnd] : ""}]
+    puts "-D- Search for '$wndText' visits window '$currText' (parent='$parText', owner='$ownerText')"
+    if { $ownerWnd != $initOwner }   {
+      puts "[_ok_callstack]";  ::ok_utils::pause "Suspected focus escape from open window. Hit <Enter> to continue, Q<Enter> to quit ==>"
+    }
     if { $currText == $wndText }  {
       puts "-D- Window '$wndText' found at tabstop $i";   return  1
     }

@@ -50,7 +50,7 @@ proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
       puts "-I- Will reuse old alignment data in '$alignDir'"
     }
   }
-  # there may appear confirmation dialogs; tell to press "y" for each one
+  # there may appear confirmation dialogs; tell to _confirm_ for each one
   # (patterns with image extensions included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set winTextPatternToResponseKeySeqOrBtn [dict create]
@@ -58,9 +58,12 @@ proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
   dict set winTextPatternToResponseKeySeqOrBtn  "Confirm Conversion Start"          BTN   "&Yes"
   dict set winTextPatternToResponseKeySeqOrBtn  "Do you want to use the previous report files"  BTN  "&No"
   dict set winTextPatternToResponseKeySeqOrBtn  {\.alv$}                            KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   BTN  "&Yes"
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   BTN  "&Yes"
-  dict set winTextPatternToResponseKeySeqOrBtn  {^Attention}                        KEYS  "{SPACE}"
+# dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   BTN  "&Yes"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y"
+# dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   BTN  "&Yes"
+  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn  {^Attention}                        BTN  "OK"
+  # (not detected) dict set winTextPatternToResponseKeySeqOrBtn  {3631}                                BTN  "OK"
   dict set winTextPatternToResponseKeySeqOrBtn  {\.jpg$}                            KEYS  ""
   dict set winTextPatternToResponseKeySeqOrBtn  {\.tif$}                            KEYS  ""
 
@@ -182,13 +185,17 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   # there may appear confirmation dialogs; tell to press "y" for each one
   set outDirForRegexpFP [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set outDirForRegexpRP [ok_utils::ok_format_filepath_for_regexp $outSubdirName]
-  set winTextPatternToResponseKeySeqOrBtn [dict create        \
-    [format {^%s$} $outDirForRegexpFP]        KEYS  "y"       \
-    "Confirm Conversion Start"                KEYS  "y"       \
-    [format {%s.*\.jpg$} $outDirForRegexpRP]  KEYS  "y"       \
-    [format {%s.*\.tif$} $outDirForRegexpRP]  KEYS  "y"       \
-    {^Attention}                              KEYS  "{SPACE}" \
-  ]
+  set winTextPatternToResponseKeySeqOrBtn [dict create]
+  dict set winTextPatternToResponseKeySeqOrBtn                \
+    [format {^%s$} $outDirForRegexpFP]        KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn                \
+    "Confirm Conversion Start"                KEYS  "y"
+  dict set winTextPatternToResponseKeySeqOrBtn                \
+    [format {%s.*\.jpg$} $outDirForRegexpRP]  KEYS  "y"
+    dict set winTextPatternToResponseKeySeqOrBtn              \
+    [format {%s.*\.tif$} $outDirForRegexpRP]  KEYS  "y" 
+  dict set winTextPatternToResponseKeySeqOrBtn                \
+    {^Attention}                              KEYS  "{SPACE}"
   # (patterns with input paths included to force checking for input errors)
   if { $inpSubdirName != $outSubdirName } {
     dict set winTextPatternToResponseKeySeqOrBtn  \

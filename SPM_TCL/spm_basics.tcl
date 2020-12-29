@@ -447,10 +447,10 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   # react to errors if requested
   # "Open Stereo Image" is the current open dialog; wait to close before seeking popups
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $fullPath]
-  set winTextPatternToResponseKeySeqOrBtn [dict create                         \
-    [format {%s$} [file tail $fullPath]]    KEYS  ""                           \
-    {Open Stereo Image}                     KEYS  "OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP" \
-  ]
+  set winTextPatternToResponseKeySeqOrBtn [dict create]
+  dict set winTextPatternToResponseKeySeqOrBtn [format {%s$} [file tail $fullPath]]    KEYS  ""
+  dict set winTextPatternToResponseKeySeqOrBtn {Open Stereo Image}                     KEYS  "OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP"
+
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
           $winTextPatternToResponseKeySeqOrBtn $SPM_ERR_MSGS 2 10 3 $lDescr  \
           "::ok_twapi::is_current_visible_window_by_title" $targetWndTitle] } {
