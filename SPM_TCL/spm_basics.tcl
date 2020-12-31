@@ -261,13 +261,13 @@ after 5000
 # Opens multi-convert GUI, loads settings from 'cfgPath',
 # starts conversion and waits for it to finish.
 # 'inpSubDir' is subdirectory name under work-area root or "" for root directory
-# 'winTextPatternToResponseKeySeqOrBtn' tells how to respond
+# 'winTextPatternToResponse' tells how to respond
 #          to (optional) confirmation dialogs
-# 'winTextPatternToResponseKeySeqOrBtn' = {text::(KEYS|BTN)::keySeq-or-btnText}
+# 'winTextPatternToResponse' = {text::(KEYS|BTN)::keySeq-or-btnText}
 # Returns to the top SPM window.
 # Returns 1 on success, 0 on error.
 proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
-                                winTextPatternToResponseKeySeqOrBtn} {
+                                winTextPatternToResponse} {
   variable SPM_ERR_MSGS;  # list of known error patterns in SPM popup-s
   set actDescr "$descr; config in '$cfgPath'"
   
@@ -308,7 +308,7 @@ proc ::spm::cmd__multiconvert {descr inpSubDir cfgPath \
   for {set t 0} {$t < $timeWaitSec} {incr t $smallWaitSec}  {
     puts "-I- (re)running multiconversion popup processing"
     set pRet [ok_twapi::respond_to_popup_windows_based_on_text              \
-            $winTextPatternToResponseKeySeqOrBtn $SPM_ERR_MSGS                   \
+            $winTextPatternToResponse $SPM_ERR_MSGS                   \
             $pollPeriodSec 10 10 $descr                                     \
             "::spm::_is_multiconversion_most_likely_finished" $numThreads]
     puts "-I- multiconversion popup processing returned $pRet"
@@ -447,12 +447,12 @@ proc ::spm::cmd__open_stereopair_image {inpType imgPath}  {
   # react to errors if requested
   # "Open Stereo Image" is the current open dialog; wait to close before seeking popups
   set targetWndTitle [build_image_window_title_regexp_pattern sbs $fullPath]
-  set winTextPatternToResponseKeySeqOrBtn [dict create]
-  dict set winTextPatternToResponseKeySeqOrBtn [format {%s$} [file tail $fullPath]]    KEYS  ""
-  dict set winTextPatternToResponseKeySeqOrBtn {Open Stereo Image}                     KEYS  "OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP"
+  set winTextPatternToResponse [dict create]
+  dict set winTextPatternToResponse [format {%s$} [file tail $fullPath]]    KEYS  ""
+  dict set winTextPatternToResponse {Open Stereo Image}                     KEYS  "OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP"
 
   if { 0 == [ok_twapi::respond_to_popup_windows_based_on_text  \
-          $winTextPatternToResponseKeySeqOrBtn $SPM_ERR_MSGS 2 10 3 $lDescr  \
+          $winTextPatternToResponse $SPM_ERR_MSGS 2 10 3 $lDescr  \
           "::ok_twapi::is_current_visible_window_by_title" $targetWndTitle] } {
     puts "-E- Failed to $lDescr";    return  0;  # error details already printed
   }
@@ -555,12 +555,13 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   #~ twapi::send_keys {%s};  # command to save the image
   
   # confirm save if requested
-  set winTextPatternToResponseKeySeqOrBtn [dict create  \
-                                                  "Confirm Save As" KEYS "y"]
+#  set winTextPatternToResponse [dict create  \"Confirm Save As" KEYS "y"]
+  set winTextPatternToResponse [dict create  \
+                                                  "Confirm Save As" BTN "&Yes"]
   set arg [list $outPath [expr {
             [file exists $outPath]? round([file size $outPath] / 1024.0) : -1}]]
   ok_twapi::respond_to_popup_windows_based_on_text  \
-            $winTextPatternToResponseKeySeqOrBtn $SPM_ERR_MSGS 2 10 1 $sDescr \
+            $winTextPatternToResponse $SPM_ERR_MSGS 2 10 1 $sDescr \
             "::spm::_adapt__ok_monitor_file_save" $arg
   # do not check for errors since the proc is finished
   # verify we returned to the image window

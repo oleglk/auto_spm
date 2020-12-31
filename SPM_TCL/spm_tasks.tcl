@@ -53,22 +53,23 @@ proc ::spm::cmd__align_all {inpType mountWindow reuseAlignData} {
   # there may appear confirmation dialogs; tell to _confirm_ for each one
   # (patterns with image extensions included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
-  set winTextPatternToResponseKeySeqOrBtn [dict create]
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {^%s$} $outDirForRegexp]    BTN   "&Yes"
-  dict set winTextPatternToResponseKeySeqOrBtn  "Confirm Conversion Start"          BTN   "&Yes"
-  dict set winTextPatternToResponseKeySeqOrBtn  "Do you want to use the previous report files"  BTN  "&No"
-  dict set winTextPatternToResponseKeySeqOrBtn  {\.alv$}                            KEYS  "y"
-# dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   BTN  "&Yes"
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y"
-# dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   BTN  "&Yes"
-  dict set winTextPatternToResponseKeySeqOrBtn  [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn  {^Attention}                        BTN  "OK"
-  # (not detected) dict set winTextPatternToResponseKeySeqOrBtn  {3631}                                BTN  "OK"
-  dict set winTextPatternToResponseKeySeqOrBtn  {\.jpg$}                            KEYS  ""
-  dict set winTextPatternToResponseKeySeqOrBtn  {\.tif$}                            KEYS  ""
+  set winTextPatternToResponse [dict create]
+  dict set winTextPatternToResponse  [format {^%s$} $outDirForRegexp]    BTN   "&Yes"
+  dict set winTextPatternToResponse  "Confirm Conversion Start"          BTN   "&Yes"
+  dict set winTextPatternToResponse  "Do you want to use the previous report files"  BTN  "&No"
+  dict set winTextPatternToResponse  {\.alv$}                            KEYS  "y"
+# dict set winTextPatternToResponse  [format {%s.*\.jpg$} $SUBDIR_PRE]   BTN  "&Yes"
+  dict set winTextPatternToResponse  [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "y"
+# dict set winTextPatternToResponse  [format {%s.*\.tif$} $SUBDIR_PRE]   BTN  "&Yes"
+  dict set winTextPatternToResponse  [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "y"
+# dict set winTextPatternToResponse  {^Attention}                        BTN  "OK"
+  dict set winTextPatternToResponse  {^Attention}                        KEYS  "{SPACE}"
+  # (not detected) dict set winTextPatternToResponse  {3631}                                BTN  "OK"
+  dict set winTextPatternToResponse  {\.jpg$}                            KEYS  ""
+  dict set winTextPatternToResponse  {\.tif$}                            KEYS  ""
 
   set rc [spm::cmd__multiconvert  $descr ""         \
-                                  $cfgPath $winTextPatternToResponseKeySeqOrBtn]
+                                  $cfgPath $winTextPatternToResponse]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   register_phase_results [lindex [info level 0] 0] \
     [verify_output_images_vs_inputs $inpType $inpStats $outDirFullPath ".TIF"]
@@ -105,17 +106,18 @@ proc ::spm::cmd__crop_all {inpType left top right bottom} {
   # there may appear confirmation dialogs; tell to press "y" for each one
   # (patterns with input paths included to force checking for input errors)
   set outDirForRegexp [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
-  set winTextPatternToResponseKeySeq [dict create \
-    [format {^%s$} $outDirForRegexp]    KEYS  "y" \
-    "Confirm Conversion Start"          KEYS  "y" \
-    {\.alv$}                            KEYS  "y" \
-    [format {%s.*\.jpg$} $SUBDIR_SBS]   KEYS  "y" \
-    [format {%s.*\.tif$} $SUBDIR_SBS]   KEYS  "y" \
-    [format {%s.*\.jpg$} $SUBDIR_PRE]   KEYS  "" \
-    [format {%s.*\.tif$} $SUBDIR_PRE]   KEYS  "" \
-  ]
+  set winTextPatternToResponse [dict create]
+# dict set winTextPatternToResponse [format {^%s$} $outDirForRegexp]  KEYS  "y"
+  dict set winTextPatternToResponse [format {^%s$} $outDirForRegexp]  BTN  "&Yes"
+# dict set winTextPatternToResponse "Confirm Conversion Start"        KEYS  "y"
+  dict set winTextPatternToResponse "Confirm Conversion Start"        BTN  "&Yes" 
+  dict set winTextPatternToResponse {\.alv$}                          KEYS  "y"
+  dict set winTextPatternToResponse [format {%s.*\.jpg$} $SUBDIR_SBS] KEYS  "y"
+  dict set winTextPatternToResponse [format {%s.*\.tif$} $SUBDIR_SBS] KEYS  "y"
+  dict set winTextPatternToResponse [format {%s.*\.jpg$} $SUBDIR_PRE] KEYS  ""
+  dict set winTextPatternToResponse [format {%s.*\.tif$} $SUBDIR_PRE] KEYS  ""
   set rc [spm::cmd__multiconvert  $descr $SUBDIR_PRE \
-                                  $cfgPath $winTextPatternToResponseKeySeq]
+                                  $cfgPath $winTextPatternToResponse]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   
   register_phase_results [lindex [info level 0] 0] \
@@ -185,26 +187,23 @@ proc ::spm::cmd__adjust_all {inpType cfgPath inpSubdirName outSubdirName} {
   # there may appear confirmation dialogs; tell to press "y" for each one
   set outDirForRegexpFP [ok_utils::ok_format_filepath_for_regexp $outDirFullPath]
   set outDirForRegexpRP [ok_utils::ok_format_filepath_for_regexp $outSubdirName]
-  set winTextPatternToResponseKeySeqOrBtn [dict create]
-  dict set winTextPatternToResponseKeySeqOrBtn                \
-    [format {^%s$} $outDirForRegexpFP]        KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn                \
-    "Confirm Conversion Start"                KEYS  "y"
-  dict set winTextPatternToResponseKeySeqOrBtn                \
-    [format {%s.*\.jpg$} $outDirForRegexpRP]  KEYS  "y"
-    dict set winTextPatternToResponseKeySeqOrBtn              \
-    [format {%s.*\.tif$} $outDirForRegexpRP]  KEYS  "y" 
-  dict set winTextPatternToResponseKeySeqOrBtn                \
-    {^Attention}                              KEYS  "{SPACE}"
+  set winTextPatternToResponse [dict create]
+# dict set winTextPatternToResponse [format {^%s$} $outDirForRegexpFP]  KEYS "y"
+  dict set winTextPatternToResponse [format {^%s$} $outDirForRegexpFP]  BTN "&Yes"
+# dict set winTextPatternToResponse "Confirm Conversion Start"          KEYS "y"
+  dict set winTextPatternToResponse "Confirm Conversion Start"          BTN "&Yes"
+  dict set winTextPatternToResponse [format {%s.*\.jpg$} $outDirForRegexpRP] KEYS "y"
+  dict set winTextPatternToResponse [format {%s.*\.tif$} $outDirForRegexpRP] KEYS "y" 
+  dict set winTextPatternToResponse {^Attention}                             KEYS "{SPACE}"
   # (patterns with input paths included to force checking for input errors)
   if { $inpSubdirName != $outSubdirName } {
-    dict set winTextPatternToResponseKeySeqOrBtn  \
+    dict set winTextPatternToResponse  \
                                   KEYS  [format {%s.*\.jpg$} $inpSubdirName]  ""
-    dict set winTextPatternToResponseKeySeqOrBtn  \
+    dict set winTextPatternToResponse  \
                                   KEYS  [format {%s.*\.tif$} $inpSubdirName]  ""
   }
   set rc [spm::cmd__multiconvert  $descr $inpSubdirName \
-                                  $cfgPath $winTextPatternToResponseKeySeqOrBtn]
+                                  $cfgPath $winTextPatternToResponse]
   set spm::TABSTOPS $spm::TABSTOPS_DFL
   return  $rc
 }
@@ -323,11 +322,19 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
         "Round corners"   $corners  ]
   ok_twapi::_fill_fields_in_open_dialog  $nameToStopNum  $nameToVal  "'$ADD_BORDER' dialog"
 
-  set dDescr "command to close '$ADD_BORDER' dialog"
-  if { "" == [ok_twapi::_send_cmd_keys {{ENTER}} $dDescr 0] }  {
-    puts "-E- Failed performing '$ADD_BORDER'"
-    return  0;  # error already printed
+  #~ set dDescr "command to close '$ADD_BORDER' dialog"
+  #~ if { "" == [ok_twapi::_send_cmd_keys {{ENTER}} $dDescr 0] }  {
+    #~ puts "-E- Failed performing '$ADD_BORDER'"
+    #~ return  0;  # error already printed
+  #~ }
+  # focus restoration (to add-border dialog) needed because of log prints
+  if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}{ENTER}]] }  { ; #(SPM_6.02)
+    puts "-E- Failed to restore and confirm '$ADD_BORDER' dialog";    return  0
   }
+  #~ if { (0 == [ok_twapi::raise_wnd_then_send_keys_to_subwindow               \
+                                                  #~ $hB "OK" {{SPACE}} 0]) }  {
+    #~ puts "-E- Failed commanding to close '$ADD_BORDER' dialog";    return  0
+  #~ }
   # verify we returned to the image window (title = $imgWndTitle)
   set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "exact"]
   if { $hI == "" } {
@@ -366,20 +373,20 @@ proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
   set imgPaths [lsort $imgPaths]
   set cntImgs [llength $imgPaths]
   set addBorderAllDescr "'$ADD_BORDER' to $cntImgs image(s) in directory '$imgDirPath'"
-  set errCnt 0
+  set goodCnt 0
   puts "-I- Start to $addBorderAllDescr"
   foreach imgPath $imgPaths {
-    if { 0 == [cmd__fuzzy_border_one  $inpType $imgPath \
+    if { 1 == [cmd__fuzzy_border_one  $inpType $imgPath \
                                       $width $gradient $corners] } {
-      incr errCnt 1;  # error already printed
+      incr goodCnt 1
+    } else {
+      set errCnt [expr {$cntImgs - $goodCnt}];   break; # error already printed
     }
   }
   if { $errCnt == 0 }   {
     puts "-I- Finished to $addBorderAllDescr; no errors occurred"
-  } elseif { $errCnt == $cntImgs }  {
-    puts "-E- Failed to $addBorderAllDescr; error(s) occurred for all $cntImgs image(s)"
-  } else   {
-    puts "-W- Finished to $addBorderAllDescr; $errCnt error(s) occurred"
+  } else {
+    puts "-E- Failed to $addBorderAllDescr; aborted after $goodCnt image(s)"
   }
   
   register_phase_results [lindex [info level 0] 0] \

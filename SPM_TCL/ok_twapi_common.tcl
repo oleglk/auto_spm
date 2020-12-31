@@ -352,6 +352,7 @@ proc ::ok_twapi::open_menu_top_level {oneKey descr} {
 
 # Detects emerging popup windows by regexp patters in 'winTextPatternToResponseKeySeqOrBtn'.
 # Sends specified confirmation (key or button-press) to each.
+# !!! Buttons currently work only in single-process scenarios !!!
 # 'winTextPatternToResponseKeySeqOrBtn' = {text::(KEYS|BTN)::keySeq-or-btnText}
 # Error reported when a (listed!) popup has child window
 #      with text (not title) matching any pattern in 'errPatternList'.
@@ -776,6 +777,26 @@ proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
 }
 
 
+proc ::ok_twapi::raise_wnd_then_send_keys_to_subwindow  {targetHwnd \
+                                                subWndText keySeq {goBack 0}}  {
+  set descr "raising window {$targetHwnd} and sending keys {$keySeq} to subwindow {$subWndText}"
+  twapi::set_foreground_window $targetHwnd
+  after 200
+  twapi::set_focus $targetHwnd
+  after 200
+  if { $targetHwnd == [twapi::get_foreground_window] }  {
+    if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog   \
+                                              $subWndText $goBack])  || \
+       ("" == [ok_twapi::_send_cmd_keys $keySeq $descr 0])    }  {
+    puts "-E- Failed $descr";    return  0
+  }
+    twapi::send_keys $keySeq
+    puts "-I- Success $descr";  return  1
+  }
+  puts "-E- Failed $descr - upper window did not raise";     return  0
+}
+
+
 # Goes over all fields of the current foreground (and focused) window
 #   in ascending-tabstops order and fills relevant fields
 # Example:
@@ -787,6 +808,7 @@ proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
                                               tabStopsNameToVal descr} {
   set nStops [expr [llength $tabStopsNameToNum] / 2]
   puts "-D- There are $nStops tabstop(s) in $descr"
+  set msgList [list];  # COLLECT MESSAGES; PRINTING WOULD SHIFT FOCUS !!!
 
   set numToName [dict create]
   dict for {name num} $tabStopsNameToNum  { dict set numToName $num $name }
@@ -795,16 +817,17 @@ proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
     set name [dict get $numToName $num]
     if { [dict exists $tabStopsNameToVal $name] }   {
       set val [dict get $tabStopsNameToVal $name]
-      puts "-I- Typing '$val' for '$name' in stop #$num of $descr"
+      lappend msgList "Typing '$val' for '$name' in stop #$num of $descr"
       twapi::send_input_text $val
     } else {
-      puts "-D- Skipping '$name' in stop #$num of $descr"
+      lappend msgList  "Skipping '$name' in stop #$num of $descr"
     }
     after 500
     # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
     # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
     twapi::send_keys {{TAB}};  after 300;  # go to the next tabstop
   }
+  return  $msgList
 }
 
 # Sends given keys while taking care of occurences of {MENU}.
