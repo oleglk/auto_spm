@@ -30,10 +30,10 @@ namespace eval ::spm:: {
   variable SUBDIR_CFG "CONFIG";  # subdirectory for session-specific config files
   variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
-  variable SPM_TITLE  "StereoPhoto Maker" ;   # title of the main SPM window
+  variable SPM_TITLE  "(32bit) StereoPhoto Maker" ;   # title of the main SPM window
 #(SPM_6.02)    variable SPM_TITLE  "(64bit) StereoPhoto Maker Pro" ;   # title of the main SPM window
   
-  variable STEREOPAIR_WND_TITLE_PATTERN {^Left Image[(]%s - .*Right Image[(]%s - } 
+  variable STEREOPAIR_WND_TITLE_PATTERN {^(\(.+\) )?Left Image[(]%s - .*Right Image[(]%s - } 
 #(SPM_6.02)  variable STEREOPAIR_WND_TITLE_PATTERN {^[(]64bit[)] Left Image[(]%s - .*Right Image[(]%s - } 
   
   ### SPM_ERR_MSGS is a list of known error patterns in SPM popup-s
@@ -207,7 +207,9 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
     set inpPathSeq "[file nativename $inpDirPath]"
     twapi::send_input_text $inpPathSeq
   #return  "";  # OK_TMP
+after 3000
     twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
+after 3000
     if { 0 == [ok_twapi::verify_current_window_by_title   "Multi Conversion" \
                                                           "exact" 1] }  {
       return  "";  # error already printed
@@ -218,9 +220,12 @@ after 5000
   # TODO: consider cleaning filename field
   puts "-I- Commanded to change input directory to '$inpPathSeq'"
   puts "-I- (Note, 'BACK' button became accessible and accounted for by tabstops"
+  puts "-D- Conversion config-file path: '$cfgPath'"
   if { $cfgPath == "" }  {  return  $hMC }
+after 3000
   
   twapi::send_keys {%n};  # return focus to Filename entry - start for tabstops
+after 3000
 #return  "";  # OK_TMP
 
 # load align-all settings from 'cfgPath' - AFTER input dir(s) specified
@@ -395,7 +400,7 @@ proc ::spm::_press_multiconversion_exit_buttons {maxNumOfExitButtons origMCWnd} 
                   [_find_first_multiconversion_button "Exit" $origMCWnd]])   &&  \
           ($maxNumOfExitButtons > 0) && ($maxAttempts > 0) }   {
     puts "-D- Click at 'Exit' button ($wndOfExit); attempts left: $maxAttempts"
-    if { 1 == [ok_twapi::raise_wnd_and_send_keys $wndOfExit {{SPACE}}] }  {
+    if { 1 == [ok_twapi::raise_wnd_and_send_keys $wndOfExit {{SPACE}} 1] }  {
       incr maxNumOfExitButtons -1;  incr cntPressed 1
     }
     incr maxAttempts -1;  after 2000

@@ -305,36 +305,24 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   set fDescr "switch-from-then-back to $ADD_BORDER dialog in order to make tabstops available"
   # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
   # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
-  if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}]] }  { ; #(SPM_6.02)
+  if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}] 0] }  { ; #(SPM_6.02)
   #~ twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
   #~ set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
   #~ if { $hB == "" } { ... }
     puts "-E- Failed to $fDescr";    return  0;  # error details already printed
   }
-  puts "-I- Success to $fDescr"
+  # DO NOT LOG-PRINT - PRESEVE FOCUS !!!   puts "-I- Success to $fDescr"
   after 1000; # wait after returning to the dialog
 
-  # Go over all fields in ascending tabstops order and process each one
+  # Go over all fields in ascending tabstops order and process each, then close
   set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key $ADD_BORDER] 1]
   set nameToVal [dict create        \
         "Border width"    $width    \
         "Fuzzy gradient"  $gradient \
         "Round corners"   $corners  ]
-  ok_twapi::_fill_fields_in_open_dialog  $nameToStopNum  $nameToVal  "'$ADD_BORDER' dialog"
+  set msgsOrError [ok_twapi::fill_fields_and_close_open_dialog \
+              $nameToStopNum $nameToVal  "OK" {{SPACE}}  "'$ADD_BORDER' dialog"]
 
-  #~ set dDescr "command to close '$ADD_BORDER' dialog"
-  #~ if { "" == [ok_twapi::_send_cmd_keys {{ENTER}} $dDescr 0] }  {
-    #~ puts "-E- Failed performing '$ADD_BORDER'"
-    #~ return  0;  # error already printed
-  #~ }
-  # focus restoration (to add-border dialog) needed because of log prints
-  if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}{ENTER}]] }  { ; #(SPM_6.02)
-    puts "-E- Failed to restore and confirm '$ADD_BORDER' dialog";    return  0
-  }
-  #~ if { (0 == [ok_twapi::raise_wnd_then_send_keys_to_subwindow               \
-                                                  #~ $hB "OK" {{SPACE}} 0]) }  {
-    #~ puts "-E- Failed commanding to close '$ADD_BORDER' dialog";    return  0
-  #~ }
   # verify we returned to the image window (title = $imgWndTitle)
   set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "exact"]
   if { $hI == "" } {

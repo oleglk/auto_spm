@@ -106,7 +106,7 @@ proc ::ok_twapi::focus_singleton {context {targetHwnd 0}}  {
 }
 
 
-proc ::ok_twapi::raise_wnd_and_send_keys {targetHwnd keySeq} {
+proc ::ok_twapi::raise_wnd_and_send_keys {targetHwnd keySeq allowLogOnSuccess} {
   set descr "raising window {$targetHwnd} and sending keys {$keySeq}"
   twapi::set_foreground_window $targetHwnd
   after 200
@@ -114,7 +114,8 @@ proc ::ok_twapi::raise_wnd_and_send_keys {targetHwnd keySeq} {
   after 200
   if { $targetHwnd == [twapi::get_foreground_window] }  {
     twapi::send_keys $keySeq
-    puts "-I- Success $descr";  return  1
+    if { $allowLogOnSuccess }   { puts "-I- Success $descr" }
+    return  1
   }
   puts "-E- Failed $descr";     return  0
 }
@@ -739,7 +740,13 @@ proc ::ok_twapi::is_window_visible {hwnd} {
 proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
                                                                {goBack 0}}  {
   set keySeqStr [expr { ($goBack==0)? {{TAB}} : {+{TAB}} }]
-  set fgWnd [twapi::get_foreground_window]
+  for {set i 1} {$i <= 3} {incr i 1}  {
+    if { "" != [set fgWnd [twapi::get_foreground_window]] }   { break }
+    after 1000;  # workaround for "" returned by slow computer"
+  }
+  if { $fgWnd == "" }  {
+    puts "-E- Missing foreground window ???";   return  0
+  }
   set tid [twapi::get_window_thread $fgWnd]
   set initWnd [twapi::get_focus_window_for_thread $tid]
   set initOwner [twapi::get_owner_window $initWnd]
@@ -800,33 +807,34 @@ proc ::ok_twapi::raise_wnd_then_send_keys_to_subwindow  {targetHwnd \
 # Goes over all fields of the current foreground (and focused) window
 #   in ascending-tabstops order and fills relevant fields,
 # then sends closing key-sequence to GUI-item at specified closing tabstop.
-# Returns list of messages or "ERROR" upon error.
+# Returns list of messages or "ERROR" on error.
 # Example:
 ##  #(set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key "Add Fuzzy Border"] 1])
 ##  set nameToStopNum [dict create "OK" 0  "Cancel" 1  "Border width" 10  "Fuzzy gradient" 70 "Round corners" 300] 
 ##  set nameToVal [dict create "Border width" 10 "Fuzzy gradient" 70 "Round corners" 300]
-##  set msgsOrError [ok_twapi::_fill_fields_and_close_open_dialog  $nameToStopNum  $nameToVal  "OK"  {{SPACE}}  "'border' dialog"]
-proc ::ok_twapi::_fill_fields_and_close_open_dialog { \
+##  set msgsOrError [ok_twapi::fill_fields_and_close_open_dialog  $nameToStopNum  $nameToVal  "OK"  {{SPACE}}  "'border' dialog"]
+proc ::ok_twapi::fill_fields_and_close_open_dialog { \
     tabStopsNameToNum tabStopsNameToVal closeTabStopName closeKeySeq descr} {
-  if { ! [dict exists $tabStopsNameToVal $closeTabStopName] }   {
+  if { ! [dict exists $tabStopsNameToNum $closeTabStopName] }   {
     puts "-E- Inexistent close-dialog tabstop '$closeTabStopName' in '$descr'"
     return  "ERROR"
   }
   set msgList [ok_twapi::_fill_fields_in_open_dialog  \
-                                            $nameToStopNum  $nameToVal  $descr]
+                                $tabStopsNameToNum  $tabStopsNameToVal  $descr]
   #set closeTabStopNum [dict get $tabStopsNameToVal $closeTabStopName]
-  TODO
   set pDescr "press '$closeKeySeq' on '$closeTabStopName' to close open dialog"
-  if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog        \
-                                                  $closeTabStopName 0]) ||  \
-   ("" == [set hRF [ok_twapi::_send_cmd_keys $closeKeySeq $pDescr 0]])    }  {
+  set closeOK [expr {                                                       \
+    (0 != [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog            \
+                                                  $closeTabStopName 0]) &&  \
+    ("" != [set hRF [ok_twapi::_send_cmd_keys $closeKeySeq $pDescr 0]])     }]
+  if { ! $closeOK }  {
     puts "-E- Failed to $pDescr";    lappend msgList "-E- Failed to $pDescr"
   } else {
-    puts "-I- Failed to $pDescr";    lappend msgList "-I- Failed to $pDescr"
+    puts "-I- Success to $pDescr";   lappend msgList "-I- Success to $pDescr"
   }
-  lappend msgList "Closing by '$closeKeySeq' for '$closeTabStopName' in stop #$num of $descr"
-  twapi::send_input_text $val
+  return  [expr {($closeOK)? $msgList : "ERROR"}]
 }
+
 
 # Goes over all fields of the current foreground (and focused) window
 #   in ascending-tabstops order and fills relevant fields
@@ -838,7 +846,7 @@ proc ::ok_twapi::_fill_fields_and_close_open_dialog { \
 proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
                                               tabStopsNameToVal descr} {
   set nStops [expr [llength $tabStopsNameToNum] / 2]
-  puts "-D- There are $nStops tabstop(s) in $descr"
+  lappend msgList "-D- There are $nStops tabstop(s) in $descr"
   set msgList [list];  # COLLECT MESSAGES; PRINTING WOULD SHIFT FOCUS !!!
 
   set numToName [dict create]
