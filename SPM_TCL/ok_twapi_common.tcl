@@ -798,12 +798,43 @@ proc ::ok_twapi::raise_wnd_then_send_keys_to_subwindow  {targetHwnd \
 
 
 # Goes over all fields of the current foreground (and focused) window
+#   in ascending-tabstops order and fills relevant fields,
+# then sends closing key-sequence to GUI-item at specified closing tabstop.
+# Returns list of messages or "ERROR" upon error.
+# Example:
+##  #(set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key "Add Fuzzy Border"] 1])
+##  set nameToStopNum [dict create "OK" 0  "Cancel" 1  "Border width" 10  "Fuzzy gradient" 70 "Round corners" 300] 
+##  set nameToVal [dict create "Border width" 10 "Fuzzy gradient" 70 "Round corners" 300]
+##  set msgsOrError [ok_twapi::_fill_fields_and_close_open_dialog  $nameToStopNum  $nameToVal  "OK"  {{SPACE}}  "'border' dialog"]
+proc ::ok_twapi::_fill_fields_and_close_open_dialog { \
+    tabStopsNameToNum tabStopsNameToVal closeTabStopName closeKeySeq descr} {
+  if { ! [dict exists $tabStopsNameToVal $closeTabStopName] }   {
+    puts "-E- Inexistent close-dialog tabstop '$closeTabStopName' in '$descr'"
+    return  "ERROR"
+  }
+  set msgList [ok_twapi::_fill_fields_in_open_dialog  \
+                                            $nameToStopNum  $nameToVal  $descr]
+  #set closeTabStopNum [dict get $tabStopsNameToVal $closeTabStopName]
+  TODO
+  set pDescr "press '$closeKeySeq' on '$closeTabStopName' to close open dialog"
+  if { (0 == [ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog        \
+                                                  $closeTabStopName 0]) ||  \
+   ("" == [set hRF [ok_twapi::_send_cmd_keys $closeKeySeq $pDescr 0]])    }  {
+    puts "-E- Failed to $pDescr";    lappend msgList "-E- Failed to $pDescr"
+  } else {
+    puts "-I- Failed to $pDescr";    lappend msgList "-I- Failed to $pDescr"
+  }
+  lappend msgList "Closing by '$closeKeySeq' for '$closeTabStopName' in stop #$num of $descr"
+  twapi::send_input_text $val
+}
+
+# Goes over all fields of the current foreground (and focused) window
 #   in ascending-tabstops order and fills relevant fields
 # Example:
 ##  #(set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key "Add Fuzzy Border"] 1])
 ##  set nameToStopNum [dict create "OK" 0  "Cancel" 1  "Border width" 10  "Fuzzy gradient" 70 "Round corners" 300] 
 ##  set nameToVal [dict create "Border width" 10 "Fuzzy gradient" 70 "Round corners" 300]
-##  set isOK [ok_twapi::_fill_fields_in_open_dialog  $nameToStopNum  $nameToVal  "'border' dialog"]
+##  ok_twapi::_fill_fields_in_open_dialog  $nameToStopNum  $nameToVal  "'border' dialog"
 proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
                                               tabStopsNameToVal descr} {
   set nStops [expr [llength $tabStopsNameToNum] / 2]
@@ -817,10 +848,10 @@ proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
     set name [dict get $numToName $num]
     if { [dict exists $tabStopsNameToVal $name] }   {
       set val [dict get $tabStopsNameToVal $name]
-      lappend msgList "Typing '$val' for '$name' in stop #$num of $descr"
+      lappend msgList "-I- Typing '$val' for '$name' in stop #$num of $descr"
       twapi::send_input_text $val
     } else {
-      lappend msgList  "Skipping '$name' in stop #$num of $descr"
+      lappend msgList  "-D- Skipping '$name' in stop #$num of $descr"
     }
     after 500
     # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
