@@ -30,7 +30,7 @@ namespace eval ::spm:: {
   variable SUBDIR_CFG "CONFIG";  # subdirectory for session-specific config files
   variable SUBDIR_ALIGN "alignment";  # subdirectory with old alignment data
   
-  variable SPM_TITLE  "(32bit) StereoPhoto Maker" ;   # title of the main SPM window
+  variable SPM_TITLE  "(\(.+\) )*StereoPhoto Maker" ;   # title REGEXP of the main SPM window
 #(SPM_6.02)    variable SPM_TITLE  "(64bit) StereoPhoto Maker Pro" ;   # title of the main SPM window
   
   variable STEREOPAIR_WND_TITLE_PATTERN {^(\(.+\) )?Left Image[(]%s - .*Right Image[(]%s - } 
@@ -561,10 +561,10 @@ proc ::spm::save_current_image_as_one_tiff {dialogTitle outDirPath \
   
   # confirm save if requested
 #  set winTextPatternToResponse [dict create  \"Confirm Save As" KEYS "y"]
-  set winTextPatternToResponse [dict create  \
-                                                  "Confirm Save As" BTN "&Yes"]
+  set winTextPatternToResponse [dict create]
+  dict set winTextPatternToResponse "Confirm Save As" BTN "&Yes"
   set arg [list $outPath [expr {
-            [file exists $outPath]? round([file size $outPath] / 1024.0) : -1}]]
+           ([file exists $outPath])? round([file size $outPath] /1024.0) : -1}]]
   ok_twapi::respond_to_popup_windows_based_on_text  \
             $winTextPatternToResponse $SPM_ERR_MSGS 2 10 1 $sDescr \
             "::spm::_adapt__ok_monitor_file_save" $arg

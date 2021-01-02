@@ -361,7 +361,7 @@ proc ::spm::cmd__fuzzy_border_all {inpType imgDirPath width gradient corners}  {
   set imgPaths [lsort $imgPaths]
   set cntImgs [llength $imgPaths]
   set addBorderAllDescr "'$ADD_BORDER' to $cntImgs image(s) in directory '$imgDirPath'"
-  set goodCnt 0
+  set goodCnt 0;  set errCnt 0
   puts "-I- Start to $addBorderAllDescr"
   foreach imgPath $imgPaths {
     if { 1 == [cmd__fuzzy_border_one  $inpType $imgPath \

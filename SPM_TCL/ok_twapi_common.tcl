@@ -26,23 +26,24 @@ namespace eval ::ok_twapi:: {
 
 
 
-proc ::ok_twapi::start_singleton {exePath appName appWndTitle {workarea_rootdir ""}}  {
+proc ::ok_twapi::start_singleton {exePath appName appWndTitlePattern          \
+                                                      {workarea_rootdir ""}}  {
   variable PID
   variable HWND
   variable APP_TOPWND_TITLE
   variable APP_NAME
 
   set APP_NAME $appName
-  set APP_TOPWND_TITLE $appWndTitle
   set execDescr "invoking $APP_NAME"
   if { 0 < [set PID [exec $exePath &]] }  {
     puts "-I- Success $execDescr" } else {
     puts "-E- Failed $execDescr";  return  0
   }
   set wndDescr "locating main window of $APP_NAME"
-  if { 0 < [set HWND [twapi::find_windows -text "$APP_TOPWND_TITLE" \
-                              -toplevel 1 -visible 1 -single]]  }  {
+  if { 0 < [set HWND [twapi::find_windows -match regexp                    \
+          -text "$appWndTitlePattern" -toplevel 1 -visible 1 -single]]  }  {
     puts "-I- Success $wndDescr"
+    set APP_TOPWND_TITLE  [twapi::get_window_text $HWND]; # ultimate, not regexp
     set_latest_app_wnd $HWND
   } else {
     puts "-E- Failed $wndDescr";  return  0
@@ -61,7 +62,12 @@ proc ::ok_twapi::quit_singleton {cb__return_to_top}  {
   }
   if { 1 == [focus_singleton "::spm::quit_singleton"] }  {
     if { 1 == [$cb__return_to_top] }  {
-      twapi::send_keys {{MENU}fx};  # choose "exit" in "file" menu
+      # choose "exit" in "file" menu while sending keys one by one
+      twapi::send_keys {{MENU}}
+      after 200; # avoid an access denied error.
+      twapi::send_keys {f}
+      after 200; # avoid an access denied error.
+      twapi::send_keys {x}
       after 200; # avoid an access denied error.
       puts "-I- Success $descr"
       set HWND 0;   forget_latest_app_wnd
