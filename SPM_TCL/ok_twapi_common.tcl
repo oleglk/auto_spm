@@ -639,11 +639,11 @@ proc ::ok_twapi::wait_for_window_title_to_raise__configurable { \
     if { 1 == [verify_current_window_by_title $titleStr $matchType 0] }  {
       set h [twapi::get_foreground_window]
       if { ($h != "") && (1 == [twapi::window_visible $h]) }  {
-        puts "-I- Window '$titleStr' did appear after [expr {$i * $pollPeriodMsec}] msec"
+        ## DO NOT LOG-PRINT- PRESERVE FOCUS!  puts "-I- Window '$titleStr' did appear after [expr {$i * $pollPeriodMsec}] msec"
         return  $h
       }
     }
-    puts "-D- still waiting for window '$titleStr' - attempt $i of $nAttempts"
+    ## DO NOT LOG-PRINT- PRESERVE FOCUS!  puts "-D- still waiting for window '$titleStr' - attempt $i of $nAttempts"
     after $pollPeriodMsec
   }
   puts "-E- Window '$titleStr' did not appear after [expr {$nAttempts * $pollPeriodMsec}] msec"
@@ -745,8 +745,9 @@ proc ::ok_twapi::is_window_visible {hwnd} {
 
 proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
                                                                {goBack 0}}  {
+  set msgList [list];   # to preserve focus collect msgs instead of print
   set keySeqStr [expr { ($goBack==0)? {{TAB}} : {+{TAB}} }]
-  for {set i 1} {$i <= 3} {incr i 1}  {
+  for {set i 1} {$i <= 5} {incr i 1}  {
     if { "" != [set fgWnd [twapi::get_foreground_window]] }   { break }
     after 1000;  # workaround for "" returned by slow computer"
   }
@@ -762,7 +763,7 @@ proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
   set initParentText [expr {($initParent!="")? \
                                       [twapi::get_window_text $initParent] : ""}]
   set maxAttempts 200
-  puts "-D- Start search for '$wndText';  fg-window='[twapi::get_window_text $fgWnd]' (parent='[twapi::get_window_text [twapi::get_parent_window $fgWnd]]');  init-window='[twapi::get_window_text $initWnd]' (parent='$initParentText', owner='$initOwnerText')"
+  lappend msgList "-D- Start search for '$wndText';  fg-window='[twapi::get_window_text $fgWnd]' (parent='[twapi::get_window_text [twapi::get_parent_window $fgWnd]]');  init-window='[twapi::get_window_text $initWnd]' (parent='$initParentText', owner='$initOwnerText')"
   for {set i 0}  {$i < $maxAttempts}  {incr i 1}   {
     set currWnd [twapi::get_focus_window_for_thread $tid]
     set currText [twapi::get_window_text $currWnd]
@@ -772,19 +773,22 @@ proc ::ok_twapi::send_tabs_to_reach_subwindow_in_open_dialog {wndText \
     set parWnd [twapi::get_parent_window $currWnd]
     set parText [expr {($parWnd!="")? \
                                       [twapi::get_window_text $parWnd] : ""}]
-    puts "-D- Search for '$wndText' visits window '$currText' (parent='$parText', owner='$ownerText')"
+    lappend msgList "-D- Search for '$wndText' visits window '$currText' (parent='$parText', owner='$ownerText')"
     if { $ownerWnd != $initOwner }   {
       puts "[_ok_callstack]";  ::ok_utils::pause "Suspected focus escape from open window. Hit <Enter> to continue, Q<Enter> to quit ==>"
     }
     if { $currText == $wndText }  {
-      puts "-D- Window '$wndText' found at tabstop $i";   return  1
+      lappend msgList "-D- Window '$wndText' found at tabstop $i"
+      foreach l $msgList  { puts $l };   return  1
     }
     if { ($i > 0) && ($currWnd == $initWnd) }   {
-      puts "-E- Window '$wndText' not found after $i tabstops";   return  0
+      puts "-E- Window '$wndText' not found after $i tabstops"
+      foreach l $msgList  { puts $l };   return  0
     }
     twapi::send_keys $keySeqStr
     after 200
   }
+  foreach l $msgList  { puts $l }
   puts "-E- Window '$wndText' not found after $maxAttempts tabstop(s)"
   return  0
 }
@@ -874,6 +878,55 @@ proc ::ok_twapi::_fill_fields_in_open_dialog {tabStopsNameToNum \
   }
   return  $msgList
 }
+
+
+# Looks for _VISIBLE_ window(s), with text 'loWndText'
+# that are descendants of window with text/title 'hiWndText'.
+# Returns lo-wnd-handle or "" if not found or error.
+proc ::ok_twapi::find_first_underlying_window_by_title {hiWndText loWndText loud}  {
+  set hiWndToLoWnds [find_underlying_windows_by_title \
+                                                    $hiWndText $loWndText $loud]
+  if { 0 == [dict size $hiWndToLoWnds] }  { return  "" }; # not found
+  set loList [lindex [dict values $hiWndToLoWnds] 0]
+  return  [lindex $loList 0];   # should exist
+}
+
+
+# Looks for _VISIBLE_ window(s), with text 'loWndText'
+# that are descendants of window with text/title 'hiWndText'.
+# Returns dict of {hi-window-handle : list-of-lo-wnd-handles}.
+# Retuns empty dict if not found or error.
+proc ::ok_twapi::find_underlying_windows_by_title {hiWndText loWndText loud}  {
+  set hiWndToLoWnds [dict create]
+  set hiWnds [::twapi::find_windows -match string -text $hiWndText]
+  if { 0 == [llength $hiWnds] }   {
+    if { $loud }  { puts "-E- Inexistent upper window '$hiWndText'" }
+    return  $hiWndToLoWnds;   # empty dict on error
+  }
+  set hiWnd [lindex $hiWnds 0]
+  set loList [list]
+  foreach loH [twapi::get_descendent_windows $hiWnd] {
+    set tclExecResult [catch { ;  # catch exceptions to skip invalid handles
+      set title [twapi::get_window_text $loH]
+      if { $loud }  { puts "-D- Check descendent '$title' ($loH)" }
+      if { ($title == $loWndText) && [ok_twapi::is_window_visible $loH] }   {
+        #dict set hiWndToLoWnds $hiWnd $loH
+        lappend loList $loH
+      }
+    }  evalExecResult]
+    if { $tclExecResult != 0 } {
+      if { $loud }  { puts "-D- Ignoring invalid button-window handle ($loH)" }
+      continue
+    }
+  }
+  if { 0 < [llength $loList] }  {
+    dict set hiWndToLoWnds $hiWnd $loList
+  } elseif { $loud }  {
+    puts "-E- Inexistent lower window '$loWndText' under '$hiWndText'"
+  }
+  return  $hiWndToLoWnds
+}
+
 
 # Sends given keys while taking care of occurences of {MENU}.
 # If 'targetHwnd' given, first focuses this window

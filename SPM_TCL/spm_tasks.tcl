@@ -284,6 +284,7 @@ proc ::spm::cmd__format_all__HSBS_1920x1080 {inpType} {
 proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   variable TABSTOPS_DFL
   set ADD_BORDER "Add Fuzzy Border";  # dialog name / key / description
+  set msgList [list];   # just collect messages to preserve focus
   if { ![ok_twapi::verify_singleton_running $ADD_BORDER] } { return  0 }
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  0;   # error already printed
@@ -291,28 +292,41 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   set imgWnd      [twapi::get_foreground_window]
   set imgWndTitle [twapi::get_window_text $imgWnd]
   if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
-    puts "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
+    lappend msgList "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
   }
   set dDescr "command to open '$ADD_BORDER' dialog"
-  if { "" == [ok_twapi::_send_cmd_keys {+b} $dDescr 0] }  {
-    return  0;  # error already printed
-  }
+  #~ if { "" == [ok_twapi::_send_cmd_keys {+b} $dDescr 0] }  {
+    #~ return  0;  # error already printed
+  #~ }
+  puts "-I- Now $dDescr"
+  twapi::send_keys {+b};  # raw API to avoid log-print; verification below
   set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
   if { $hB == "" } {
     puts "-E- Failed to $dDescr";    return  0;  # error details already printed
   }
-  # to make tabstops available in border dialog, press Alt-TAB twice
-  set fDescr "switch-from-then-back to $ADD_BORDER dialog in order to make tabstops available"
-  # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
-  # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
-  if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}] 0] }  { ; #(SPM_6.02)
-  #~ twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
-  #~ set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
-  #~ if { $hB == "" } { ... }
-    puts "-E- Failed to $fDescr";    return  0;  # error details already printed
+  
+  ######## didn't work in SPM 6.12
+  #~ # to make tabstops available in border dialog, press Alt-TAB twice
+  #~ set fDescr "switch-from-then-back to $ADD_BORDER dialog in order to make tabstops available"
+  #~ # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
+  #~ # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
+  #~ if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}] 0] }  { ; #(SPM_6.02)
+  twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
+  set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
+  if { $hB == "" } { ... }
+    #~ puts "-E- Failed to $fDescr";    return  0;  # error details already printed
+  #~ }
+  #~ # DO NOT LOG-PRINT - PRESEVE FOCUS !!!   puts "-I- Success to $fDescr"
+  #~ after 1000; # wait after returning to the dialog
+  
+  # TODO: to make tabstops available in border dialog, focus OK button
+  if { "" == [set okH [ok_twapi::find_first_underlying_window_by_title \
+                                      "Add Fuzzy Border"    "OK"    0]] }   {
+    puts "-E- Failed to enable tabstops in $ADD_BORDER dialog"
+    return  0
   }
-  # DO NOT LOG-PRINT - PRESEVE FOCUS !!!   puts "-I- Success to $fDescr"
-  after 1000; # wait after returning to the dialog
+  twapi::set_focus $okH
+  after 500
 
   # Go over all fields in ascending tabstops order and process each, then close
   set nameToStopNum [lindex [dict filter $TABSTOPS_DFL key $ADD_BORDER] 1]
@@ -322,6 +336,9 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
         "Round corners"   $corners  ]
   set msgsOrError [ok_twapi::fill_fields_and_close_open_dialog \
               $nameToStopNum $nameToVal  "OK" {{SPACE}}  "'$ADD_BORDER' dialog"]
+  if { $msgsOrError == "ERROR" }  {
+    return  0; # error details printed
+  }
 
   # verify we returned to the image window (title = $imgWndTitle)
   set hI [ok_twapi::wait_for_window_title_to_raise $imgWndTitle "exact"]
