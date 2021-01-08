@@ -507,7 +507,7 @@ proc ::ok_twapi::_respond_to_given_popup_window {hwnd \
   if { $respKeySeqOrBtn == $ok_twapi::OK_TWAPI__WAIT_ABORT_ON_THIS_POPUP }  {
     puts "-I- Window '$winTxt' requests wait-then-abort of processing popups for $descr; will wait 10 sec to let it disappear"
     # wait some time for the window to disappear...
-    after 10000
+    after 3000;  # it worked with 10000; 3000 on MIIX320
     if { "" !=  [::twapi::find_windows -single -match string -text $winTxt] } {
       puts "-E- Window '$winTxt' triggers abort of processing popups for $descr"
       set abortRequested 1;   return  1
