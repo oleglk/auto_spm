@@ -289,11 +289,13 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   if { ![spm::cmd__open_stereopair_image $inpType $imgPath] }  {
     return  0;   # error already printed
   }
+  
   set imgWnd      [twapi::get_foreground_window]
   set imgWndTitle [twapi::get_window_text $imgWnd]
   if { $imgWnd != [ok_twapi::get_latest_app_wnd] }  {
     lappend msgList "-W- Foreground SPM window ($imgWnd) differs from the latest ([ok_twapi::get_latest_app_wnd])"
   }
+  
   set dDescr "command to open '$ADD_BORDER' dialog"
   #~ if { "" == [ok_twapi::_send_cmd_keys {+b} $dDescr 0] }  {
     #~ return  0;  # error already printed
@@ -304,22 +306,24 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   if { $hB == "" } {
     puts "-E- Failed to $dDescr";    return  0;  # error details already printed
   }
-  
+    puts "@@@@@@@@@@@@ HERE @@@@@@@@@@@@@@@@"
+
   ######## didn't work in SPM 6.12
   #~ # to make tabstops available in border dialog, press Alt-TAB twice
   #~ set fDescr "switch-from-then-back to $ADD_BORDER dialog in order to make tabstops available"
   #~ # ?WOODOO? to send one TAB, use [ twapi::send_keys {{TAB}} ]
   #~ # ?WOODOO? to send one Alt-TAB, use [ twapi::send_keys [list %{TAB}] ]
-  #~ if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}] 0] }  { ; #(SPM_6.02)
-  twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
-  set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
-  if { $hB == "" } { ... }
+  #~ #if { 0 == [ok_twapi::raise_wnd_and_send_keys $hB [list %{TAB}%{TAB}] 0] }  {}
+  #~ twapi::send_keys [list %{TAB}];  after 300;  twapi::send_keys [list %{TAB}]
+  #~ set hB [ok_twapi::wait_for_window_title_to_raise $ADD_BORDER "exact"]
+  #~ if { $hB == "" } {
     #~ puts "-E- Failed to $fDescr";    return  0;  # error details already printed
   #~ }
-  #~ # DO NOT LOG-PRINT - PRESEVE FOCUS !!!   puts "-I- Success to $fDescr"
-  #~ after 1000; # wait after returning to the dialog
   
-  # TODO: to make tabstops available in border dialog, focus OK button
+  # DO NOT LOG-PRINT - PRESEVE FOCUS !!!   puts "-I- Success to $fDescr"
+  after 1000; # wait after returning to the dialog
+  
+  # to make tabstops available in border dialog, focus OK button (SPM_6.12)
   if { "" == [set okH [ok_twapi::find_first_underlying_window_by_title \
                                       "Add Fuzzy Border"    "OK"    0]] }   {
     puts "-E- Failed to enable tabstops in $ADD_BORDER dialog"
