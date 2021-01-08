@@ -306,7 +306,6 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   if { $hB == "" } {
     puts "-E- Failed to $dDescr";    return  0;  # error details already printed
   }
-    puts "@@@@@@@@@@@@ HERE @@@@@@@@@@@@@@@@"
 
   ######## didn't work in SPM 6.12
   #~ # to make tabstops available in border dialog, press Alt-TAB twice
@@ -352,7 +351,7 @@ proc ::spm::cmd__fuzzy_border_one {inpType imgPath width gradient corners}  {
   puts "-I- Success performing '$ADD_BORDER'"
   
   # save
-  set outDirPath [file dirname $imgPath]
+  set outDirPath [file dirname [file normalize $imgPath]]
   set saveWithBorderDescr "save image after '$ADD_BORDER' in directory '$outDirPath'"
   if { "" == [spm::save_current_image_as_one_tiff "Save Stereo Image" $outDirPath] } {
     puts "-E- Failed to $saveWithBorderDescr";  return  0
