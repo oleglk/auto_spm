@@ -216,7 +216,7 @@ after 3000
     }
     after 500
   }
-after 5000
+# after 5000
   # TODO: consider cleaning filename field
   puts "-I- Commanded to change input directory to '$inpPathSeq'"
   puts "-I- (Note, 'BACK' button became accessible and accounted for by tabstops"
