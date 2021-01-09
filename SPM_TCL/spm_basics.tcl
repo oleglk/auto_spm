@@ -209,7 +209,7 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
   #return  "";  # OK_TMP
 after 3000
     twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
-after 3000
+# after 3000
     if { 0 == [ok_twapi::verify_current_window_by_title   "Multi Conversion" \
                                                           "exact" 1] }  {
       return  "";  # error already printed
