@@ -207,7 +207,7 @@ proc ::spm::cmd__open_multi_conversion {{inpSubDir ""} {cfgPath ""}} {
     set inpPathSeq "[file nativename $inpDirPath]"
     twapi::send_input_text $inpPathSeq
   #return  "";  # OK_TMP
-after 3000
+    after 2000;  # 1000 fails on MIIX320; tested 2000 on MIIX320, 3000 everywhere
     twapi::send_keys {%o}  ;  # command to change input dir; used to be {ENTER}
 # after 3000
     if { 0 == [ok_twapi::verify_current_window_by_title   "Multi Conversion" \
