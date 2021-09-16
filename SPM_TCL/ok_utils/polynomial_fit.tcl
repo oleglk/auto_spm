@@ -23,16 +23,17 @@ if { -1 == [lsearch -glob $auto_path  "*/tcllib"] } {
   lappend auto_path [file join $UTIL_DIR ".." "tcllib"]
 }
 
-#~ namespace eval ::ok_utils:: {
+namespace eval ::ok_utils:: {
 
-    #~ namespace export \
-    
-#~ }
+  namespace export          \
+    ok_fit_curve            \
+    ok_format_curve_fitting \
+}
 
 
 package require math::linearalgebra
  
-proc build.matrix {xvec degree} {
+proc ::ok_utils::_build.matrix {xvec degree} {
     set sums [llength $xvec]
     for {set i 1} {$i <= 2*$degree} {incr i} {
         set sum 0
@@ -50,7 +51,7 @@ proc build.matrix {xvec degree} {
     return $A
 }
  
-proc build.vector {xvec yvec degree} {
+proc ::ok_utils::_build.vector {xvec yvec degree} {
     set sums [list]
     for {set i 0} {$i <= $degree} {incr i} {
         set sum 0
@@ -66,16 +67,68 @@ proc build.vector {xvec yvec degree} {
     }
     return $x
 }
+
+
+# Returns list of coefficients starting from the lowest; on error returns ERROR
+## Example:
+## set x {0   1   2   3   4   5   6   7   8   9  10};  set y {1   6  17  34  57  86 121 162 209 262 321}
+## set xyDict [concat {*}[lmap a $x  b $y  {list $a $b}]]
+## set coeffsLowToHigh [ok_utils::ok_fit_curve $xyDict 2]
+## ok_utils::ok_format_curve_fitting $xyDict $coeffsLowToHigh
+proc ::ok_utils::ok_fit_curve {xyDict {degree -1}}  {
+  if { $degree == -1 }  { set degree [expr [dict size $xyDict] - 1] }
+  if { [dict size $xyDict] < ($degree + 1) }  {
+    puts "-E- Polynomial of degree=$degree needs [expr $degree+1] control points; got [dict size $xyDict]"
+    return  ERROR
+  }
+  set xVals [dict keys $xyDict];  set yVals [dict values $xyDict]
+  # build the system A.x=b
+  set A [_build.matrix $xVals $degree]
+  set b [_build.vector $xVals $yVals $degree]
+  # solve it and obtain coefficients starting from the lowest order
+  set coeffsLowToHigh [math::linearalgebra::solveGauss $A $b]
+  # show results
+  #puts "[ok_format_curve_fitting $xyDict $coeffsLowToHigh]"
+  return  $coeffsLowToHigh
+}
+
+
+proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
+  if { $degree == -1 }  { set degree [expr [llength $coeffsLowToHigh] - 1] }
+  if { [llength $coeffsLowToHigh] < ($degree + 1) }  {
+    puts "-E- Polynomial of degree=$degree ues [expr $degree+1] coefficients; got [llength $coeffsLowToHigh]"
+    return  ERROR
+  }
+  set points ""
+  dict for {x y} $xyDict  {
+    if { $points != "" }   { append points ","  }
+    append points "($x:$y)"
+  }
+  #set coeffsHighToLow [lreverse $coeffsLowToHigh]
+  set expression ""
+  for {set iDeg $degree}  {$iDeg >= 0}  {incr iDeg -1}  {
+    set coeff [lindex $coeffsLowToHigh $iDeg]
+    if { "" == [string trim $coeff] }  {
+      error "-E- coeff='' at iDeg=$iDeg, expression-so-far='$expression'"
+    }
+    if { $expression != "" }  {
+      append expression [expr {($coeff>=0)? " + "  :  " - "}]
+    }
+    append expression [format "%.4f%s" [expr abs($coeff)]                 \
+                                       [expr {($iDeg>0)? "*x^$iDeg" : ""}]]
+  }
+  return  "{$points} => $expression"
+}
  
-# Now, to solve the example from the top of this page
-set x {0   1   2   3   4   5   6   7   8   9  10}
-set y {1   6  17  34  57  86 121 162 209 262 321}
+#~ # Now, to solve the example from the top of this page
+#~ set x {0   1   2   3   4   5   6   7   8   9  10}
+#~ set y {1   6  17  34  57  86 121 162 209 262 321}
  
-# build the system A.x=b
-set degree 2
-set A [build.matrix $x $degree]
-set b [build.vector $x $y $degree]
-# solve it
-set coeffs [math::linearalgebra::solveGauss $A $b]
-# show results
-puts $coeffs
+#~ # build the system A.x=b
+#~ set degree 2
+#~ set A [::ok_utils::_build.matrix $x $degree]
+#~ set b [::ok_utils::_build.vector $x $y $degree]
+#~ # solve it
+#~ set coeffs [math::linearalgebra::solveGauss $A $b]
+#~ # show results
+#~ puts $coeffs
