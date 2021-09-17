@@ -25,9 +25,10 @@ if { -1 == [lsearch -glob $auto_path  "*/tcllib"] } {
 
 namespace eval ::ok_utils:: {
 
-  namespace export          \
-    ok_fit_curve            \
-    ok_format_curve_fitting \
+  namespace export            \
+    ok_fit_curve              \
+    ok_describe_curve_fitting \
+    ok_format_curve_fitting   \
 }
 
 
@@ -74,7 +75,7 @@ proc ::ok_utils::_build.vector {xvec yvec degree} {
 ## set x {0   1   2   3   4   5   6   7   8   9  10};  set y {1   6  17  34  57  86 121 162 209 262 321}
 ## set xyDict [concat {*}[lmap a $x  b $y  {list $a $b}]]
 ## set coeffsLowToHigh [ok_utils::ok_fit_curve $xyDict 2]
-## ok_utils::ok_format_curve_fitting $xyDict $coeffsLowToHigh
+## ok_utils::ok_describe_curve_fitting $xyDict $coeffsLowToHigh
 ## Example 2 (lower control point raised by 50%):
 ##   set xTOy {0 0  0.25 0.375  0.5 0.5  0.75 0.75  1 1};  set coeffs [ok_utils::ok_fit_curve $xTOy 4]
 ### Example of curve application:
@@ -92,17 +93,17 @@ proc ::ok_utils::ok_fit_curve {xyDict {degree -1}}  {
   # solve it and obtain coefficients starting from the lowest order
   set coeffsLowToHigh [math::linearalgebra::solveGauss $A $b]
   # show results
-  #puts "[ok_format_curve_fitting $xyDict $coeffsLowToHigh]"
+  #puts "[ok_describe_curve_fitting $xyDict $coeffsLowToHigh]"
   return  $coeffsLowToHigh
 }
 
 
 ## set xTOy {0 0  0.25 0.375  0.5 0.5  0.75 0.75  1 1};  set coeffs [ok_utils::ok_fit_curve $xTOy 4]
-## ::ok_utils::ok_format_curve_fitting $xTOy $coeffs 4
-proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
+## ::ok_utils::ok_describe_curve_fitting $xTOy $coeffs 4
+proc ::ok_utils::ok_describe_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
   if { $degree == -1 }  { set degree [expr [llength $coeffsLowToHigh] - 1] }
   if { [llength $coeffsLowToHigh] < ($degree + 1) }  {
-    puts "-E- Polynomial of degree=$degree ues [expr $degree+1] coefficients; got [llength $coeffsLowToHigh]"
+    puts "-E- Polynomial of degree=$degree needs [expr $degree+1] coefficients; got [llength $coeffsLowToHigh]"
     return  ERROR
   }
   set points ""
@@ -127,7 +128,32 @@ proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
   }
   return  "{$points} => $expression"
 }
- 
+
+
+# Returns string with coefficients from high to low, delimited by ","
+## set xTOy {0 0  0.25 0.375  0.5 0.5  0.75 0.75  1 1};  set coeffs [ok_utils::ok_fit_curve $xTOy 4]
+## ::ok_utils::ok_format_curve_fitting $xTOy $coeffs 4
+proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
+  if { $degree == -1 }  { set degree [expr [llength $coeffsLowToHigh] - 1] }
+  if { [llength $coeffsLowToHigh] < ($degree + 1) }  {
+    puts "-E- Polynomial of degree=$degree needs [expr $degree+1] coefficients; got [llength $coeffsLowToHigh]"
+    return  ERROR
+  }
+  set res ""
+  for {set iDeg $degree}  {$iDeg >= 0}  {incr iDeg -1}  {
+    set coeff [lindex $coeffsLowToHigh $iDeg]
+    if { "" == [string trim $coeff] }  {
+      error "-E- coeff='' at iDeg=$iDeg, string-so-far='$res'"
+    }
+    if { $res != "" }  {
+      append res ","
+    }
+    append res [format "%.4f" $coeff]
+  }
+  return  $res
+}
+
+
 #~ # Now, to solve the example from the top of this page
 #~ set x {0   1   2   3   4   5   6   7   8   9  10}
 #~ set y {1   6  17  34  57  86 121 162 209 262 321}
