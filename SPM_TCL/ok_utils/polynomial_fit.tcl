@@ -166,3 +166,16 @@ proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
 #~ set coeffs [math::linearalgebra::solveGauss $A $b]
 #~ # show results
 #~ puts $coeffs
+
+
+################################################################################
+## DXO lighten-shadows curve:
+### ToneCurveMasterPoints = {0,0, 0.2625,0.3325, 0.4975,0.545, 0.75,0.7475, 1,1}
+## set xTOy {0 0  0.2625 0.3325  0.4975 0.545  0.75 0.7475  1 1}
+## set coeffs [ok_utils::ok_fit_curve $xTOy 4]
+## ::ok_utils::ok_describe_curve_fitting $xTOy $coeffs 4
+## ::ok_utils::ok_format_curve_fitting $xTOy $coeffs 4
+#### ==> 0.1542,0.4587,-1.1460,1.5331,0.0000
+################################################################################
+
+
