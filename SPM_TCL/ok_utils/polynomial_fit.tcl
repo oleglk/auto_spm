@@ -76,9 +76,9 @@ proc ::ok_utils::_build.vector {xvec yvec degree} {
 ## set coeffsLowToHigh [ok_utils::ok_fit_curve $xyDict 2]
 ## ok_utils::ok_format_curve_fitting $xyDict $coeffsLowToHigh
 ## Example 2 (lower control point raised by 50%):
-##   set xTOy {0 0  0.25 0.375  0.5 0.5  1 1};  ok_utils::ok_fit_curve $xTOy 2
+##   set xTOy {0 0  0.25 0.375  0.5 0.5  0.75 0.75  1 1};  set coeffs [ok_utils::ok_fit_curve $xTOy 4]
 ### Example of curve application:
-### foreach f [glob -nocomplain {INP/*.JPG}]  {[string trim $IMCONVERT "{}"] $f -function Polynomial  -0.1818,1.1455,0.0273 [file join LIGHTEN POLY_50 [file tail $f]]}
+### foreach f [glob -nocomplain {INP/*.JPG}]  {[string trim $IMCONVERT "{}"] $f -function Polynomial  -5.3333,12.0000,-8.6667,3.0000,0.0000 [file join LIGHTEN POLY_50 [file tail $f]]}
 proc ::ok_utils::ok_fit_curve {xyDict {degree -1}}  {
   if { $degree == -1 }  { set degree [expr [dict size $xyDict] - 1] }
   if { [dict size $xyDict] < ($degree + 1) }  {
@@ -97,6 +97,8 @@ proc ::ok_utils::ok_fit_curve {xyDict {degree -1}}  {
 }
 
 
+## set xTOy {0 0  0.25 0.375  0.5 0.5  0.75 0.75  1 1};  set coeffs [ok_utils::ok_fit_curve $xTOy 4]
+## ::ok_utils::ok_format_curve_fitting $xTOy $coeffs 4
 proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
   if { $degree == -1 }  { set degree [expr [llength $coeffsLowToHigh] - 1] }
   if { [llength $coeffsLowToHigh] < ($degree + 1) }  {
@@ -121,7 +123,7 @@ proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
       append expression "-"
     }
     append expression [format "%.4f%s" [expr abs($coeff)]                 \
-                                       [expr {($iDeg>0)? "*x^$iDeg" : ""}]]
+                                       [expr {($iDeg>0)? "*x**$iDeg" : ""}]]
   }
   return  "{$points} => $expression"
 }
