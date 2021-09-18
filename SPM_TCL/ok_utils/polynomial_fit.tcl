@@ -176,6 +176,8 @@ proc ::ok_utils::ok_format_curve_fitting {xyDict coeffsLowToHigh {degree -1}}  {
 ## ::ok_utils::ok_describe_curve_fitting $xTOy $coeffs 4
 ## ::ok_utils::ok_format_curve_fitting $xTOy $coeffs 4
 #### ==> 0.1542,0.4587,-1.1460,1.5331,0.0000
+### Example of DXO lighten-shadows curve application:
+### foreach f [glob -nocomplain {INP/*.JPG}]  {[string trim $IMCONVERT "{}"] $f -function Polynomial   0.1542,0.4587,-1.1460,1.5331,0.0000 [file join LIGHTEN DXO_01 [file tail $f]]}
 ################################################################################
 
 
