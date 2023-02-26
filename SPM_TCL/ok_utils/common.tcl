@@ -60,7 +60,8 @@ namespace eval ::ok_utils:: {
 	ok_make_argspec_for_proc \
   ok_exec_under_catch \
   ok_run_silent_os_cmd \
-  ok_run_loud_os_cmd
+  ok_run_loud_os_cmd \
+  ok_detect_os_type
 }
 
 
@@ -920,6 +921,18 @@ proc ::ok_utils::ok_run_loud_os_cmd {cmdList outputCheckCB}  {
     return  0
   }
   return  1
+}
+
+
+proc ::ok_utils::ok_detect_os_type {}  {
+  set OS [lindex $::tcl_platform(os) 0]
+  if { $OS == "Linux" } {
+    return  "LINUX"
+  } elseif { $OS == "Windows" } {
+    return  "WINDOWS"
+  } else {
+    return  "UNKNOWN"
+  }
 }
 
 

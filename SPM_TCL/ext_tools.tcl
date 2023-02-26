@@ -3,6 +3,7 @@
 set SCRIPT_DIR [file dirname [info script]]
 set UTIL_DIR    [file join $SCRIPT_DIR "ok_utils"]
 source [file join $UTIL_DIR "debug_utils.tcl"]
+source [file join $UTIL_DIR "common.tcl"]
 source [file join $UTIL_DIR "csv_utils.tcl"]
 
 # DO NOT in 'auto_spm': package require ok_utils
@@ -37,7 +38,24 @@ ok_trace_msg "---- Sourcing '[info script]' in '$SCRIPT_DIR' ----"
 # Reads the system-dependent paths from 'csvPath',
 # then assigns ultimate tool paths
 proc set_ext_tool_paths_from_csv {csvPath}  {
-  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL ::SPM
+  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::__IMMOGRIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL ::SPM
+  
+  set isWindows [expr {"WINDOWS" == [ok_utils::ok_detect_os_type]}]
+  if { !$isWindows }  {
+    # assume an unixoid - can use straight executable names
+    set ::_IMCONVERT    "convert"
+    set ::_IMIDENTIFY   "identify"
+    set ::_IMMONTAGE    "montage"
+    set ::_IMMOGRIFY   "mogrify"
+    set ::_DCRAW        "dcraw"
+    set ::IMCONVERT   "$::_IMCONVERT" ;  # sync historical flavors
+    set ::IMMOGRIFY   "$::_IMMOGRIFY" ;  # sync historical flavors
+    set ::IMIDENTIFY  "$::_IMIDENTIFY";  # sync historical flavors
+    set ::IMMONTAGE   "$::_IMMONTAGE" ;  # sync historical flavors
+    set ::DCRAW       "$::_DCRAW"     ;  # sync historical flavors
+    puts "-I- Assume running on an unixoid - use pure tool executable names"
+    return  1
+  }
   if { 0 == [ok_read_variable_values_from_csv \
                                       $csvPath "external tool path(s)"]} {
     return  0;  # error already printed
