@@ -113,10 +113,27 @@ proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
 ####  0,1: (128.23,128.23,128.23)  #808080  gray(50.2861%)
 ####  1,1: (138.77,138.77,138.77)  #8B8B8B  gray(54.4198%)
 ####  2,1: (128.152,128.152,128.152)  #808080  gray(50.2556%)
-
-#~ proc ::img_proc::_brightness_txt_to_matrix {txtFromIM nRows nCols {priErr 1}} {
-  #~ set res [list]
-  #~ set iR 0
-  #~ set iC 0
-  #~ foreach ln $
-#~ }
+# Returns dictionary {row,column :: gray-value(0.0 ... 100.0)}
+proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols {priErr 1}} {
+  # init the resulting dict with negative values
+  set resDict [dict create]
+  for {set i 0}  {$i < $nRows}  {incr i 1}  {
+    for {set j 0}  {$j < $nCols}  {incr j 1}  { dict set resDict  $i $j  -99 }
+  }
+  set errCnt 0
+  set iRow 0
+  set iCol 0
+  foreach pixelStr $pixelLines  {
+    if { 0 == [regexp {(\d+),(\d+):\s+.+gray\(([0-9.]+)%\)}   \
+                                                  all  iCol iRow  val] }  {
+      if { $priErr }  { ok_err_msg "Invalid one-pixel line '$pixelStr'" }
+      incr errCnt 1
+      continue
+    }
+    dict set resDict  $iRow $iCol  $val
+  }
+  if { $priErr && ($errCnt > 0) }  {
+    ok_err_msg "Parsing pixel values encountered $errCnt error(s)"
+  }
+  return  $resDict
+}
