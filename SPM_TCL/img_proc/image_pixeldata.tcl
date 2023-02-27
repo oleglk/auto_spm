@@ -38,10 +38,36 @@ namespace eval ::img_proc:: {
 # Returns list of lists - 'numBands'*'numSteps' relative-brightness values (0-1)
 # of image 'imgPath'
 ### Standalone invocation on Linux:
-#### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    img_proc::read_brightness_matrix  V24d2/DSC00589__s11d0.JPG  2 3
+#### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    set matrix [img_proc::read_brightness_matrix  V24d2/DSC00589__s11d0.JPG  2 3]
 proc ::img_proc::read_brightness_matrix {imgPath numBands numSteps {priErr 1}}  {
+  set matrDecr [format "%dx%d matrix" $numBands $numSteps]
+  if { 0 == [set pixels [img_proc::read_pixel_values \
+                          $imgPath $numBands $numSteps $priErr]] }  {
+    return  0;  # error already printed
+  }
+
+  #~ # convert marked list of values into list-of-lists
+  #~ if { 0 == [img_proc::_brightness_txt_to_matrix $pixels nRows nCols $priErr] }  {
+    #~ ok_err_msg "Invalid pixel-data format in '$imgPath'"
+    #~ return  0
+  #~ }
+  #~ if { ($nRows != $numBands) || ($nCols != $numSteps) } {
+    #~ ok_err_msg "Invalid dimension(s) for $matrDecr out of '$imgPath': $nRows lines, $nCols columns"
+    #~ return  0
+  #~ }
+  #~ ok_info_msg "Success parsing pixel-data of '$imgPath' into $matrDecr"
+  
+  return  $pixels;  # OK_TMP
+}
+
+
+# Returns list of formatted pixel values of image 'imgPath'
+### Standalone invocation on Linux:
+#### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    set pixels [img_proc::read_pixel_values  V24d2/DSC00589__s11d0.JPG  2 3]
+proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
+                                      {priErr 1}}  {
   if { ![file exists $imgPath] }  {
-    puts "-E- Inexistent input file '$imgPath'"
+    ok_err_msg "-E- Inexistent input file '$imgPath'"
     return  0
   }
   if { 0 == [img_proc::get_image_dimensions_by_imagemagick $imgPath \
@@ -49,7 +75,7 @@ proc ::img_proc::read_brightness_matrix {imgPath numBands numSteps {priErr 1}}  
     return  0;  # error already printed
   }
   set bandHeight [expr $imgHeight / $numBands]
-  set wXhStr [format {%dx%d!} $numSteps $bandHeight]
+  set wXhStr [format {%dx%d!} $numSteps $numBands]
   ## read data with 'convert <PATH>  -resize 3x2!  -colorspace gray  txt:-'
   ####### TODO: resolve $::IMCONVERT vs {$::IMCONVERT}
   set imCmd [format {|%s  %s -quiet  -resize %s  -colorspace gray  txt:-} \
@@ -68,5 +94,29 @@ proc ::img_proc::read_brightness_matrix {imgPath numBands numSteps {priErr 1}}  
     }
     return  0
   }
-  return  $buf;  # OK_TMP
+  # split into list with element per a pixel
+  set asOneLine [join $buf " "];  # data read into arbitrary chunks
+  set pixels [regexp -all -inline \
+        {\d+,\d+:\s+\([0-9.,]+\)\s+#[0-9A-F]+\s+gray\([0-9.]+%\)} \
+        $asOneLine]
+
+  return  $pixels
 }
+
+
+## Sample input data (for 2*3):
+####  -I- Assume running on an unixoid - use pure tool executable names
+####  # ImageMagick pixel enumeration: 3,2,255,gray
+####  0,0: (133.342,133.342,133.342)  #858585  gray(52.2911%)
+####  1,0: (140.304,140.304,140.304)  #8C8C8C  gray(55.021%)
+####  2,0: (124.564,124.564,124.564)  #7D7D7D  gray(48.8487%)
+####  0,1: (128.23,128.23,128.23)  #808080  gray(50.2861%)
+####  1,1: (138.77,138.77,138.77)  #8B8B8B  gray(54.4198%)
+####  2,1: (128.152,128.152,128.152)  #808080  gray(50.2556%)
+
+#~ proc ::img_proc::_brightness_txt_to_matrix {txtFromIM nRows nCols {priErr 1}} {
+  #~ set res [list]
+  #~ set iR 0
+  #~ set iC 0
+  #~ foreach ln $
+#~ }
