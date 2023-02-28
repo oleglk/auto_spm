@@ -113,8 +113,11 @@ proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
 ####  0,1: (128.23,128.23,128.23)  #808080  gray(50.2861%)
 ####  1,1: (138.77,138.77,138.77)  #8B8B8B  gray(54.4198%)
 ####  2,1: (128.152,128.152,128.152)  #808080  gray(50.2556%)
-# Returns dictionary {row,column :: gray-value(0.0 ... 100.0)}
-proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols {priErr 1}} {
+# If 'normalize'=0, returns dictionary {row,column :: gray-value(0.0 ... 100.0)}
+# If 'normalize'=1, returns dictionary {row,column :: fract_of_max(0.0 ... 1.0)}
+# On error returns 0.
+proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
+                                            {priErr 1}} {
   # init the resulting dict with negative values
   set resDict [dict create]
   for {set i 0}  {$i < $nRows}  {incr i 1}  {
@@ -136,5 +139,26 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols {priErr 1}} {
   if { $priErr && ($errCnt > 0) }  {
     ok_err_msg "Parsing pixel values encountered $errCnt error(s)"
   }
-  return  $resDict
+  if { $normalize == 0 }  {
+    return  $resDict;   # scaling values to 0..1 isn't requested
+  }
+  
+  # scale values to 0...1
+  set maxBright -1;  set maxPlace {-1 -1}
+  dict for {x y_b} $resDict  {
+    dict for {y b} $y_b {
+      if { $b > $maxBright }  { set maxBright $b;  set maxPlace [list $x $y] }
+    }
+  }
+  if { $maxBright == 0.0 }  {
+    ok_err_msg "-E- Zero maximal brightness (at $maxPlace) - cannot normalize"
+    return  0
+  }
+  set scaledDict [dict create]
+  for {set i 0}  {$i < $nRows}  {incr i 1}  {
+    for {set j 0}  {$j < $nCols}  {incr j 1}  {
+      dict set scaledDict  $i $j  \
+              [expr {1.0 * [dict get $resDict $i $j] / $maxBright}] }
+  }
+  return  $scaledDict
 }
