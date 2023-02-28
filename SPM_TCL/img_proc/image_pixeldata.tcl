@@ -124,7 +124,8 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols {priErr 1}} {
   set iRow 0
   set iCol 0
   foreach pixelStr $pixelLines  {
-    if { 0 == [regexp {(\d+),(\d+):\s+.+gray\(([0-9.]+)%\)}   \
+    ###puts "@@ Line '%s' simple match = []"
+    if { 0 == [regexp {(\d+),(\d+):\s+.+gray\(([0-9.]+)%\)}  $pixelStr    \
                                                   all  iCol iRow  val] }  {
       if { $priErr }  { ok_err_msg "Invalid one-pixel line '$pixelStr'" }
       incr errCnt 1
