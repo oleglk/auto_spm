@@ -104,6 +104,35 @@ proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
 }
 
 
+# 'valDict' = dictionary {row,column :: numeric-value
+# Output file created in 'outDir' or the current directory.
+## Example:  img_proc::annotate_image_zone_values  V24d2/DSC00589__s11d0.JPG  "_a"  {0 {0 11 1 12}  1 {0 21 1 22}}  "OUT"
+proc ::img_proc::annotate_image_zone_values {imgPath outNameSuffix  \
+                                             valDict {outDir ""}}  {
+  # detect annotation-grid dimensions
+  set maxBandIdx -1;  set maxStepIdx  -1
+  dict for {x y_v} $valDict  {
+    dict for {y v} $y_v {
+      if { $y > $maxBandIdx }   { set maxBandIdx $y }
+      if { $x > $maxStepIdx }   { set maxStepIdx $x }
+    }
+  }
+  set numBands [expr $maxBandIdx + 1];  set numSteps [expr $maxStepIdx + 1]
+  ## do not read pixel-data here
+  #~ if { 0 == [set pixels [img_proc::read_pixel_values  \
+                                    #~ $imgPath $numBands $numSteps 1]] }  {
+    #~ return  0
+  #~ }
+  set outName [format "%s%s.jpg" \
+                          [file rootname [file tail $imgPath]]  $outNameSuffix]
+  if { $outDir == "" }  { set outDir [pwd] }
+  set outPath [file join $outDir $outName]
+  set bXs [format {%dx%d} $numBands $numSteps]
+  ok_info_msg "Going to annotate image '$imgPath' with $bXs value grid; output into '$outPath'"
+  return  ;   # OK_TMP
+}
+
+
 ## Sample input data (for 2*3):
 ####  -I- Assume running on an unixoid - use pure tool executable names
 ####  # ImageMagick pixel enumeration: 3,2,255,gray
