@@ -104,15 +104,39 @@ proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
 }
 
 
+proc ::img_proc::_plain_string_CB {v} { return [format "%s" $v] }
+proc ::img_proc::_float_to_string_CB {v} { return [format "%.2f" $v] }
+
+
+### Standalone invocation on Linux:
+#### namespace forget ::img_proc::*;    source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY
+#### img_proc::annotate_pixel_values  V24d2/DSC00589__s11d0.JPG  6 9    "__br6x9"  "OUT"  _float_to_string_CB
+proc ::img_proc::annotate_pixel_values {imgPath numBands numSteps \
+                  outNameSuffix outDir {formatCB img_proc::_plain_string_CB}}  {
+  if { 0 == [set pixels [img_proc::read_pixel_values  \
+                                          $imgPath $numBands $numSteps 1]] }  {
+    return  0;  # error already printed
+  }
+  if { 0 == [set brMatrix [img_proc::_brightness_txt_to_matrix \
+                            $pixels  $numBands $numSteps  1  1]] }  {
+    return  0;  # error already printed
+  }
+
+  #set outNameSuffix [format {__br%dx%d} $numBands $numSteps]
+  return  [img_proc::annotate_image_zone_values $imgPath $brMatrix    \
+                                              $outNameSuffix $outDir $formatCB]
+}
+
+
 # 'valDict' = dictionary {row,column :: numeric-value
 # Output file created in 'outDir' or the current directory.
-## Example:  img_proc::annotate_image_zone_values  V24d2/DSC00589__s11d0.JPG  "_a"  {0 {0 11 1 12}  1 {0 21 1 22}}  "OUT"
-proc ::img_proc::annotate_image_zone_values {imgPath outNameSuffix  \
-                                             valDict {outDir ""}}  {
+## Example:  img_proc::annotate_image_zone_values  V24d2/DSC00589__s11d0.JPG  {0 {0 11 1 12 2 13}  1 {0 21 1 22 2 23}}  "_a"  "OUT"  img_proc::_float_to_string_CB
+proc ::img_proc::annotate_image_zone_values {imgPath valDict outNameSuffix  \
+                  outDir {formatCB img_proc::_plain_string_CB}}  {
   # detect annotation-grid dimensions
   set maxBandIdx -1;  set maxStepIdx  -1
-  dict for {x y_v} $valDict  {
-    dict for {y v} $y_v {
+  dict for {y x_v} $valDict  {
+    dict for {x v} $x_v {
       if { $y > $maxBandIdx }   { set maxBandIdx $y }
       if { $x > $maxStepIdx }   { set maxStepIdx $x }
     }
@@ -151,7 +175,7 @@ proc ::img_proc::annotate_image_zone_values {imgPath outNameSuffix  \
     for {set s 0}  {$s < $numSteps}  {incr s 1}  {
       set x [expr {int( ($s * $cellWidth)  +  $pointSize)}]
       set txt [expr {[dict exists $valDict $b $s]?  \
-                                            [dict get $valDict $b $s] : "---"}]
+                          [eval $formatCB [dict get $valDict $b $s]] : "---"}]
       append imAnnotateParam [format "  -annotate +%d+%d \"$txt\"" $x $y]
     }
   }
@@ -160,7 +184,8 @@ proc ::img_proc::annotate_image_zone_values {imgPath outNameSuffix  \
   puts "(Annotation command) ==> '$cmd'"
   exec  {*}$cmd
 
-  return  ;   # OK_TMP
+  puts "Created image '$outPath' annotated with $bXs value grid"
+  return  1
 }
 
 
