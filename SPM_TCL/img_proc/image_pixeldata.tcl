@@ -126,9 +126,40 @@ proc ::img_proc::annotate_image_zone_values {imgPath outNameSuffix  \
   set outName [format "%s%s.jpg" \
                           [file rootname [file tail $imgPath]]  $outNameSuffix]
   if { $outDir == "" }  { set outDir [pwd] }
+  if { !([file exists $outDir] && [file isdirectory $outDir]) }   {
+    ok_err_msg "-E- Inexistent or invalid output directory '$outDir'; aborting"
+    return  0
+ }
   set outPath [file join $outDir $outName]
   set bXs [format {%dx%d} $numBands $numSteps]
+  
+  # compute text size and cell locations
+  if { 0 == [img_proc::get_image_dimensions_by_imagemagick $imgPath \
+                            imgWidth imgHeight] }  {
+    return  0;  # error already printed
+  }
+  set bandHeight  [expr int(      $imgHeight / $numBands)]
+  set pointSize   [expr int(0.3 * $imgHeight / $numBands)]
+  set cellWidth   [expr int(      $imgWidth  / $numSteps)]
+
   ok_info_msg "Going to annotate image '$imgPath' with $bXs value grid; output into '$outPath'"
+  
+  set imAnnotateParam  " \
+        -gravity northwest -stroke \"#000C\" -strokewidth 2 -pointsize $pointSize"
+  for {set b 0}  {$b < $numBands}  {incr b 1}  {
+    set y [expr {int( $b * $bandHeight  +  0.5*($bandHeight - $pointSize) )}]
+    for {set s 0}  {$s < $numSteps}  {incr s 1}  {
+      set x [expr {int( ($s * $cellWidth)  +  $pointSize)}]
+      set txt [expr {[dict exists $valDict $b $s]?  \
+                                            [dict get $valDict $b $s] : "---"}]
+      append imAnnotateParam [format "  -annotate +%d+%d \"$txt\"" $x $y]
+    }
+  }
+  ####### TODO: resolve $::IMCONVERT vs {$::IMCONVERT}
+  set cmd "$::IMCONVERT  $imgPath  $imAnnotateParam  -depth 8 -quality 90 $outPath"
+  puts "(Annotation command) ==> '$cmd'"
+  exec  {*}$cmd
+
   return  ;   # OK_TMP
 }
 
