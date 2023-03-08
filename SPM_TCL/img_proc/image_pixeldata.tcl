@@ -130,7 +130,8 @@ proc ::img_proc::annotate_pixel_values {imgPath numBands numSteps \
 
 # 'valDict' = dictionary {row,column :: numeric-value
 # Output file created in 'outDir' or the current directory.
-## Example:  img_proc::annotate_image_zone_values  V24d2/DSC00589__s11d0.JPG  {0 {0 11 1 12 2 13}  1 {0 21 1 22 2 23}}  "_a"  "OUT"  img_proc::_float_to_string_CB
+## Example1:  img_proc::annotate_image_zone_values  V24d2/DSC00589__s11d0.JPG  {0 {0 11 1 12 2 13}  1 {0 21 1 22 2 23}}  "_a2x3"  "OUT"  img_proc::_float_to_string_CB
+## Example2:  img_proc::annotate_image_zone_values  V24d2/DSC00589__s11d0.JPG  {0 {0 11 1 12 2 13 3 14 4 15}  1 {0 21 1 22 2 23 3 24 4 25}}  "_a2x5"  "OUT"  img_proc::_float_to_string_CB
 proc ::img_proc::annotate_image_zone_values {imgPath valDict outNameSuffix  \
                   outDir {formatCB img_proc::_plain_string_CB}}  {
   # detect annotation-grid dimensions
@@ -162,9 +163,11 @@ proc ::img_proc::annotate_image_zone_values {imgPath valDict outNameSuffix  \
                             imgWidth imgHeight] }  {
     return  0;  # error already printed
   }
+  set textLength [string length [eval $formatCB 0.123456789]]
   set bandHeight  [expr int(      $imgHeight / $numBands)]
-  set pointSize   [expr int(0.3 * $imgHeight / $numBands)]
   set cellWidth   [expr int(      $imgWidth  / $numSteps)]
+  set pointSize   [expr int( min(0.3*$imgHeight/$numBands, \
+                                 0.9*$imgWidth/$numSteps/$textLength) )]
 
   ok_info_msg "Going to annotate image '$imgPath' with $bXs value grid; output into '$outPath'"
   
