@@ -27,6 +27,10 @@ namespace eval ::img_proc:: {
 }
 
 
+# regular expression to parse one pixel grayscale value
+set ::_ONE_PIXEL_CHANNEL_DATA_REGEXP  {(\d+),(\d+):\s+.+gray\(([0-9.]+)%?\)}
+
+
 # Returns list of 'numSteps' relative-brightness values (0-1)
 # of image 'imgPath'
 # in a horizontal band of height 'bandHeight' that encloses 'bandY'
@@ -97,13 +101,58 @@ proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
   # split into list with element per a pixel
   set asOneLine [join $buf " "];  # data read into arbitrary chunks
   set pixels [regexp -all -inline \
-        {\d+,\d+:\s+\([0-9.,]+\)\s+#[0-9A-F]+\s+gray\([0-9.]+%\)} \
+        {\d+,\d+:\s+\([0-9.,]+\)\s+#[0-9A-F]+\s+gray\([0-9.]+%?\)} \
         $asOneLine]
 
   return  $pixels
 }
 
 
+# Returns list of formatted pixel Hue values of image 'imgPath'
+### Standalone invocation on Linux:
+#### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    set pixels [img_proc::read_pixel_hues  rose.tif  1]
+proc ::img_proc::read_pixel_hues {imgPath scale {priErr 1}}  {
+  if { ![file exists $imgPath] }  {
+    ok_err_msg "-E- Inexistent input file '$imgPath'"
+    return  0
+  }
+  if { 0 == [img_proc::get_image_dimensions_by_imagemagick $imgPath \
+                            imgWidth imgHeight] }  {
+    return  0;  # error already printed
+  }
+  set newWidth  [expr $imgWidth  / $scale]
+  set newHeight [expr $imgHeight / $scale]
+  set wXhStr [format {%dx%d!} $newWidth $newHeight]
+  ## read data with 'convert <PATH>  -resize 3x2!  -colorspace HSB -channel Hue -separate  txt:-'
+  ####### TODO: resolve $::IMCONVERT vs {$::IMCONVERT}
+  set imCmd [format {|%s  %s -quiet  -resize %s  -colorspace HSB -channel Hue -separate  txt:-} \
+                      $::IMCONVERT $imgPath $wXhStr]
+  set tclExecResult [catch {
+    # Open a pipe to the program
+    #   set io [open "|identify -format \"%w %h\" $fullPath" r]
+    set io [eval [list open $imCmd r]]
+    set buf [read $io];	# Get the full reply
+    close $io
+  } execResult]
+  if { $tclExecResult != 0 } {
+    if { $priErr == 1 }  {
+      ok_err_msg "$execResult!"
+      ok_err_msg "Cannot get pixel data of '$imgPath'"
+    }
+    return  0
+  }
+  # split into list with element per a pixel
+  set asOneLine [join $buf " "];  # data read into arbitrary chunks
+  set pixels [regexp -all -inline \
+        {\d+,\d+:\s+\([0-9.,]+\)\s+#[0-9A-F]+\s+gray\([0-9.]+%?\)} \
+        $asOneLine]
+
+  return  $pixels
+}
+
+
+
+############# BEGIN: pixel-data annotation stuff ###############################
 proc ::img_proc::_plain_string_CB {v} { return [format "%s" $v] }
 proc ::img_proc::_float_to_string_CB {v} { return [format "%.2f" $v] }
 
@@ -216,7 +265,7 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
   set iCol 0
   foreach pixelStr $pixelLines  {
     ###puts "@@ Line '%s' simple match = []"
-    if { 0 == [regexp {(\d+),(\d+):\s+.+gray\(([0-9.]+)%\)}  $pixelStr    \
+    if { 0 == [regexp {(\d+),(\d+):\s+.+gray\(([0-9.]+)%?\)}  $pixelStr    \
                                                   all  iCol iRow  val] }  {
       if { $priErr }  { ok_err_msg "Invalid one-pixel line '$pixelStr'" }
       incr errCnt 1
@@ -249,4 +298,44 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
               [expr {1.0 * [dict get $resDict $i $j] / $maxBright}] }
   }
   return  $scaledDict
+}
+############# END:   pixel-data annotation stuff ###############################
+
+
+# TODO: threshold (units - prc or fraction depend on 'normalize') !!!
+## Example:  set qq [img_proc::_channel_txt_to_histogram  $pixels  1  0];  dict for {k v} $qq  {puts "$k :: $v"}
+## Make sample input:  exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
+proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
+                                              {priErr 1}} {
+  set threshold -1; # OK_TMP
+  set precSpec [format {%%.%df} $precision]
+  set allValDict [dict create];  # will contain counts for all appearing values
+  set errCnt 0
+  set iRow 0
+  set iCol 0
+  foreach pixelStr $pixelLines  {
+    ###puts "@@ Line '%s' simple match = []"
+    if { 0 == [regexp $::_ONE_PIXEL_CHANNEL_DATA_REGEXP  $pixelStr    \
+                                                  all  iCol iRow  val] }  {
+      if { $priErr }  { ok_err_msg "Invalid one-pixel line '$pixelStr'" }
+      incr errCnt 1
+      continue
+    }
+    set key [format $precSpec $val]
+    dict incr allValDict  $key 1
+  }
+  if { $priErr && ($errCnt > 0) }  {
+    ok_err_msg "Parsing pixel values encountered $errCnt error(s)"
+  }
+  if { ($normalize == 0) && ($threshold < 0) }  {
+    return  $allValDict;   # scaling values to 0..1 isn't requested
+  }
+  
+  # scale values to 0...1
+  set numPixels] [llength $pixelLines]
+  set normDict [dict create]
+  dict for {val count} $allValDict  {
+    dict set normDict  $val  [expr 1.0 * $count / $numPixels]
+  }
+  return  $normDict
 }
