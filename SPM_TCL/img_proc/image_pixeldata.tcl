@@ -303,8 +303,10 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
 
 
 # TODO: threshold (units - prc or fraction depend on 'normalize') !!!
-## Example:  set qq [img_proc::_channel_txt_to_histogram  $pixels  1  0];  dict for {k v} $qq  {puts "$k :: $v"}
-## Make sample input:  exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
+## Example:  set qq [img_proc::_channel_txt_to_histogram  $pixels  1  1];  dict for {k v} $qq  {puts "$k :: $v"}
+## Make sample input 1: exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
+## Make sample input 2: exec convert rose: rose.tif
+## Read pixels from file: set pixels [img_proc::read_pixel_hues  rose.tif  1 1] 
 proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
                                               {priErr 1}} {
   set threshold -1; # OK_TMP
@@ -332,10 +334,45 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
   }
   
   # scale values to 0...1
-  set numPixels] [llength $pixelLines]
+  #(no need) set numPixels [llength $pixelLines]
+  set maxVal 100.0;  # OK_TMP hardcoded to percentage
   set normDict [dict create]
   dict for {val count} $allValDict  {
-    dict set normDict  $val  [expr 1.0 * $count / $numPixels]
+    dict set normDict  $val  [expr 1.0 * $count / $maxVal]
   }
   return  $normDict
+}
+
+
+## Example:  img_proc::_channel_histogram_to_ordered_fragments $hist {{0 2.0}}
+proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
+                                                          fragmentBounds}   {
+  # TODO: check structure of 'fragmentBounds'
+  set keys [lsort [dict keys $histogramDict]]
+  set fragmentsDict [dict create]
+  foreach fragmentMinMax $fragmentBounds  {
+    if { 2 != [llength $fragmentMinMax] } {
+      error "-E- Invalid structure of fragment bounds '$fragmentMinMax'; should be {min max}"
+    }
+    lassign $fragmentMinMax lo hi;  # min/max channel values in the fragment
+    dict set fragmentsDict $fragmentMinMax 0;  # init to no-values-in-fragment
+    if { -1 == [set iLast [lsearch -bisect $keys $hi]] }  {
+      # no valuies in this histogram fragment 
+      continue
+    }
+    puts "-D- Last key for $hi is at #$iLast"
+    set cntInFragm 0
+    for {set i $iLast} {$i >= 0} {incr i -1}   {
+      set key [lindex $keys $i];  # key has semantics of channel value
+      if { $key >= $lo }  {
+        set cntForVal [dict get $histogramDict $key];  # known to exist
+        puts "-D- Contribute $cntForVal into {$fragmentMinMax} at $key"
+        set cntInFragm [expr $cntInFragm + $cntForVal]
+      } else {
+        break;  # done with the current fragmemt
+      }
+    }
+    dict set fragmentsDict $fragmentMinMax $cntInFragm
+  }
+  return  $fragmentsDict
 }
