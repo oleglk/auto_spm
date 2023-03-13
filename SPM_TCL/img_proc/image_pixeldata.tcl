@@ -65,6 +65,7 @@ proc ::img_proc::read_brightness_matrix {imgPath numBands numSteps {priErr 1}}  
 }
 
 
+############# BEGIN: pixel-data READING stuff ##################################
 # Returns list of formatted pixel values of image 'imgPath'
 ### Standalone invocation on Linux:
 #### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    set pixels [img_proc::read_pixel_values  V24d2/DSC00589__s11d0.JPG  2 3]
@@ -149,6 +150,7 @@ proc ::img_proc::read_pixel_hues {imgPath scale {priErr 1}}  {
 
   return  $pixels
 }
+############# END:   pixel-data READING stuff ##################################
 
 
 
@@ -239,6 +241,8 @@ proc ::img_proc::annotate_image_zone_values {imgPath valDict outNameSuffix  \
   puts "Created image '$outPath' annotated with $bXs value grid"
   return  1
 }
+############# END:   pixel-data annotation stuff ###############################
+
 
 
 ## Sample input data (for 2*3):
@@ -299,11 +303,12 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
   }
   return  $scaledDict
 }
-############# END:   pixel-data annotation stuff ###############################
 
 
 # TODO: threshold (units - prc or fraction depend on 'normalize') !!!
-## Example:  set qq [img_proc::_channel_txt_to_histogram  $pixels  1  1];  dict for {k v} $qq  {puts "$k :: $v"}
+## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  1  1];  llength $hist
+## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
+## Verify normalized:  proc ladd L {expr [join $L +]+0};  ladd [dict values $hist]
 ## Make sample input 1: exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
 ## Make sample input 2: exec convert rose: rose.tif
 ## Read pixels from file: set pixels [img_proc::read_pixel_hues  rose.tif  1 1] 
@@ -334,11 +339,10 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
   }
   
   # scale values to 0...1
-  #(no need) set numPixels [llength $pixelLines]
-  set maxVal 100.0;  # OK_TMP hardcoded to percentage
+  set numPixels [expr [llength $pixelLines] - $errCnt]
   set normDict [dict create]
   dict for {val count} $allValDict  {
-    dict set normDict  $val  [expr 1.0 * $count / $maxVal]
+    dict set normDict  $val  [expr 1.0 * $count / $numPixels]
   }
   return  $normDict
 }
