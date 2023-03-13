@@ -351,7 +351,6 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
 ## Example:  img_proc::_channel_histogram_to_ordered_fragments $hist {{0 2.0}}
 proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
                                                           fragmentBounds}   {
-  # TODO: check structure of 'fragmentBounds'
   set keys [lsort [dict keys $histogramDict]]
   set fragmentsDict [dict create]
   foreach fragmentMinMax $fragmentBounds  {
@@ -379,4 +378,64 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
     dict set fragmentsDict $fragmentMinMax $cntInFragm
   }
   return  $fragmentsDict
+}
+
+
+## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram $hist 0.001 {0 2.0}]
+proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
+                                                      {searchBounds "NONE"}}  {
+  set keys [lsort [dict keys $histogramDict]];  # keys are channel values
+  set numKeys [llength $keys]
+  if { $searchBounds == "NONE" }  {
+    set minV [lindex $keys 0];  set maxV [lindex $keys end]
+  } else {
+    if { 2 != [llength $searchBounds] } {
+      error "-E- Invalid structure of search bounds '$searchBounds'; should be {min max}"
+    }
+    lassign $searchBounds minV maxV
+    set minV [expr max($minV, [lindex $keys 0])]
+    set maxV [expr min($maxV, [lindex $keys end])]
+  }
+  set gapsDict [dict create];   # will map gapFirstValue :: gapLastValue
+  # find the search-start index
+  if { -1 == [set iPrev [lsearch -bisect $keys [expr $minV - 0.9999]]] }  {
+    set iPrev 0; # start from the beginning
+  }
+  if { -1 == [set iLast [lsearch -bisect $keys $maxV]] }  {
+    # no valuies in requested histogram range
+    return  $gapsDict
+  }
+  if { $iPrev == [expr $numKeys - 1] }  {
+    # no valuies in requested histogram range
+    return  $gapsDict
+  }
+  set keysSubList [lrange $keys  [expr $iPrev + 1]  [expr $iLast - 1]]
+  for {set i 0} {$i < [expr [llength $keysSubList] - 1]} {incr i} {
+    # check for a gap started from #i
+    for {set j $i} {$j < [llength $keysSubList]} {incr j}   {
+      set isLastSubrange [expr {$j == [llength $keysSubList] - 1}]
+      set subrangeVal [lindex $keysSubList $j]
+      set subrangeCount [dict get $histogramDict $subrangeVal]
+      puts "-D- \[$i\] val=$subrangeVal cnt=$subrangeCount"
+      if { ($subrangeCount > $thresholdNorm) && ($j == $i) }   {
+        # gap not started (j==i)
+        break;   # no gap - the subrange has pixels;  goto incrementing i
+      }
+      if { ($subrangeCount > $thresholdNorm)  && ($j > $i) }   {
+        # gap ended (j>i) - started at #i and ended at #j-1
+        dict set gapsDict \
+                  [lindex $keysSubList $i]  [lindex $keysSubList [expr $j-1]]
+        set i $j
+        break;   # gap ended - the subrange has pixels;  goto incrementing i
+      }      
+      if { ($subrangeCount <= $thresholdNorm) && $isLastSubrange }   {
+        # gap ended (j==i) - started at #i and ended at #i
+        dict set gapsDict  [lindex $keysSubList $i]  [lindex $keysSubList $i]
+        break;   # gap at the last subrange;  goto incrementing i; loop will end
+      }
+      # gap continues
+    }; #__loop_over_subranges_in_one_gap
+  }; #__loop_over_all_subranges
+  puts "Found [dict size $gapsDict] gap(s) in value range $minV...$maxV (== [lindex $keysSubList [expr $iPrev+1]]...[lindex $keysSubList [expr $iLast - 1]])"
+  return  $gapsDict
 }
