@@ -26,6 +26,8 @@ namespace eval ::img_proc:: {
     namespace export                          \
 }
 
+# channel histogram precision as number of floating-point digits
+set ::FP_DIGITS  1
 
 # regular expression to parse one pixel grayscale value
 set ::_ONE_PIXEL_CHANNEL_DATA_REGEXP  {(\d+),(\d+):\s+.+gray\(([0-9.]+)%?\)}
@@ -306,7 +308,7 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
 
 
 # TODO: threshold (units - prc or fraction depend on 'normalize') !!!
-## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  1  1];  llength $hist
+## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  $::FP_DIGITS  1];  llength $hist
 ## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
 ## Verify normalized:  proc ladd L {expr [join $L +]+0};  ladd [dict values $hist]
 ## Make sample input 1: exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
@@ -381,7 +383,7 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
 }
 
 
-## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram $hist 0.001 {0 2.0}]
+## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 0.001 {0 2.0}]
 proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
                                                       {searchBounds "NONE"}}  {
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
@@ -437,7 +439,52 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
       }
       # gap continues
     }; #__loop_over_subranges_in_one_gap
+    # !!!!!!!!!! TODO: advance i to $j ???????????????????
   }; #__loop_over_all_subranges
   puts "Found [dict size $gapsDict] gap(s) in value range $minV...$maxV (== [lindex $keysSubList 0]...[lindex $keysSubList end])"
   return  $gapsDict
+}
+
+
+# Returns a new histogram with 2 additions:
+## - all missing subranges inserted with zero counts
+## - TODO: duplicate for negative range
+proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
+  if {       $precision == 0 }  { set step 1.0
+  } elseif { $precision == 1 }  { set step 0.1
+  } elseif { $precision == 2 }  { set step 0.01
+  } elseif { $precision == 3 }  { set step 0.001
+  } else {
+    error "Unsupported precision (numnber of floating-point digits) $precision; should be 0,1,2,3"
+  }
+  set precSpec [format {%%.%df} $precision]
+  set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
+  set fullHist [dict create]
+  set h [format $precSpec 0.0]
+  foreach k $keys {
+    # complete subranges 'h' ... 'k'
+    set wasFirst $h
+    while { $h < $k }  {
+      dict set fullHist $h 0
+      ##set h [expr $h + $step]
+      set h [format $precSpec [expr $h + $step]]
+    }
+    puts "-D- Completed subrange(s) '$wasFirst'...'$k' (step = $step)"
+    dict set fullHist $k [dict get $histogramDict $k]
+  }
+  set lastKey [lindex $keys end]
+  set lastHueRangeStart [format $precSpec [expr 360.0 - $step]]
+  if { $lastKey < $lastHueRangeStart }  {
+    ##set h [expr $lastKey + $step]
+    set h [format $precSpec [expr $lastKey + $step]]
+    # complete subranges 'last-key' ... 'lastHueRangeStart'
+    while { $h < 360 }  {
+      dict set fullHist $h 0
+      set lastDone $h
+      set h [format $precSpec [expr $h + $step]]
+    }
+    puts "-D- Completed subranges '[expr $lastKey + $step]'...'$lastDone' (step = $step)"
+    puts "-D- Nominal last subrange = '$lastHueRangeStart' ... 360"
+  }
+  return  $fullHist
 }
