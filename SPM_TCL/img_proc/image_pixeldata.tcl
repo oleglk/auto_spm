@@ -351,7 +351,7 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
 ## Example:  img_proc::_channel_histogram_to_ordered_fragments $hist {{0 2.0}}
 proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
                                                           fragmentBounds}   {
-  set keys [lsort [dict keys $histogramDict]]
+  set keys [lsort -real [dict keys $histogramDict]]
   set fragmentsDict [dict create]
   foreach fragmentMinMax $fragmentBounds  {
     if { 2 != [llength $fragmentMinMax] } {
@@ -384,7 +384,7 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
 ## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram $hist 0.001 {0 2.0}]
 proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
                                                       {searchBounds "NONE"}}  {
-  set keys [lsort [dict keys $histogramDict]];  # keys are channel values
+  set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
   set numKeys [llength $keys]
   if { $searchBounds == "NONE" }  {
     set minV [lindex $keys 0];  set maxV [lindex $keys end]
@@ -392,16 +392,18 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
     if { 2 != [llength $searchBounds] } {
       error "-E- Invalid structure of search bounds '$searchBounds'; should be {min max}"
     }
-    lassign $searchBounds minV maxV
-    set minV [expr max($minV, [lindex $keys 0])]
-    set maxV [expr min($maxV, [lindex $keys end])]
+    lassign $searchBounds argMinV argMaxV
+    set minV [expr max($argMinV, [lindex $keys 0])]
+    set maxV [expr min($argMaxV, [lindex $keys end])]
   }
   set gapsDict [dict create];   # will map gapFirstValue :: gapLastValue
-  # find the search-start index
-  if { -1 == [set iPrev [lsearch -bisect $keys [expr $minV - 0.9999]]] }  {
+  # find the search-start index (-bisect gives last idx with element <= pattern)
+  if { -1 == [set iPrev [ \
+                  lsearch -real -bisect $keys [expr $minV - 0.0001]]] }  {
     set iPrev 0; # start from the beginning
   }
-  if { -1 == [set iLast [lsearch -bisect $keys $maxV]] }  {
+  if { -1 == [set iLast [ \
+                  lsearch -real -bisect $keys [expr $maxV + 0.0001]]] }  {
     # no valuies in requested histogram range
     return  $gapsDict
   }
@@ -409,7 +411,7 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
     # no valuies in requested histogram range
     return  $gapsDict
   }
-  set keysSubList [lrange $keys  [expr $iPrev + 1]  [expr $iLast - 1]]
+  set keysSubList [lrange $keys  $iPrev  [expr $iLast - 1]]
   for {set i 0} {$i < [expr [llength $keysSubList] - 1]} {incr i} {
     # check for a gap started from #i
     for {set j $i} {$j < [llength $keysSubList]} {incr j}   {
@@ -436,6 +438,6 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
       # gap continues
     }; #__loop_over_subranges_in_one_gap
   }; #__loop_over_all_subranges
-  puts "Found [dict size $gapsDict] gap(s) in value range $minV...$maxV (== [lindex $keysSubList [expr $iPrev+1]]...[lindex $keysSubList [expr $iLast - 1]])"
+  puts "Found [dict size $gapsDict] gap(s) in value range $minV...$maxV (== [lindex $keysSubList 0]...[lindex $keysSubList end])"
   return  $gapsDict
 }
