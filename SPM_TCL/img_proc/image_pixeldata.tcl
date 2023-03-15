@@ -308,7 +308,7 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
 
 
 # TODO: threshold (units - prc or fraction depend on 'normalize') !!!
-## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  $::FP_DIGITS  1];  llength $hist
+## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  $::FP_DIGITS  1];  dict size $hist
 ## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
 ## Verify normalized:  proc ladd L {expr [join $L +]+0};  ladd [dict values $hist]
 ## Make sample input 1: exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
@@ -385,35 +385,34 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
 
 ## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 0.001 {0 2.0}]
 proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
-                                                      {searchBounds "NONE"}}  {
+                                                                searchBounds}  {
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
   set numKeys [llength $keys]
-  if { $searchBounds == "NONE" }  {
-    set minV [lindex $keys 0];  set maxV [lindex $keys end]
-  } else {
-    if { 2 != [llength $searchBounds] } {
+  if { 2 != [llength $searchBounds] } {
       error "-E- Invalid structure of search bounds '$searchBounds'; should be {min max}"
-    }
-    lassign $searchBounds argMinV argMaxV
-    set minV [expr max($argMinV, [lindex $keys 0])]
-    set maxV [expr min($argMaxV, [lindex $keys end])]
   }
+  lassign $searchBounds minV maxV
   set gapsDict [dict create];   # will map gapFirstValue :: gapLastValue
   # find the search-start index (-bisect gives last idx with element <= pattern)
   if { -1 == [set iPrev [ \
                   lsearch -real -bisect $keys [expr $minV - 0.0001]]] }  {
-    set iPrev 0; # start from the beginning
+    # start from the beginning; it's OK to pass -1 to lrange
   }
   if { -1 == [set iLast [ \
                   lsearch -real -bisect $keys [expr $maxV + 0.0001]]] }  {
     # no valuies in requested histogram range
-    return  $gapsDict
+    puts "-I- No values below the max ($maxV) in histogram range {$searchBounds}"
+    return  [dict create  $minV $maxV];  # one gap over the full range
   }
   if { $iPrev == [expr $numKeys - 1] }  {
     # no valuies in requested histogram range
-    return  $gapsDict
+    puts "-I- No values above the min ($minV) in histogram range {$searchBounds}"
+    return  [dict create  $minV $maxV];  # one gap over the full range
   }
-  set keysSubList [lrange $keys  $iPrev  [expr $iLast - 1]]
+  set lastIdx [expr {([lindex $keys $iLast] > $maxV)? [expr $iLast - 1] \
+                                                    : $iLast}]
+  set keysSubList [lrange $keys  $iPrev  $lastIdx]
+  puts "-D- Search restricted to \[$iPrev...$lastIdx\}: {$keysSubList}"
   for {set i 0} {$i < [expr [llength $keysSubList] - 1]} {incr i} {
     # check for a gap started from #i
     for {set j $i} {$j < [llength $keysSubList]} {incr j}   {
@@ -429,7 +428,6 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
         # gap ended (j>i) - started at #i and ended at #j-1
         dict set gapsDict \
                   [lindex $keysSubList $i]  [lindex $keysSubList [expr $j-1]]
-        set i $j
         break;   # gap ended - the subrange has pixels;  goto incrementing i
       }      
       if { ($subrangeCount <= $thresholdNorm) && $isLastSubrange }   {
@@ -439,7 +437,7 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
       }
       # gap continues
     }; #__loop_over_subranges_in_one_gap
-    # !!!!!!!!!! TODO: advance i to $j ???????????????????
+    set i $j; # all subranges before #j are already checked; avoid long loop
   }; #__loop_over_all_subranges
   puts "Found [dict size $gapsDict] gap(s) in value range $minV...$maxV (== [lindex $keysSubList 0]...[lindex $keysSubList end])"
   return  $gapsDict
@@ -460,17 +458,26 @@ proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
   set precSpec [format {%%.%df} $precision]
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
   set fullHist [dict create]
-  set h [format $precSpec 0.0]
+  set oneMissing [format $precSpec 0.0]
+set keys [lrange  $keys 0 10];  #puts "@@ $keys @@";  #### OK_TMP
   foreach k $keys {
+    set k [format $precSpec $k];  # just in case
     # complete subranges 'h' ... 'k'
-    set wasFirst $h
-    while { $h < $k }  {
-      dict set fullHist $h 0
-      ##set h [expr $h + $step]
-      set h [format $precSpec [expr $h + $step]]
+    set wasFirst $oneMissing
+    set nCompleted 0
+    while { $oneMissing < $k }  {
+      #puts "@TMP@ '$oneMissing' < '$k'"
+      dict set fullHist $oneMissing 0
+      ##set oneMissing [expr $h + $step]
+      set oneMissing [format $precSpec [expr $oneMissing + $step]]
+      incr nCompleted 1
     }
-    puts "-D- Completed subrange(s) '$wasFirst'...'$k' (step = $step)"
+    if { $nCompleted > 0 }  {
+      puts "-D- Completed $nCompleted subrange(s) '$wasFirst'...'[expr $k-$step]' (step = $step)"
+    }
     dict set fullHist $k [dict get $histogramDict $k]
+    set oneMissing [expr $k + $step]
+    puts "-D- Copied value for subrange $k (=[dict get $fullHist $k])"
   }
   set lastKey [lindex $keys end]
   set lastHueRangeStart [format $precSpec [expr 360.0 - $step]]
