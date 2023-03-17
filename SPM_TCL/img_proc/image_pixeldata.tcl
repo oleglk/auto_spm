@@ -412,8 +412,8 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
   set lastIdx [expr {([lindex $keys $iLast] > $maxV)? [expr $iLast - 1] \
                                                     : $iLast}]
   set keysSubList [lrange $keys  $iPrev  $lastIdx]
-  puts "-D- Search restricted to \[$iPrev...$lastIdx\}: {$keysSubList}"
-  for {set i 0} {$i < [expr [llength $keysSubList] - 1]} {incr i} {
+  puts "-D- Search restricted to \[$iPrev...$lastIdx\] / \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
+  for {set i 0} {$i <= [expr [llength $keysSubList] - 1]} {incr i} {
     # check for a gap started from #i
     for {set j $i} {$j < [llength $keysSubList]} {incr j}   {
       set isLastSubrange [expr {$j == [llength $keysSubList] - 1}]
