@@ -446,7 +446,7 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
 
 # Returns a new histogram with 2 additions:
 ## - all missing subranges inserted with zero counts
-## - TODO: duplicate for negative range
+## - ?? TODO: duplicate for negative range ??
 proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
   if {       $precision == 0 }  { set step 1.0
   } elseif { $precision == 1 }  { set step 0.1
@@ -455,11 +455,12 @@ proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
   } else {
     error "Unsupported precision (numnber of floating-point digits) $precision; should be 0,1,2,3"
   }
+  set totalCopied 0;  set totalCompleted 0
   set precSpec [format {%%.%df} $precision]
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
   set fullHist [dict create]
   set oneMissing [format $precSpec 0.0]
-set keys [lrange  $keys 0 10];  #puts "@@ $keys @@";  #### OK_TMP
+  ### (debug)  set keys [lrange  $keys 0 10];  #puts "@@ $keys @@";  #### OK_TMP
   foreach k $keys {
     set k [format $precSpec $k];  # just in case
     # complete subranges 'h' ... 'k'
@@ -474,10 +475,12 @@ set keys [lrange  $keys 0 10];  #puts "@@ $keys @@";  #### OK_TMP
     }
     if { $nCompleted > 0 }  {
       puts "-D- Completed $nCompleted subrange(s) '$wasFirst'...'[expr $k-$step]' (step = $step)"
+      incr totalCompleted $nCompleted
     }
     dict set fullHist $k [dict get $histogramDict $k]
-    set oneMissing [expr $k + $step]
+    set oneMissing [format $precSpec [expr $k + $step]]
     puts "-D- Copied value for subrange $k (=[dict get $fullHist $k])"
+    incr totalCopied 1
   }
   set lastKey [lindex $keys end]
   set lastHueRangeStart [format $precSpec [expr 360.0 - $step]]
@@ -489,9 +492,11 @@ set keys [lrange  $keys 0 10];  #puts "@@ $keys @@";  #### OK_TMP
       dict set fullHist $h 0
       set lastDone $h
       set h [format $precSpec [expr $h + $step]]
+      incr totalCompleted 1
     }
-    puts "-D- Completed subranges '[expr $lastKey + $step]'...'$lastDone' (step = $step)"
+    puts "-D- Completed subrange(s) '[expr $lastKey + $step]'...'$lastDone' (step = $step)"
     puts "-D- Nominal last subrange = '$lastHueRangeStart' ... 360"
   }
+  puts "-I- Copied $totalCopied and completed $totalCompleted subrange(s) ([expr $totalCopied + $totalCompleted] out of [expr int(360 / $step)])"
   return  $fullHist
 }
