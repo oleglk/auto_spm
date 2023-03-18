@@ -384,6 +384,7 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
 
 
 ## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 0.001 {0 2.0}]
+## Fine-print the result:   dict for {b e} $gaps {puts "\[$b ... $e\]"
 proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
                                                                 searchBounds}  {
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
@@ -419,20 +420,23 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
       set isLastSubrange [expr {$j == [llength $keysSubList] - 1}]
       set subrangeVal [lindex $keysSubList $j]
       set subrangeCount [dict get $histogramDict $subrangeVal]
-      puts "-D- \[$i\] val=$subrangeVal cnt=$subrangeCount"
-      if { ($subrangeCount > $thresholdNorm) && ($j == $i) }   {
+      set isAboveThreshold [expr ($subrangeCount > $thresholdNorm)]
+      set aboveOrBelow [expr {($isAboveThreshold)? "above" : "below"}]
+      puts "-D- \[$i\] val=$subrangeVal cnt=$subrangeCount:\t$aboveOrBelow threshold"
+      if { $isAboveThreshold && ($j == $i) }   {
         # gap not started (j==i)
         break;   # no gap - the subrange has pixels;  goto incrementing i
       }
-      if { ($subrangeCount > $thresholdNorm)  && ($j > $i) }   {
+      if { $isAboveThreshold  && ($j > $i) }   {
         # gap ended (j>i) - started at #i and ended at #j-1
         dict set gapsDict \
                   [lindex $keysSubList $i]  [lindex $keysSubList [expr $j-1]]
         break;   # gap ended - the subrange has pixels;  goto incrementing i
       }      
-      if { ($subrangeCount <= $thresholdNorm) && $isLastSubrange }   {
-        # gap ended (j==i) - started at #i and ended at #i
-        dict set gapsDict  [lindex $keysSubList $i]  [lindex $keysSubList $i]
+      if { (! $isAboveThreshold) && $isLastSubrange }   {
+        # gap ended - started at #i and ended at #j
+        ## puts "@TMP@ Gap covers the last subrange [lindex $keysSubList $i] ... [lindex $keysSubList $j]"
+        dict set gapsDict  [lindex $keysSubList $i]  [lindex $keysSubList $j]
         break;   # gap at the last subrange;  goto incrementing i; loop will end
       }
       # gap continues
