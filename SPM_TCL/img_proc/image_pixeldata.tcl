@@ -385,7 +385,7 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
 
 
 ## Example:  set gaps [img_proc::_find_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 0.001 {0 2.0}]
-## Fine-print the result:   dict for {b e} $gaps {puts "\[$b ... $e\]"
+## Fine-print the result:   dict for {b e} $gaps {puts "\[$b ... $e\]"}
 proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
                                                                 searchBounds}  {
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
