@@ -127,29 +127,30 @@ proc ::img_proc::read_pixel_hues {imgPath scale {priErr 1}}  {
   set newHeight [expr $imgHeight / $scale]
   set wXhStr [format {%dx%d!} $newWidth $newHeight]
   ## read data with 'convert <PATH>  -resize 3x2!  -colorspace HSB -channel Hue -separate  txt:-'
+  set pixels [list]
   ####### TODO: resolve $::IMCONVERT vs {$::IMCONVERT}
   set imCmd [format {|%s  %s -quiet  -resize %s  -colorspace HSB -channel Hue -separate  txt:-} \
                       $::IMCONVERT $imgPath $wXhStr]
   set tclExecResult [catch {
-    # Open a pipe to the program
-    #   set io [open "|identify -format \"%w %h\" $fullPath" r]
+    # Open a pipe to the program, then read line-by-line
     set io [eval [list open $imCmd r]]
-    set buf [read $io];	# Get the full reply
+    while { [gets $io onePixelLine] >= 0 }  {  
+      if { 0 != [regexp {^\s*#} $onePixelLine] }  { continue };  # skip comments
+      if { 0 != [regexp \
+                {\d+,\d+:\s+\([0-9.,]+\)\s+#[0-9A-F]+\s+gray\([0-9.]+%?\)} \
+                  $onePixelLine] }  {
+        lappend pixels [string trim $onePixelLine { \n\t}]
+      }
+    }
     close $io
   } execResult]
   if { $tclExecResult != 0 } {
     if { $priErr == 1 }  {
       ok_err_msg "$execResult!"
-      ok_err_msg "Cannot get pixel data of '$imgPath'"
+      ok_err_msg "Cannot get pixel data of '$imgPath'; number of lines read: [llength $pixels]"
     }
     return  0
   }
-  # split into list with element per a pixel
-  set asOneLine [join $buf " "];  # data read into arbitrary chunks
-  set pixels [regexp -all -inline \
-        {\d+,\d+:\s+\([0-9.,]+\)\s+#[0-9A-F]+\s+gray\([0-9.]+%?\)} \
-        $asOneLine]
-
   return  $pixels
 }
 ############# END:   pixel-data READING stuff ##################################
