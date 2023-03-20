@@ -40,4 +40,16 @@ namespace eval ::img_proc:: {
 ###    modulate_arg = ( hue_angle * 100/180 ) + 100
 #### convert SBS/DSC03172.jpg  -modulate 100,100,199.94  -quality 90  TMP/DSC03172_359d9.jpg
 ################################################################################
-  
+
+
+proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
+  return  [expr ($hueAngle * 100.0/180) + 100]
+}
+
+
+proc ::img_proc::_modulate_hue_TODO {inpName hueAngle}  {
+#~ img_proc::hue_angle_to_im_modulate_arg [expr 360.0 - 18.8]
+#~ convert SBS/DSC03172.jpg  -modulate 100,100,289.6  -quality 90  TMP/DSC03172_289d6.jpg
+#~ convert -crop 50%x100%  -quality 90  TMP/DSC03172_289d6.jpg  LR/DSC03172_289d6.jpg
+#~ composite -stereo 0  LR/DSC03172_289d6-0.jpg LR/DSC03172_289d6-1.jpg   -quality 90  ANA/DSC03172_289d6_FCA.jpg
+}

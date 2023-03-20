@@ -312,8 +312,8 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
 ## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  $::FP_DIGITS  1];  dict size $hist
 ## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
 ## Verify normalized:  proc ladd L {expr [join $L +]+0};  ladd [dict values $hist]
-## Make sample input 1: exec convert -size 10x10 xc:rgb(0,11,255)  near_blue.tif
-## Make sample input 2: exec convert rose: rose.tif
+## Make sample input 1: exec convert -size 10x10 xc:rgb(0,11,255) -depth 8 near_blue.tif
+## Make sample input 2: exec convert rose: -depth 8 rose.tif
 ## Read pixels from file: set pixels [img_proc::read_pixel_hues  rose.tif  1 1] 
 proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
                                               {priErr 1}} {
