@@ -388,33 +388,21 @@ proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
 ## Fine-print the result:   dict for {b e} $gaps {puts "\[$b ... $e\]"}
 proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
                                                                 searchBounds}  {
-  set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
-  set numKeys [llength $keys]
   if { 2 != [llength $searchBounds] } {
       error "-E- Invalid structure of search bounds '$searchBounds'; should be {min max}"
   }
   lassign $searchBounds minV maxV
+
+  # find the search-start and search-end indices
+  set keysSubList [img_proc::_find_value_range_in_channel_histogram   \
+                                                    $histogramDict $searchBounds]
+  if { 0 == [llength $keysSubList] }  {
+    # no valuies in requested histogram range; message already printed
+    return  [dict create  $minV $maxV];  # one gap over the full range
+  }
+  puts "-D- Search restricted to \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
+  
   set gapsDict [dict create];   # will map gapFirstValue :: gapLastValue
-  # find the search-start index (-bisect gives last idx with element <= pattern)
-  if { -1 == [set iPrev [ \
-                  lsearch -real -bisect $keys [expr $minV - 0.0001]]] }  {
-    # start from the beginning; it's OK to pass -1 to lrange
-  }
-  if { -1 == [set iLast [ \
-                  lsearch -real -bisect $keys [expr $maxV + 0.0001]]] }  {
-    # no valuies in requested histogram range
-    puts "-I- No values below the max ($maxV) in histogram range {$searchBounds}"
-    return  [dict create  $minV $maxV];  # one gap over the full range
-  }
-  if { $iPrev == [expr $numKeys - 1] }  {
-    # no valuies in requested histogram range
-    puts "-I- No values above the min ($minV) in histogram range {$searchBounds}"
-    return  [dict create  $minV $maxV];  # one gap over the full range
-  }
-  set lastIdx [expr {([lindex $keys $iLast] > $maxV)? [expr $iLast - 1] \
-                                                    : $iLast}]
-  set keysSubList [lrange $keys  $iPrev  $lastIdx]
-  puts "-D- Search restricted to \[$iPrev...$lastIdx\] / \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
   for {set i 0} {$i <= [expr [llength $keysSubList] - 1]} {incr i} {
     # check for a gap started from #i
     for {set j $i} {$j < [llength $keysSubList]} {incr j}   {
@@ -446,6 +434,41 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
   }; #__loop_over_all_subranges
   puts "Found [dict size $gapsDict] gap(s) in value range $minV...$maxV (== [lindex $keysSubList 0]...[lindex $keysSubList end])"
   return  $gapsDict
+}
+
+
+# Returns ordered sublist of channel values inside 'rangeBounds'
+## Example:  set subList [img_proc::_find_value_range_in_channel_histogram $hist  {0 2.0}]
+proc ::img_proc::_find_value_range_in_channel_histogram {histogramDict \
+                                                          rangeBounds}  {
+  set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
+  set numKeys [llength $keys]
+  if { 2 != [llength $rangeBounds] } {
+      error "-E- Invalid structure of range bounds '$rangeBounds'; should be {min max}"
+  }
+  lassign $rangeBounds minV maxV
+  set gapsDict [dict create];   # will map gapFirstValue :: gapLastValue
+  # find the search-start index (-bisect gives last idx with element <= pattern)
+  if { -1 == [set iPrev [ \
+                  lsearch -real -bisect $keys [expr $minV - 0.0001]]] }  {
+    # start from the beginning; it's OK to pass -1 to lrange
+  }
+  if { -1 == [set iLast [ \
+                  lsearch -real -bisect $keys [expr $maxV + 0.0001]]] }  {
+    # no valuies in requested histogram range
+    puts "-I- No values below the max-limit ($maxV) in histogram range {$rangeBounds}"
+    return  [list]
+  }
+  if { $iPrev == [expr $numKeys - 1] }  {
+    # no valuies in requested histogram range
+    puts "-I- No values above the min-limit ($minV) in histogram range {$rangeBounds}"
+    return  [list]
+  }
+  set lastIdx [expr {([lindex $keys $iLast] > $maxV)? [expr $iLast - 1] \
+                                                    : $iLast}]
+  set keysSubList [lrange $keys  $iPrev  $lastIdx]
+  puts "-D- Found sublist \[$iPrev...$lastIdx\] / \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
+  return  $keysSubList
 }
 
 
