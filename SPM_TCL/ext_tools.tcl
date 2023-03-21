@@ -38,7 +38,7 @@ ok_trace_msg "---- Sourcing '[info script]' in '$SCRIPT_DIR' ----"
 # Reads the system-dependent paths from 'csvPath',
 # then assigns ultimate tool paths
 proc set_ext_tool_paths_from_csv {csvPath}  {
-  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::__IMMOGRIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL ::SPM
+  unset -nocomplain ::_IMCONVERT ::_IMIDENTIFY ::__IMMOGRIFY ::_IMMONTAGE  ::_IMCOMPOSITE ::_DCRAW ::_EXIFTOOL ::SPM
   
   set isWindows [expr {"WINDOWS" == [ok_utils::ok_detect_os_type]}]
   if { !$isWindows }  {
@@ -46,12 +46,14 @@ proc set_ext_tool_paths_from_csv {csvPath}  {
     set ::_IMCONVERT    "convert"
     set ::_IMIDENTIFY   "identify"
     set ::_IMMONTAGE    "montage"
-    set ::_IMMOGRIFY   "mogrify"
+    set ::_IMMOGRIFY    "mogrify"
+    set ::_IMCOMPOSITE  "composite"
     set ::_DCRAW        "dcraw"
     set ::IMCONVERT   "$::_IMCONVERT" ;  # sync historical flavors
     set ::IMMOGRIFY   "$::_IMMOGRIFY" ;  # sync historical flavors
     set ::IMIDENTIFY  "$::_IMIDENTIFY";  # sync historical flavors
     set ::IMMONTAGE   "$::_IMMONTAGE" ;  # sync historical flavors
+    set ::IMCOMPOSITE "$::_IMCOMPOSITE"; # sync historical flavors
     set ::DCRAW       "$::_DCRAW"     ;  # sync historical flavors
     puts "-I- Assume running on an unixoid - use pure tool executable names"
     return  1
@@ -67,7 +69,7 @@ proc set_ext_tool_paths_from_csv {csvPath}  {
 # Reads the system-dependent paths from their global variables,
 # then assigns ultimate tool paths
 proc _set_ext_tool_paths_from_variables {srcDescr}  {
-  unset -nocomplain ::_IMCONVERT ::_IMMOGRIFY ::_IMIDENTIFY ::_IMMONTAGE ::_DCRAW ::_EXIFTOOL
+  unset -nocomplain ::_IMCONVERT ::_IMMOGRIFY ::_IMIDENTIFY ::_IMMONTAGE ::_IMCOMPOSITE ::_DCRAW ::_EXIFTOOL
   if { 0 == [info exists ::_IM_DIR] }  {
     ok_err_msg "Imagemagick directory path not assigned to variable _IM_DIR; $srcDescr"
     return  0
@@ -80,6 +82,7 @@ proc _set_ext_tool_paths_from_variables {srcDescr}  {
   set ::IMMOGRIFY   "$::_IMMOGRIFY" ;  # sync historical flavors
   set ::IMIDENTIFY  "$::_IMIDENTIFY";  # sync historical flavors
   set ::IMMONTAGE   "$::_IMMONTAGE" ;  # sync historical flavors
+  set ::IMCOMPOSITE "$::_IMCOMPOSITE"; # sync historical flavors
   # - DCRAW:
   # unless ::_DCRAW_PATH points to some custom executable, point at the default
   if { (![info exists ::_DCRAW_PATH]) || (""== [string trim $::_DCRAW_PATH]) } {
