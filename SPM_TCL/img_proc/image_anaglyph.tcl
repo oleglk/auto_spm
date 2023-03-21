@@ -43,13 +43,35 @@ namespace eval ::img_proc:: {
 
 
 proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
-  return  [expr ($hueAngle * 100.0/180) + 100]
+  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
+                                              : [expr 360.0 + $hueAngle]}]
+  return  [expr ($hueAnglePositive * 100.0/180) + 100]
 }
 
 
-proc ::img_proc::_modulate_hue_TODO {inpName hueAngle}  {
-#~ img_proc::hue_angle_to_im_modulate_arg [expr 360.0 - 18.8]
-#~ convert SBS/DSC03172.jpg  -modulate 100,100,289.6  -quality 90  TMP/DSC03172_289d6.jpg
-#~ convert -crop 50%x100%  -quality 90  TMP/DSC03172_289d6.jpg  LR/DSC03172_289d6.jpg
-#~ composite -stereo 0  LR/DSC03172_289d6-0.jpg LR/DSC03172_289d6-1.jpg   -quality 90  ANA/DSC03172_289d6_FCA.jpg
+# Rotates image hue by 'hueAngle' and converts into red-cyan anaglyph
+## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -18.8  ANA TMP
+proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {
+  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
+                                              : [expr 360.0 + $hueAngle]}]
+  set hueStr [string map {. d} [format "%.02f" $hueAnglePositive]]
+  # decide o file names
+  #set outDir [file dirname [file normalize $outPath]]
+  set nameNoExt [file rootname [file tail $inpPath]]
+  if { $tmpDir == "" }  { set tmpDir $outDir }
+  set outPathLR [file join $tmpDir "tmp_LR.JPG"]
+  set outPathL  [file join $tmpDir "tmp_LR-0.JPG"];   # hardcoded rule in IM
+  set outPathR  [file join $tmpDir "tmp_LR-1.JPG"];   # hardcoded rule in IM
+  set outSpecLR  "-quality 95 $outPathLR"
+  set outSpecANA [format "-quality 90 %s_FCA_h%s.JPG" \
+                          [file join $outDir $nameNoExt] $hueStr]
+  set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAnglePositive]
+  # modulate the original SBS; save into temporary separate L/R files
+  set cmdM "$::IMCONVERT $inpPath  -modulate 100,100,$modulateArg  -crop 50%x100%  $outSpecLR"
+  puts "(Modulation command) ==> '$cmdM'"
+  exec  {*}$cmdM
+  # build full-color anaglyph out of the separate L/R files
+  set cmdA "$::IMCOMPOSITE -stereo 0  $outPathL $outPathR  $outSpecANA"
+  puts "(Anaglyph command) ==> '$cmdA'"
+  exec  {*}$cmdA
 }
