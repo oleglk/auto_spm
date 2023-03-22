@@ -308,6 +308,7 @@ proc ::img_proc::_brightness_txt_to_matrix {pixelLines nRows nCols normalize \
 }
 
 
+############# BEGIN: color-channel histogram analysis stuff ####################
 # TODO: threshold (units - prc or fraction depend on 'normalize') !!!
 ## Example:  set hist [img_proc::_channel_txt_to_histogram  $pixels  $::FP_DIGITS  1];  dict size $hist
 ## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
@@ -395,7 +396,7 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
 
   # find the search-start and search-end indices
   set keysSubList [img_proc::_find_value_range_in_channel_histogram   \
-                                                    $histogramDict $searchBounds]
+                                                  $histogramDict $searchBounds]
   if { 0 == [llength $keysSubList] }  {
     # no valuies in requested histogram range; message already printed
     return  [dict create  $minV $maxV];  # one gap over the full range
@@ -437,7 +438,70 @@ proc ::img_proc::_find_gaps_in_channel_histogram {histogramDict thresholdNorm \
 }
 
 
-# Returns ordered sublist of channel values inside 'rangeBounds'
+# Returns ordered list of {gapBegin gapEnd gapCnt} - ascending by gapCnt.
+# 'gapWidth' should be divisible by histogram unit (== 1/10^'precision')
+# The values in histogram should be normalized to 0..1
+## Example:  set orderedGapsList [img_proc::_find_max_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 1 0.5 0.001 {0 2.0}]
+## Fine-print the result:   foreach g $gaps {lassign $g beg end cnt;  puts "\[$beg ... $end\] => $cnt"}
+#### TODO: prepend 'width'/unit values with negative keys to histogram begin !!!
+proc ::img_proc::_find_max_gaps_in_channel_histogram {histogramDict precision \
+                                        gapWidth thresholdNorm searchBounds}  {
+  if { ![img_proc::_is_multiple_of_histogram_unit_width $gapWidth $precision]} {
+    error "-E- Gap width of $gapWidth is incompatible with histogram precision $precision"
+  }
+  if { 2 != [llength $searchBounds] } {
+      error "-E- Invalid structure of search bounds '$searchBounds'; should be {min max}"
+  }
+  lassign $searchBounds minV maxV
+
+  # find the search-start and search-end indices
+  set keysSubList [img_proc::_find_value_range_in_channel_histogram   \
+                                                  $histogramDict $searchBounds]
+  if { 0 == [set numKeys [llength $keysSubList]] }  {
+    # no valuies in requested histogram range; message already printed
+    return  [dict create  $minV $maxV];  # one gap over the full range
+  }
+  #~ set unitSubrange [expr {  \
+                #~ ([lindex $keysSubList end] - [lindex $keysSubList 0] + 1) \
+                                                  #~ / [llength $keysSubList]}]
+  ok_trace_msg "Search restricted to \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
+  
+  set gapNumUnits [img_proc::_calc_num_histogram_units_for_width \
+                                                    $gapWidth $precision]
+  ok_trace_msg "Assume $gapNumUnits histogram unit(s) in a gap of $gapWidth"
+  
+  # read 'gapNumUnits' units from the beginning of 'keysSubList'
+  # TODO: generalize to parallel eval of N ranges
+  if { $numKeys < $gapNumUnits }  {
+    ok_warn_msg "Not enough values in the histogram - $numKeys for requested $gapNumUnits"
+    return  [list]
+  }
+  set nextKeyIdx 0
+  set total 0.0;    set firstRangeFound 0
+  #[lrange $keysSubList 0 [expr $gapNumUnits - 1]]
+  while { !$firstRangeFound 1 }  {
+    set cntUnitsInCurrentRange 0
+    for  {set i $nextKeyIdx}  {$i < $gapNumUnits}  {incr i 1}   {
+      set uK [lindex $keysSubList $i]
+      set uV [dict get $histogramDict $uK]
+      set nextKeyIdx [expr $i + 1]
+      if { $uV >= $thresholdNorm }  { # no gap can include key_#i
+        set total 0.0
+        set cntUnitsInCurrentRange 0
+        break
+      }
+      incr cntUnitsInCurrentRange 1
+      set total [expr $total + $uV]
+    }
+    if { $cntUnitsInCurrentRange == $gapNumUnits }  {
+      set firstRangeFound 1
+      _TODO__push_one_subrange 
+    }
+  }
+}
+  
+  
+  # Returns ordered sublist of channel values inside 'rangeBounds'
 ## Example:  set subList [img_proc::_find_value_range_in_channel_histogram $hist  {0 2.0}]
 proc ::img_proc::_find_value_range_in_channel_histogram {histogramDict \
                                                           rangeBounds}  {
@@ -472,17 +536,45 @@ proc ::img_proc::_find_value_range_in_channel_histogram {histogramDict \
 }
 
 
+# To workaround floating-point problems:
+#                             precision == num of decimal digits after point
+# Returns width of one histogram subrange for given precision 0|1|2|3}.
+# 'scaledToInt' gets this width multiplied by 1000 - a guaranteed integer
+proc ::img_proc::_precision_to_histogram_unit_width {precision \
+                                                      {scaledToInt  "NONE"}}  {
+  if { $scaledToInt != "NONE" }   {  upvar $scaledToInt scaled  }
+  if {       $precision == 0 }  { set step 1.0;     set asInt 1000
+  } elseif { $precision == 1 }  { set step 0.1;     set asInt 100
+  } elseif { $precision == 2 }  { set step 0.01;    set asInt 10
+  } elseif { $precision == 3 }  { set step 0.001;   set asInt 1
+  } else {
+    error "Unsupported precision (numnber of floating-point digits) $precision; should be 0,1,2,3"
+  }
+  if { $scaledToInt != "NONE" }   { set scaled $asInt }
+  return  $step
+}
+
+
+proc ::img_proc::_is_multiple_of_histogram_unit_width {width precision}  {
+  set unit [img_proc::_precision_to_histogram_unit_width $precision unitX1000]
+  set widthScaled [expr {int( floor($width * 1000 + 0.000001) )}]
+  return  [expr ($widthScaled % $unitX1000) == 0]
+}
+
+
+proc ::img_proc::_calc_num_histogram_units_for_width {width precision}  {
+  set unit [img_proc::_precision_to_histogram_unit_width $precision unitX1000]
+  set widthScaled [expr {int( floor($width * 1000 + 0.000001) )}]
+  return  [expr $widthScaled / $unitX1000]
+}
+
+
 # Returns a new histogram with 2 additions:
 ## - all missing subranges inserted with zero counts
 ## - ?? TODO: duplicate for negative range ??
 proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
-  if {       $precision == 0 }  { set step 1.0
-  } elseif { $precision == 1 }  { set step 0.1
-  } elseif { $precision == 2 }  { set step 0.01
-  } elseif { $precision == 3 }  { set step 0.001
-  } else {
-    error "Unsupported precision (numnber of floating-point digits) $precision; should be 0,1,2,3"
-  }
+  set step [img_proc::_precision_to_histogram_unit_width $precision]
+  # exception occurred on invalid 'precision'
   set totalCopied 0;  set totalCompleted 0
   set precSpec [format {%%.%df} $precision]
   set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
@@ -528,3 +620,4 @@ proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
   puts "-I- Copied $totalCopied and completed $totalCompleted subrange(s) ([expr $totalCopied + $totalCompleted] out of [expr int(360 / $step)])"
   return  $fullHist
 }
+############# END:   color-channel histogram analysis stuff ####################
