@@ -29,6 +29,9 @@ namespace eval ::img_proc:: {
 # channel histogram precision as number of floating-point digits
 set ::FP_DIGITS  1
 
+# assumed max value of any color channel
+set ::MAX_CHANNEL_VALUE 65535
+
 # regular expression to parse one pixel grayscale value
 set ::_ONE_PIXEL_CHANNEL_DATA_REGEXP  {(\d+),(\d+):\s+.+gray\(([0-9.]+)%?\)}
 
@@ -113,7 +116,7 @@ proc ::img_proc::read_pixel_values {imgPath numBands numSteps \
 
 # Returns list of formatted pixel Hue values of image 'imgPath'
 ### Standalone invocation on Linux:
-#### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    set pixels [img_proc::read_pixel_hues  rose.tif  1]
+#### namespace forget ::img_proc::*;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/ext_tools.tcl;  source ~/ANY/GitWork/DualCam/auto_spm/SPM_TCL/img_proc/image_pixeldata.tcl;    set_ext_tool_paths_from_csv DUMMY;    set pixels [img_proc::read_pixel_hues  rose.tif  1];  llength $pixels
 proc ::img_proc::read_pixel_hues {imgPath scale {priErr 1}}  {
   if { ![file exists $imgPath] }  {
     ok_err_msg "-E- Inexistent input file '$imgPath'"
@@ -352,6 +355,18 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
 }
 
 
+## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
+proc ::img_proc::_nice_print_channel_histogram {histogramDict putsCB  \
+                                                   {min "NONE"} {max "NONE"}} {
+  set keys [lsort -real [dict keys $histogramDict]]
+  set minKey [expr {($min == "NONE")? -1                    : $min}]
+  set maxKey [expr {($max == "NONE")?  $::MAX_CHANNEL_VALUE : $max}]
+  set keysSublist [img_proc::_find_value_range_in_channel_histogram \
+                                        $histogramDict [list $min $max]]
+  foreach key $keysSublist { $putsCB "$key ==> [dict get $histogramDict $key]" }
+}
+
+
 ## Example:  img_proc::_channel_histogram_to_ordered_fragments $hist {{0 2.0}}
 proc ::img_proc::_channel_histogram_to_ordered_fragments {histogramDict \
                                                           fragmentBounds}   {
@@ -457,18 +472,18 @@ proc ::img_proc::_find_value_range_in_channel_histogram {histogramDict \
   if { -1 == [set iLast [ \
                   lsearch -real -bisect $keys [expr $maxV + 0.0001]]] }  {
     # no valuies in requested histogram range
-    puts "-I- No values below the max-limit ($maxV) in histogram range {$rangeBounds}"
+    ok_warn_msg "No values below the max-limit ($maxV) in histogram range {$rangeBounds}"
     return  [list]
   }
   if { $iPrev == [expr $numKeys - 1] }  {
     # no valuies in requested histogram range
-    puts "-I- No values above the min-limit ($minV) in histogram range {$rangeBounds}"
+    ok_warn_msg "No values above the min-limit ($minV) in histogram range {$rangeBounds}"
     return  [list]
   }
   set lastIdx [expr {([lindex $keys $iLast] > $maxV)? [expr $iLast - 1] \
                                                     : $iLast}]
   set keysSubList [lrange $keys  $iPrev  $lastIdx]
-  puts "-D- Found sublist \[$iPrev...$lastIdx\] / \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
+  ok_trace_msg "Found sublist \[$iPrev...$lastIdx\] / \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
   return  $keysSubList
 }
 

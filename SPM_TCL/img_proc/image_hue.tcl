@@ -35,7 +35,7 @@ namespace eval ::img_proc:: {
 # 'gapWidth' should be divisible by histogram unit (== 1/10^'precision')
 # The values in histogram should be normalized to 0..1
 ## Example:  set orderedGapsList [img_proc::find_max_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 1 0.5 0.001 {0 2.0}]
-## Fine-print the result:   foreach g $gaps {lassign $g beg end cnt;  puts "\[$beg ... $end\] => $cnt"}
+## Nice-print the result:   foreach g $gaps {lassign $g beg end cnt;  puts "\[$beg ... $end\] => $cnt"}
 #### TODO: prepend 'width'/unit values with negative keys to histogram begin !!!
 proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
                                         gapWidth thresholdNorm searchBounds}  {
@@ -73,7 +73,7 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
   }
   
   # Find the 1st suitable range; TODO: generalize for 3 colors
-  if { 0 == [img_proc::collect_one_hue_range $histogramDict $keysSubList \
+  if { 0 == [img_proc::_collect_one_hue_range $histogramDict $keysSubList \
                       $thresholdNorm 0 $gapNumUnits \
                       img_proc::_get_hue_unit_subrange_val__oneColor  \
                       img_proc::_push_hue_range] }  {
@@ -154,7 +154,7 @@ proc img_proc::_get_hue_unit_subrange_val__oneColor {histogramDict unitKey  \
 # A structure to store so-far minimal value range(s)
 set ::_MIN_VAL_RANGE_1 [dict create "FIRST" -1  "LAST" -1  "VAL" 1.1]
 proc img_proc::_push_hue_range {firstKeyIdx lastKeyIdx val}  {
-  set oldVal1 [dict get $::_MIN_VAL_RANGE_1  "VAL" ]
+  set oldVal [dict get $::_MIN_VAL_RANGE_1  "VAL" ]
   if { $val < $oldVal }   {
     set ::_MIN_VAL_RANGE_1 [dict create \
                       "FIRST" $firstKeyIdx  "LAST" $lastKeyIdx  "VAL" $val]
@@ -179,7 +179,7 @@ proc img_proc::_get_chosen_hue_ranges {}  {
 proc ::img_proc::_collect_one_hue_range {histogramDict keysList thresholdNorm \
                     firstKeyIdx rangeNumUnits \
                     getHueUnitSubrangeVal_CB pushHueRange_CB} {
-  set numKeys [llength $keysSubList]
+  set numKeys [llength $keysList]
   if { $numKeys < $rangeNumUnits }  {
     ok_warn_msg "Not enough values in the histogram range - $numKeys for requested $rangeNumUnits"
     return  [list]
@@ -195,9 +195,9 @@ proc ::img_proc::_collect_one_hue_range {histogramDict keysList thresholdNorm \
     for  {set i $nextKeyIdx}  {$i <= $lastKeyIdx}  {incr i 1}   {
       set nextKeyIdx [expr $i + 1];   # anyway
       set uK [lindex $keysList $i]
-      set uV [getHueUnitSubrangeVal_CB $histogramDict $uK $thresholdNorm]
+      set uV [$getHueUnitSubrangeVal_CB $histogramDict $uK $thresholdNorm]
       if { $uV == -1 }  { # no gap can include key_#i; restart from 'nextKeyIdx'
-        ok_trace_msg "Range \[$nextKeyIdx...$lastKeyIdx\] aborted at #$i (val=$uV)"
+        ok_trace_msg "Range \[[expr $nextKeyIdx-1]...$lastKeyIdx\] aborted at #$i (key=$uK)"
         set total 0.0
         set cntUnitsInCurrentRange 0
         break
@@ -207,10 +207,13 @@ proc ::img_proc::_collect_one_hue_range {histogramDict keysList thresholdNorm \
     }
   }
   if { $cntUnitsInCurrentRange == $rangeNumUnits }  {
-    ok_trace_msg "Range \[$nextKeyIdx...$lastKeyIdx\] accepted; total=$total"
-    pushHueRange_CB $nextKeyIdx $lastKeyIdx $total
+    set firstIdxInRange [expr $lastKeyIdx - $rangeNumUnits + 1]
+    set key1 [lindex $keysList $firstIdxInRange]
+    set key2 [lindex $keysList $lastKeyIdx]
+    ok_trace_msg "Range \[$key1...$key2\] accepted; range-total=$total"
+    $pushHueRange_CB $key1 $key2 $total
     return  1
   }
-  ok_trace_msg "No range accepted after index $firstKeyIdx"
+  ok_trace_msg "No range accepted after index $firstKeyIdx (channel-value [lindex $keysList $firstKeyIdx]"
   return  0
 }
