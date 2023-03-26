@@ -72,27 +72,34 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
   for {set iFirstAfterPrevRange 0} \
       {$iFirstAfterPrevRange < [llength $keysSubList]}  {}  {
     # Find the next full suitable range; TODO: generalize for 3 colors
+    set foundRange [list]
     set iLastOfPrevRange [img_proc::_collect_one_hue_range  \
                             $histogramDict $keysSubList \
                             $thresholdNorm $iFirstAfterPrevRange $gapNumUnits \
                             img_proc::_get_hue_unit_subrange_val__oneColor  \
-                            img_proc::_push_hue_range]
+                            img_proc::_push_hue_range \
+                            foundRange]
     if { $iLastOfPrevRange == -1  }  {
-      ok_warn_msg "No gaps of $gapWidth found in the histogram within {$searchBounds} after [lindex $keysSubList $iFirstAfterLastRange"
+      ok_trace_msg "No gaps of $gapWidth found in the histogram within {$searchBounds} after [lindex $keysSubList $iFirstAfterLastRange"
       return  [img_proc::_get_chosen_hue_ranges];  # whatever found earlier
     }
     #~ set prevRange [lindex [img_proc::_get_chosen_hue_ranges] 0]
     #~ lassign $fprevRange beginVal endVal cnt
     if { $iLastOfPrevRange >= [expr {[llength $keysSubList] - 1}] }   {
-      ok_trace_msg "Last posiible suitable subrange found - end reached"
+      ok_trace_msg "Last possible suitable subrange found - end reached"
       return  [img_proc::_get_chosen_hue_ranges];  # all the found ranges
     }
 
     # Try to advance the range one unit; jump at unit with val > thresahold
     set iFirstAfterPrevRange [expr $iLastOfPrevRange + 1]
+    set iFirstOfPrevRange    [expr $iLastOfPrevRange - $gapNumUnits + 1]
 
+    set advRange [list]
     set iLastOfAdvancedRange [img_proc::_advance_hue_range_one_unit \
-      TODO
+                $histogramDict $keysSubList    \
+                $iFirstOfPrevRange $iLastOfPrevRange $foundRange \
+                $thresholdNorm $getHueUnitSubrangeVal_CB $pushHueRange_CB \
+                advRange
   }
 
   #~ # Advance the range one unit at a time; jump at units with val > thresahold
@@ -196,13 +203,14 @@ proc img_proc::_get_chosen_hue_ranges {}  {
 
 # Searches the histogram for a consequent range of 'rangeNumUnits'
 #   SUITABLE units from the beginning of 'keysList' (ordered sublist of keys)
-# Returns last index of the found range in 'keysList'.
+# Returns the last index of the found range in 'keysList' or -1 if none found.
 ### The histogram is a dictionary of <CHANNEL-VALUE> :: <VALUE-OCCURENCE-COUNT>
 ### The values in histogram should be normalized to 0..1  (1 means all pixels)
 # TODO: generalize to parallel eval of N ranges
 proc ::img_proc::_collect_one_hue_range {histogramDict keysList thresholdNorm \
-                    firstKeyIdx rangeNumUnits \
-                    getHueUnitSubrangeVal_CB pushHueRange_CB} {
+                  firstKeyIdx rangeNumUnits \
+                  getHueUnitSubrangeVal_CB pushHueRange_CB foundRangeOrEmpty} {
+  upvar $foundRangeOrEmpty foundRange
   set numKeys [llength $keysList]
   if { $numKeys < $rangeNumUnits }  {
     ok_warn_msg "Not enough values in the histogram range - $numKeys for requested $rangeNumUnits"
@@ -234,53 +242,57 @@ proc ::img_proc::_collect_one_hue_range {histogramDict keysList thresholdNorm \
     set firstIdxInRange [expr $lastKeyIdx - $rangeNumUnits + 1]
     set key1 [lindex $keysList $firstIdxInRange]
     set key2 [lindex $keysList $lastKeyIdx]
-    ok_trace_msg "Range \[$key1...$key2\] accepted; range-total=$total"
+    ok_info_msg "Range \[$key1...$key2\] accepted; range-total=$total"
     $pushHueRange_CB $key1 $key2 $total
+    set foundRange [list $key1 $key2 $total]
     return  $lastKeyIdx
   }
-  ok_trace_msg "No range accepted after index $firstKeyIdx (channel-value [lindex $keysList $firstKeyIdx]"
+  ok_info_msg "No range accepted after index $firstKeyIdx (channel-value [lindex $keysList $firstKeyIdx]"
   return  -1
 }
 
 
 # Advances the given consequent range over the histogram
 #   to the next suitable range of the same size
+# Returns the last index of the found range in 'keysList' or -1 if none found.
 ### The histogram is a dictionary of <CHANNEL-VALUE> :: <VALUE-OCCURENCE-COUNT>
 ### The values in histogram should be normalized to 0..1  (1 means all pixels)
 # TODO: generalize to parallel eval of N ranges
-proc ::img_proc::_advance_hue_range_one_unit {histogramDict keysList thresholdNorm \
-                    prevSubRange \
-                    getHueUnitSubrangeVal_CB pushHueRange_CB} {
-  lassign $prevSubRange prevBeginVal prevEndVal prevCnt
-  set iFirstOfPrevRange [lsearch -bisect $keysList $prevBeginVal]
-  if { $iFirstOfFirstRange == -1 } {
-    error "Fatal: missing starting key ($endVal) of the first found fragment"
-  }
-  set iLastOfPrevRange [lsearch -bisect $keysList $prevEndVal]
-  if { $iLastOfFirstRange == -1 } {
-    error "Fatal: missing ending key ($endVal) of the first found fragment"
-  }
+proc ::img_proc::_advance_hue_range_one_unit {histogramDict keysList    \
+                iFirstOfPrevRange iLastOfPrevRange prevRange \
+                thresholdNorm getHueUnitSubrangeVal_CB pushHueRange_CB  \
+                foundRangeOrEmpty} {
+  upvar $foundRangeOrEmpty foundRange
+  lassign $prevRange prevBeginVal prevEndVal prevCost
   if { $iLastOfPrevRange >= [expr {[llength $keysList] - 1}] }   {
     ok_trace_msg "Reached end of histogram"
-    return  [list]
+    return  -1
   }
+  set prevRangeDescr "\[[$prevBeginVal...$prevEndVal\]"
 
   set iFirstAfterPrevRange [expr $iLastOfPrevRange + 1]
   set unitStep [expr {[lindex $keysList $iFirstAfterPrevRange]  \
                    - [lindex $keysList $iLastOfPrevRange]}]
   set rangeNumUnits [expr {int( ($prevEndVal - $prevBeginVal +1) / $unitStep )}]
-  ok_trace_msg "Will try to advance from \[$prevBeginVal...$prevEndVal\] ($rangeNumUnits unit(s))"
+  ok_trace_msg "Will try to advance from $prevRangeDescr by one unit"
 
-  # Advance the range one unit at a time; jump at units with val > thresahold
-  #set keysAfterPrevRange [lrange $keysList $iFirstAfterPrevRange end]
-  # try to move one unit; if unsuitable, search from the next index
-  set uK [lindex $keysList $iFirstAfterPrevRange]
-  set uV [$getHueUnitSubrangeVal_CB $histogramDict $uK $thresholdNorm]
-  if { $uV == -1 }  { # no gap can include key_#i; restart from 'nextKeyIdx'
-    ok_trace_msg "Range \[[expr $nextKeyIdx-1]...$lastKeyIdx\] aborted at #$i (key=$uK)"
-    set total 0.0
-    set cntUnitsInCurrentRange 0
-    break
+  # try to move one unit; if unsuitable (val > thresahold), report failure
+  set newLastUK [lindex $keysList $iFirstAfterPrevRange]
+  set newLastUV [$getHueUnitSubrangeVal_CB \
+                      $histogramDict $newLastUK $thresholdNorm]
+  if { $newLastUV == -1 }  { # no gap can include key_#iFirstAfterPrevRange
+    ok_trace_msg "Cannot advance range $prevRangeDescr to #$iFirstAfterPrevRange (key=$iFirstAfterPrevRange)"
+    return  -1
   }
-  incr cntUnitsInCurrentRange 1
-  set total [expr $total + $uV]
+  set prevFirstUK [lindex $keysList $iFirstOfPrevRange]
+  set prevFirstUV [$getHueUnitSubrangeVal_CB \
+                      $histogramDict $prevFirstUK $thresholdNorm]
+  set cost [expr $prevCost - $prevFirstUV + $uV];  # update cost for the advance
+
+  set newFirstUK [lindex $keysList [expr $iFirstOfPrevRange + 1]
+  ok_info_msg "Range \[$newFirstUK...$newLastUK\] accepted; range-total-cost=$cost"
+  $pushHueRange_CB $newFirstUK $newLastUK $cost
+  set foundRange [list $newFirstUK $newLastUK $cost]
+
+  return  $iFirstAfterPrevRange
+}
