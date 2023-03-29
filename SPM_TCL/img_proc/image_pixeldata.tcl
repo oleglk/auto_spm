@@ -126,8 +126,8 @@ proc ::img_proc::read_pixel_hues {imgPath scale {priErr 1}}  {
                             imgWidth imgHeight] }  {
     return  0;  # error already printed
   }
-  set newWidth  [expr $imgWidth  / $scale]
-  set newHeight [expr $imgHeight / $scale]
+  set newWidth  [expr int($imgWidth  / $scale)]
+  set newHeight [expr int($imgHeight / $scale)]
   set wXhStr [format {%dx%d!} $newWidth $newHeight]
   ## read data with 'convert <PATH>  -resize 3x2!  -colorspace HSB -channel Hue -separate  txt:-'
   set pixels [list]
