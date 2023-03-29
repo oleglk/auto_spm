@@ -69,6 +69,8 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
     return  [list]
   }
   
+  # Each loop iteration either advances the found range by 1 unit,
+  # or skips forward to the next suitable contiguous range
   set iLastOfAdvancedRange -1;  # indicates need to search for a whole new range
   for {set iFirstAfterPrevRange 0} \
       {$iFirstAfterPrevRange < [llength $keysSubList]}  {}  {
@@ -85,8 +87,6 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
         ok_trace_msg "No gaps of $gapWidth found in the histogram within {$searchBounds} after [lindex $keysSubList $iFirstAfterPrevRange]"
         return  [img_proc::_get_chosen_hue_ranges];  # whatever found earlier
       }
-      #~ set prevRange [lindex [img_proc::_get_chosen_hue_ranges] 0]
-      #~ lassign $fprevRange beginVal endVal cnt
       if { $iLastOfFoundRange >= [expr {[llength $keysSubList] - 1}] }   {
         ok_trace_msg "Last possible suitable subrange found - end reached"
         return  [img_proc::_get_chosen_hue_ranges];  # all the found ranges
@@ -106,12 +106,18 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
                 img_proc::_push_hue_range \
                 advRange]
     if { $iLastOfAdvancedRange != -1 }  { ;  # will try further advance
-      set iFirstAfterPrevRange [expr $iLastOfAdvancedRange + 1]
-      TODO: derive/provide iFirstOfPrevRange, iLastOfPrevRange; not in advRange!
+      set iFirstAfterPrevRange  [expr $iLastOfAdvancedRange + 1]
+      incr iFirstOfPrevRange    1;   # we advanced one unit
+      incr iLastOfPrevRange     1;   # we advanced one unit
+      set foundRange $advRange
     }
-    ok_trace_msg "Next iteration to start from #$iFirstAfterPrevRange out of $numKeys; try-advance=[expr ($iLastOfAdvancedRange==-1)? No:Yes]"
+    if { $iLastOfAdvancedRange == -1 }  {
+      ok_trace_msg "Next iteration to search from #$iFirstAfterPrevRange; max-index=[expr $numKeys-1]"
+    } else {
+      ok_trace_msg "Next iteration to advance one unit from \[#$iFirstOfPrevRange...#$iLastOfPrevRange\]; max-index=[expr $numKeys-1]"
+    }
     # end-of-'keysSubList' will be checked by the main loop
-if {"Q" == [gets stdin]}  {error "User interrupt"}; # OK_TMP
+###if {"Q" == [gets stdin]}  {error "User interrupt"}; # OK_TMP
   }
 
   return  [img_proc::_get_chosen_hue_ranges];  # OK_TMP; list of one
@@ -282,8 +288,8 @@ proc ::img_proc::_advance_hue_range_one_unit {histogramDict keysList    \
   ok_trace_msg "Will try to advance from $prevRangeDescr by one unit"
 
   # try to move one unit; if unsuitable (val > thresahold), report failure
-  set iFirstOfNewRange $iFirstAfterPrevRange
-  set iLastOfNewRange [expr $iLastOfPrevRange + 1];  # verified to be within bounds
+  set iFirstOfNewRange [expr $iFirstOfPrevRange + 1]
+  set iLastOfNewRange  [expr $iLastOfPrevRange  + 1];  # within bounds for sure
   set newLastUK [lindex $keysList $iLastOfNewRange]
   set newLastUV [$getHueUnitSubrangeVal_CB \
                       $histogramDict $newLastUK $thresholdNorm]
