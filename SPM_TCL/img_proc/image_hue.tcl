@@ -69,6 +69,8 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
     return  [list]
   }
   
+  img_proc::_clean_chosen_hue_ranges
+  
   # Each loop iteration either advances the found range by 1 unit,
   # or skips forward to the next suitable contiguous range
   set iLastOfAdvancedRange -1;  # indicates need to search for a whole new range
@@ -208,6 +210,11 @@ proc img_proc::_get_chosen_hue_ranges {}  {
             [list [dict get $::_MIN_CNT_RANGE_1 "FIRST"]  \
                   [dict get $::_MIN_CNT_RANGE_1 "LAST"]   \
                   [dict get $::_MIN_CNT_RANGE_1 "CNT"]    ]]
+}
+
+
+proc img_proc::_clean_chosen_hue_ranges {}  {
+  set ::_MIN_CNT_RANGE_1 [dict create "FIRST" -1  "LAST" -1  "CNT" 1.1]
 }
 ########################################################
 
