@@ -47,6 +47,15 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
       error "-E- Invalid structure of search bounds '$searchBounds'; should be {min max}"
   }
   lassign $searchBounds minV maxV
+  
+  
+  set gapNumUnits [img_proc::_calc_num_histogram_units_for_width \
+                                                    $gapWidth $precision]
+  ok_trace_msg "Assume $gapNumUnits histogram unit(s) in a gap of $gapWidth"
+
+  img_proc::_prepend_negative_range_to_circular_channel_histogram_keyList \
+                histogramDict [expr {int(ceil($gapNumUnits / 2.0))}]      \
+                360.0 $precision
 
   # find the search-start and search-end indices
   set keysSubList [img_proc::_find_value_range_in_channel_histogram   \
@@ -59,10 +68,6 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
                 #~ ([lindex $keysSubList end] - [lindex $keysSubList 0] + 1) \
                                                   #~ / [llength $keysSubList]}]
   ok_trace_msg "Search restricted to \[[lindex $keysSubList 0]...[lindex $keysSubList end]\]: {$keysSubList}"
-  
-  set gapNumUnits [img_proc::_calc_num_histogram_units_for_width \
-                                                    $gapWidth $precision]
-  ok_trace_msg "Assume $gapNumUnits histogram unit(s) in a gap of $gapWidth"
   
   if { $numKeys < $gapNumUnits }  {
     ok_warn_msg "Not enough values in the histogram - $numKeys for requested $gapNumUnits"
@@ -178,6 +183,27 @@ proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
   }
   puts "-I- Copied $totalCopied and completed $totalCompleted subrange(s) ([expr $totalCopied + $totalCompleted] out of [expr int(360 / $step)])"
   return  $fullHist
+}
+
+
+# Copies 'numUnitsToPrepend' from the tail of COMPLETE histogram into its head
+# The order is: n=>-1, n-1=>-2, etc.
+# 'maxKeyRangeVal' == (MAX_KEY + UNIT_RANGE); for hue it's 360.0
+proc img_proc::_prepend_negative_range_to_circular_channel_histogram_keyList { \
+                histogramDictRef numUnitsToPrepend maxKeyRangeVal precision}  {
+  upvar $histogramDictRef histogramDict
+  set precSpec [format {%%.%df} $precision]
+  set step [img_proc::_precision_to_histogram_unit_width $precision]
+  set keys [lsort -real [dict keys $histogramDict]];  # keys are channel values
+  set iFirstKeyToAdd [expr [llength $keys] - $numUnitsToPrepend]
+  set keysToAdd [lreverse [lrange $keys $iFirstKeyToAdd end]]
+  set negKey 0.0
+  foreach k $keysToAdd  {
+    set val [dict get $histogramDict $k]
+    set negKey [format $precSpec [expr $negKey - $step]]
+    dict set histogramDict $negKey $val]
+  }
+  return  1
 }
 
 

@@ -30,7 +30,8 @@ namespace eval ::img_proc:: {
 set ::FP_DIGITS  1
 
 # assumed max value of any color channel
-set ::MAX_CHANNEL_VALUE 65535
+set ::MAX_CHANNEL_VALUE 32767
+set ::MIN_CHANNEL_VALUE -32768
 
 # regular expression to parse one pixel grayscale value
 set ::_ONE_PIXEL_CHANNEL_DATA_REGEXP  {(\d+),(\d+):\s+.+gray\(([0-9.]+)%?\)}
@@ -359,10 +360,12 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
 proc ::img_proc::_nice_print_channel_histogram {histogramDict putsCB  \
                                                    {min "NONE"} {max "NONE"}} {
   set keys [lsort -real [dict keys $histogramDict]]
-  set minKey [expr {($min == "NONE")? -1                    : $min}]
-  set maxKey [expr {($max == "NONE")?  $::MAX_CHANNEL_VALUE : $max}]
+  if { $min == "NONE" }    {  set minKey [lindex $keys 0];       # $::MIN_CHANNEL_VALUE
+  } else {                                set minKey $min }
+  if { $max == "NONE" }    { set maxKey [lindex $keys end];  # $::MAX_CHANNEL_VALUE
+  } else {                                set maxKey $max }
   set keysSublist [img_proc::_find_value_range_in_channel_histogram \
-                                        $histogramDict [list $min $max]]
+                                        $histogramDict [list $minKey $maxKey]]
   foreach key $keysSublist { $putsCB "$key ==> [dict get $histogramDict $key]" }
 }
 
