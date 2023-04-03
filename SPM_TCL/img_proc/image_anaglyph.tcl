@@ -42,13 +42,6 @@ namespace eval ::img_proc:: {
 ################################################################################
 
 
-proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
-  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
-                                              : [expr 360.0 + $hueAngle]}]
-  return  [expr ($hueAnglePositive * 100.0/180) + 100]
-}
-
-
 # Rotates image hue by 'hueAngle' and converts into red-cyan anaglyph
 ## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -18.8  ANA TMP
 proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {

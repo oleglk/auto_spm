@@ -53,7 +53,7 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
                                                     $gapWidth $precision]
   ok_trace_msg "Assume $gapNumUnits histogram unit(s) in a gap of $gapWidth"
 
-  img_proc::_prepend_negative_range_to_circular_channel_histogram_keyList \
+  img_proc::_prepend_negative_range_to_circular_channel_histogram_keylist \
                 histogramDict [expr {int(ceil($gapNumUnits / 2.0))}]      \
                 360.0 $precision
 
@@ -131,6 +131,43 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
 }
 
 
+# Converts 'hueAngle' int othe argument for "-modulate".
+# Spec: -60.0=>33.3;  0.0=>100.0;  180.0=>0.0;  -180.0=>200.0
+# Format: integer or fixed-point (not float-point!).
+proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
+  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
+                                : [expr 360.0 + $hueAngle]}]
+  set argRaw [expr ($hueAnglePositive * 100.0/180) + 100]
+  
+  # restrict number of digits after the point t othat of the input argument
+  set intAndFract [split $hueAngle "."]
+  set precision [expr {([llength $intAndFract] == 1)?   \
+                                  0 : [string length [lindex $intAndFract 1]]}]
+  set precSpec [format {%%.%df} $precision]
+  return  [format $precSpec $argRaw]
+}
+
+
+# Rotates image hue by 'hueAngle'
+# TODO: support optional TIF output
+## Example: img_proc::hue_modulate  SBS/DSC03172.jpg  -18.8  TMP
+proc ::img_proc::hue_modulate {inpPath hueAngle {outDir ""} }  {
+  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
+                                              : [expr 360.0 + $hueAngle]}]
+  set hueStr [string map {. d} [format "%.02f" $hueAnglePositive]]
+  # decide on output file name and dir
+  set nameNoExt [file rootname [file tail $inpPath]]
+  if { $outDir == "" }  { set outDir [file dirname [file normalize $inpPath]] }
+  set outSpec [format "-quality 90 %s_h%s.JPG" \
+                          [file join $outDir $nameNoExt] $hueStr]
+  set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAnglePositive]
+  # modulate the original file
+  set cmdM "$::IMCONVERT $inpPath  -modulate 100,100,$modulateArg  $outSpec"
+  puts "(Modulation command) ==> '$cmdM'"
+  exec  {*}$cmdM
+}
+
+
 ################################################################################
 
 # Returns a new histogram with 2 additions:
@@ -189,7 +226,7 @@ proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
 # Copies 'numUnitsToPrepend' from the tail of COMPLETE histogram into its head
 # The order is: n=>-1, n-1=>-2, etc.
 # 'maxKeyRangeVal' == (MAX_KEY + UNIT_RANGE); for hue it's 360.0
-proc img_proc::_prepend_negative_range_to_circular_channel_histogram_keyList { \
+proc img_proc::_prepend_negative_range_to_circular_channel_histogram_keylist { \
                 histogramDictRef numUnitsToPrepend maxKeyRangeVal precision}  {
   upvar $histogramDictRef histogramDict
   set precSpec [format {%%.%df} $precision]
@@ -201,7 +238,7 @@ proc img_proc::_prepend_negative_range_to_circular_channel_histogram_keyList { \
   foreach k $keysToAdd  {
     set val [dict get $histogramDict $k]
     set negKey [format $precSpec [expr $negKey - $step]]
-    dict set histogramDict $negKey $val]
+    dict set histogramDict $negKey $val
   }
   return  1
 }
