@@ -43,7 +43,7 @@ namespace eval ::img_proc:: {
 
 
 # Rotates image hue by 'hueAngle' and converts into red-cyan anaglyph
-## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -18.8  ANA TMP
+## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -0.2  ANA TMP
 proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {
   set hueAngleSign [expr {($hueAngle >= 0)? "p" : "m"}]
   set hueStr [string map {. d} [format "%s%.02f" \

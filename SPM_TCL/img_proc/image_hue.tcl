@@ -271,6 +271,8 @@ proc img_proc::_push_hue_range {firstKey lastKey val}  {
                       "FIRST" $firstKey  "LAST" $lastKey  "CNT" $val]
     ok_trace_msg "Range \[$firstKey...$lastKey\] registered as minimal (count=$val)"
     return  1
+  } else {
+    ok_trace_msg "Range \[$firstKey...$lastKey\] is not minimal (count=$val >= $oldVal)"
   }
   return  0;  # the range is ignored
 }
