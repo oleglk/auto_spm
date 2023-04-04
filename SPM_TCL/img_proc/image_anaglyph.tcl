@@ -45,9 +45,9 @@ namespace eval ::img_proc:: {
 # Rotates image hue by 'hueAngle' and converts into red-cyan anaglyph
 ## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -18.8  ANA TMP
 proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {
-  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
-                                              : [expr 360.0 + $hueAngle]}]
-  set hueStr [string map {. d} [format "%.02f" $hueAnglePositive]]
+  set hueAngleSign [expr {($hueAngle >= 0)? "p" : "m"}]
+  set hueStr [string map {. d} [format "%s%.02f" \
+                                          $hueAngleSign [expr abs($hueAngle)]]]
   # decide o file names
   #set outDir [file dirname [file normalize $outPath]]
   set nameNoExt [file rootname [file tail $inpPath]]
@@ -58,7 +58,7 @@ proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {
   set outSpecLR  "-quality 95 $outPathLR"
   set outSpecANA [format "-quality 90 %s_FCA_h%s.JPG" \
                           [file join $outDir $nameNoExt] $hueStr]
-  set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAnglePositive]
+  set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAngle]
   # modulate the original SBS; save into temporary separate L/R files
   set cmdM "$::IMCONVERT $inpPath  -modulate 100,100,$modulateArg  -crop 50%x100%  $outSpecLR"
   puts "(Modulation command) ==> '$cmdM'"

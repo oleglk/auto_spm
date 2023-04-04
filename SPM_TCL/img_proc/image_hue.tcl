@@ -55,7 +55,7 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
 
   img_proc::_prepend_negative_range_to_circular_channel_histogram_keylist \
                 histogramDict [expr {int(ceil($gapNumUnits / 2.0))}]      \
-                360.0 $precision
+                255.0 $precision
 
   # find the search-start and search-end indices
   set keysSubList [img_proc::_find_value_range_in_channel_histogram   \
@@ -132,12 +132,20 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
 
 
 # Converts 'hueAngle' int othe argument for "-modulate".
-# Spec: -60.0=>33.3;  0.0=>100.0;  180.0=>0.0;  -180.0=>200.0
+## Spec deg=>%: +-180.0=>200.0|0.0(R>C)  -90=>50  -60.0=>33.3(R>B)
+## Spec deg=>%: 0.0|300.0=>100.0|360.0
+## Spec deg=>%: ?.?=>166.6(R>G)
+### If you set H=100, there is no change,
+### If you change 100 by 100 to H=0 or H=200, you get a 180 rotation.
+### Think of hue as a circle, every 60 degrees you have R,Y,G,C,B,M
+### So 180 degree change from red will be cyan.
+### So every color will be rotated 180 degree when you set H=0 or 200,
+###                    but will be unchanged when you use H=100 in -modulate.
+#### Hue is a 'modulus' value; hue of 255 and 0 are both almost the same red.
 # Format: integer or fixed-point (not float-point!).
+# Note that reading hue with depth=8 rounds values; example: 166.6 -> 170 !
 proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
-  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
-                                : [expr 360.0 + $hueAngle]}]
-  set argRaw [expr ($hueAnglePositive * 100.0/180) + 100]
+  set argRaw [expr ($hueAngle * 100.0/180) + 100]
   
   # restrict number of digits after the point t othat of the input argument
   set intAndFract [split $hueAngle "."]
@@ -152,15 +160,15 @@ proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
 # TODO: support optional TIF output
 ## Example: img_proc::hue_modulate  SBS/DSC03172.jpg  -18.8  TMP
 proc ::img_proc::hue_modulate {inpPath hueAngle {outDir ""} }  {
-  set hueAnglePositive [expr {($hueAngle >= 0)? $hueAngle  \
-                                              : [expr 360.0 + $hueAngle]}]
-  set hueStr [string map {. d} [format "%.02f" $hueAnglePositive]]
+  set hueAngleSign [expr {($hueAngle >= 0)? "p" : "m"}]
+  set hueStr [string map {. d} [format "%s%.02f" \
+                                          $hueAngleSign [expr abs($hueAngle)]]]
   # decide on output file name and dir
   set nameNoExt [file rootname [file tail $inpPath]]
   if { $outDir == "" }  { set outDir [file dirname [file normalize $inpPath]] }
   set outSpec [format "-quality 90 %s_h%s.JPG" \
                           [file join $outDir $nameNoExt] $hueStr]
-  set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAnglePositive]
+  set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAngle]
   # modulate the original file
   set cmdM "$::IMCONVERT $inpPath  -modulate 100,100,$modulateArg  $outSpec"
   puts "(Modulation command) ==> '$cmdM'"
@@ -171,7 +179,7 @@ proc ::img_proc::hue_modulate {inpPath hueAngle {outDir ""} }  {
 ################################################################################
 
 # Returns a new histogram with 2 additions:
-## - all missing subranges inserted with zero counts
+## - all missing subranges (up to 255.0) inserted with zero counts
 ## - ?? TODO: duplicate for negative range ??
 proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
   set step [img_proc::_precision_to_histogram_unit_width $precision]
@@ -204,28 +212,29 @@ proc ::img_proc::_complete_hue_histogram {histogramDict precision}  {
     incr totalCopied 1
   }
   set lastKey [lindex $keys end]
-  set lastHueRangeStart [format $precSpec [expr 360.0 - $step]]
+  set lastHueRangeStart [format $precSpec [expr 255.0 - $step]]
   if { $lastKey < $lastHueRangeStart }  {
     ##set h [expr $lastKey + $step]
     set h [format $precSpec [expr $lastKey + $step]]
     # complete subranges 'last-key' ... 'lastHueRangeStart'
-    while { $h < 360 }  {
+    while { $h < 255.0 }  {
       dict set fullHist $h 0
       set lastDone $h
       set h [format $precSpec [expr $h + $step]]
       incr totalCompleted 1
     }
     puts "-D- Completed subrange(s) '[expr $lastKey + $step]'...'$lastDone' (step = $step)"
-    puts "-D- Nominal last subrange = '$lastHueRangeStart' ... 360"
+    puts "-D- Nominal last subrange = '$lastHueRangeStart' ... 255"
   }
-  puts "-I- Copied $totalCopied and completed $totalCompleted subrange(s) ([expr $totalCopied + $totalCompleted] out of [expr int(360 / $step)])"
+  puts "-I- Copied $totalCopied and completed $totalCompleted subrange(s) ([expr $totalCopied + $totalCompleted] out of [expr int(255 / $step)])"
   return  $fullHist
 }
 
 
 # Copies 'numUnitsToPrepend' from the tail of COMPLETE histogram into its head
 # The order is: n=>-1, n-1=>-2, etc.
-# 'maxKeyRangeVal' == (MAX_KEY + UNIT_RANGE); for hue it's 360.0
+# 'maxKeyRangeVal' == (MAX_KEY + UNIT_RANGE); for hue it's 255.0
+## Example:    set hist2 $hist1;    img_proc::_prepend_negative_range_to_circular_channel_histogram_keylist  hist2 10  255.0 1
 proc img_proc::_prepend_negative_range_to_circular_channel_histogram_keylist { \
                 histogramDictRef numUnitsToPrepend maxKeyRangeVal precision}  {
   upvar $histogramDictRef histogramDict

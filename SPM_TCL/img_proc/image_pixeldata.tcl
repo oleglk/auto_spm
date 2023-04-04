@@ -357,7 +357,7 @@ proc ::img_proc::_channel_txt_to_histogram {pixelLines precision normalize \
 
 
 ## Nice-print the histogram:  dict for {k v} $hist  {puts "$k :: $v"}
-proc ::img_proc::_nice_print_channel_histogram {histogramDict putsCB  \
+proc ::img_proc::nice_print_channel_histogram {histogramDict putsCB  \
                                                    {min "NONE"} {max "NONE"}} {
   set keys [lsort -real [dict keys $histogramDict]]
   if { $min == "NONE" }    {  set minKey [lindex $keys 0];       # $::MIN_CHANNEL_VALUE
