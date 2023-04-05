@@ -43,8 +43,9 @@ namespace eval ::img_proc:: {
 
 
 # Rotates image hue by 'hueAngle' and converts into red-cyan anaglyph
-## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -0.2  ANA TMP
-proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {
+## Example: img_proc::hue_modulate_anaglyph_by_angle  SBS/DSC03172.jpg  -0.2  ANA TMP
+proc ::img_proc::hue_modulate_anaglyph_by_angle {inpPath hueAngle outDir \
+                                                                {tmpDir ""} }  {
   set hueAngleSign [expr {($hueAngle >= 0)? "p" : "m"}]
   set hueStr [string map {. d} [format "%s%.02f" \
                                           $hueAngleSign [expr abs($hueAngle)]]]
@@ -60,11 +61,22 @@ proc ::img_proc::hue_modulate_anaglyph {inpPath hueAngle outDir {tmpDir ""} }  {
                           [file join $outDir $nameNoExt] $hueStr]
   set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAngle]
   # modulate the original SBS; save into temporary separate L/R files
-  set cmdM "$::IMCONVERT $inpPath  -modulate 100,100,$modulateArg  -crop 50%x100%  $outSpecLR"
+  set cmdM "$::IMCONVERT $inpPath  -define modulate:colorspace=HSB  -modulate 100,100,$modulateArg  -crop 50%x100%  $outSpecLR"
   puts "(Modulation command) ==> '$cmdM'"
   exec  {*}$cmdM
   # build full-color anaglyph out of the separate L/R files
   set cmdA "$::IMCOMPOSITE -stereo 0  $outPathL $outPathR  $outSpecANA"
   puts "(Anaglyph command) ==> '$cmdA'"
   exec  {*}$cmdA
+}
+
+
+# Rotates image hue by 'hueValue' (units from images when depth=8)
+# and converts into red-cyan anaglyph
+## Example: img_proc::hue_modulate_anaglyph  SBS/DSC03172.jpg  -0.2  ANA TMP
+proc ::img_proc::hue_modulate_anaglyph_by_value {inpPath hueValue outDir \
+                                                              {tmpDir ""} }  {
+  set hueAngle [img_proc::hue_value_to_hue_angle $hueValue]
+  return  [img_proc::hue_modulate_anaglyph_by_angle \
+                                            $inpPath $hueAngle $outDir $tmpDir]
 }

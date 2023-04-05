@@ -30,6 +30,43 @@ namespace eval ::img_proc:: {
 
 
 
+# Converts 'hueAngle' into the argument for "-modulate".
+## Spec deg=>%: +-180.0=>200.0|0.0(R>C)  -90=>50  -60.0=>33.3(R>B)
+## Spec deg=>%: 0.0|300.0=>100.0|360.0
+## Spec deg=>%: ?.?=>166.6(R>G)
+### If you set H=100, there is no change,
+### If you change 100 by 100 to H=0 or H=200, you get a 180 rotation.
+### Think of hue as a circle, every 60 degrees you have R,Y,G,C,B,M
+### So 180 degree change from red will be cyan.
+### So every color will be rotated 180 degree when you set H=0 or 200,
+###                    but will be unchanged when you use H=100 in -modulate.
+#### The following applies to hue channel values in 8 bit per channel mode: ####
+#### Hue is a 'modulus' value; hue of 255 and 0 are both almost the same red.
+# Format: integer or fixed-point (not float-point!).
+# Note that reading hue with depth=8 rounds values; example: 166.6 -> 170 !
+proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
+  set argRaw [expr ($hueAngle * 100.0/180) + 100]
+  
+  # restrict number of digits after the point t othat of the input argument
+  set intAndFract [split $hueAngle "."]
+  set precision [expr {([llength $intAndFract] == 1)?   \
+                                  0 : [string length [lindex $intAndFract 1]]}]
+  set precSpec [format {%%.%df} $precision]
+  return  [format $precSpec $argRaw]
+}
+
+
+proc ::img_proc::hue_value_to_hue_angle {hueValue}  {
+  return  [expr $hueValue * 180.0 / 255]
+}
+
+
+proc ::img_proc::hue_value_to_im_modulate_arg {hueValue}  {
+  set hueAngle [img_proc::hue_value_to_hue_angle $hueValue]
+  return  [img_proc::hue_angle_to_im_modulate_arg $hueAngle]
+}
+
+
 
 # Returns ordered list of {gapBegin gapEnd gapCnt} - ascending by gapCnt.
 # 'gapWidth' should be divisible by histogram unit (== 1/10^'precision')
@@ -131,35 +168,10 @@ proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
 }
 
 
-# Converts 'hueAngle' int othe argument for "-modulate".
-## Spec deg=>%: +-180.0=>200.0|0.0(R>C)  -90=>50  -60.0=>33.3(R>B)
-## Spec deg=>%: 0.0|300.0=>100.0|360.0
-## Spec deg=>%: ?.?=>166.6(R>G)
-### If you set H=100, there is no change,
-### If you change 100 by 100 to H=0 or H=200, you get a 180 rotation.
-### Think of hue as a circle, every 60 degrees you have R,Y,G,C,B,M
-### So 180 degree change from red will be cyan.
-### So every color will be rotated 180 degree when you set H=0 or 200,
-###                    but will be unchanged when you use H=100 in -modulate.
-#### Hue is a 'modulus' value; hue of 255 and 0 are both almost the same red.
-# Format: integer or fixed-point (not float-point!).
-# Note that reading hue with depth=8 rounds values; example: 166.6 -> 170 !
-proc ::img_proc::hue_angle_to_im_modulate_arg {hueAngle}  {
-  set argRaw [expr ($hueAngle * 100.0/180) + 100]
-  
-  # restrict number of digits after the point t othat of the input argument
-  set intAndFract [split $hueAngle "."]
-  set precision [expr {([llength $intAndFract] == 1)?   \
-                                  0 : [string length [lindex $intAndFract 1]]}]
-  set precSpec [format {%%.%df} $precision]
-  return  [format $precSpec $argRaw]
-}
-
-
 # Rotates image hue by 'hueAngle'
 # TODO: support optional TIF output
-## Example: img_proc::hue_modulate  SBS/DSC03172.jpg  -18.8  TMP
-proc ::img_proc::hue_modulate {inpPath hueAngle {outDir ""} }  {
+## Example: img_proc::hue_modulate_by_angle  SBS/DSC03172.jpg  -18.8  TMP
+proc ::img_proc::hue_modulate_by_angle {inpPath hueAngle {outDir ""} }  {
   set hueAngleSign [expr {($hueAngle >= 0)? "p" : "m"}]
   set hueStr [string map {. d} [format "%s%.02f" \
                                           $hueAngleSign [expr abs($hueAngle)]]]
@@ -170,9 +182,18 @@ proc ::img_proc::hue_modulate {inpPath hueAngle {outDir ""} }  {
                           [file join $outDir $nameNoExt] $hueStr]
   set modulateArg [img_proc::hue_angle_to_im_modulate_arg $hueAngle]
   # modulate the original file
-  set cmdM "$::IMCONVERT $inpPath  -modulate 100,100,$modulateArg  $outSpec"
+  set cmdM "$::IMCONVERT $inpPath  -define modulate:colorspace=HSB  -modulate 100,100,$modulateArg  $outSpec"
   puts "(Modulation command) ==> '$cmdM'"
   exec  {*}$cmdM
+}
+
+
+# Rotates image hue by 'hueAngle'
+# TODO: support optional TIF output
+## Example: img_proc::hue_modulate_by_angle  SBS/DSC03172.jpg  -10  TMP
+proc ::img_proc::hue_modulate_by_value {inpPath hueValue {outDir ""} }  {
+  set hueAngle [img_proc::hue_value_to_hue_angle $hueValue]
+  return  [img_proc::hue_modulate_by_angle $inpPath $hueAngle $outDir]
 }
 
 
