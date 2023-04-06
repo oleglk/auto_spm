@@ -74,6 +74,7 @@ proc _set_ext_tool_paths_from_variables {srcDescr}  {
     ok_err_msg "Imagemagick directory path not assigned to variable _IM_DIR; $srcDescr"
     return  0
   }
+  set ::_IMCOMPOSITE  [format "{%s}"  [file join $::_IM_DIR "composite.exe"]]
   set ::_IMCONVERT  [format "{%s}"  [file join $::_IM_DIR "convert.exe"]]
   set ::_IMMOGRIFY  [format "{%s}"  [file join $::_IM_DIR "mogrify.exe"]]
   set ::_IMIDENTIFY [format "{%s}"  [file join $::_IM_DIR "identify.exe"]]
