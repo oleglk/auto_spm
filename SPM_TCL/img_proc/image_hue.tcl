@@ -74,7 +74,7 @@ proc ::img_proc::hue_value_to_im_modulate_arg {hueValue}  {
 ### The values in histogram should be normalized to 0..1  (1 means all pixels)
 ## Example:  set orderedGapsList [img_proc::find_max_gaps_in_channel_histogram [img_proc::_complete_hue_histogram $hist $::FP_DIGITS] 1 0.5 0.001 {0 2.0}]
 ## Nice-print the result:   foreach g $gaps {lassign $g beg end cnt;  puts "\[$beg ... $end\] => $cnt"}
-#### TODO: prepend 'width'/unit values with negative keys to histogram begin !!!
+#### TODO: move 'searchBounds' 'width'/unit values leftwards into negative keys
 proc ::img_proc::find_max_gaps_in_channel_histogram {histogramDict precision \
                                         gapWidth thresholdNorm searchBounds}  {
   if { ![img_proc::_is_multiple_of_histogram_unit_width $gapWidth $precision]} {
